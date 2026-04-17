@@ -11,6 +11,10 @@ import { resolveCorpCodeTool } from "./resolve-corp-code.js";
 import { searchDisclosuresTool } from "./search-disclosures.js";
 import { getCompanyTool } from "./get-company.js";
 import { getFinancialsTool } from "./get-financials.js";
+import { getFullFinancialsTool } from "./get-full-financials.js";
+import { downloadDocumentTool } from "./download-document.js";
+import { getXbrlTool } from "./get-xbrl.js";
+import { getPeriodicReportTool } from "./get-periodic-report.js";
 
 export type ToolContext = ToolCtx;
 export type ToolDefinition = ToolDef;
@@ -22,12 +26,12 @@ export type ToolDefinition = ToolDef;
  *  [x] 2. search_disclosures         [P0]
  *  [x] 3. get_company                [P0]
  *  [x] 4. get_financials             [P0]
- *  [ ] 5. download_document          [P1]
- *  [ ] 6. get_full_financials        [P1]
- *  [ ] 7. get_xbrl                   [P1]
- *  [ ] 8. get_periodic_report        [P1]
- *  [ ] 9. get_executive_compensation [P2]
- *  [ ] 10. get_shareholders          [P2]
+ *  [x] 5. download_document          [P1]
+ *  [x] 6. get_full_financials        [P1]
+ *  [x] 7. get_xbrl                   [P1]
+ *  [x] 8. get_periodic_report        [P1]  (29개 섹션 enum 압축)
+ *  [ ] 9. get_shareholders           [P2]
+ *  [ ] 10. get_executive_compensation[P2]
  *  [ ] 11. get_major_holdings        [P2]
  *  [ ] 12. get_corporate_event       [P2]
  *  [ ] 13. get_securities_filing     [P3]
@@ -39,4 +43,8 @@ export const TOOL_REGISTRY: ToolDef[] = [
   searchDisclosuresTool,
   getCompanyTool,
   getFinancialsTool,
+  getFullFinancialsTool,
+  downloadDocumentTool,
+  getXbrlTool,
+  getPeriodicReportTool,
 ];

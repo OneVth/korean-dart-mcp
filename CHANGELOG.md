@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.0] - 2026-04-18
+
+P1 릴리스 — 8/15 도구 완성. enum 압축 핵심 도구 `get_periodic_report` 포함.
+
+### Added
+- **`get_full_financials`**: 전체 재무제표(BS/IS/CF/CIS/SCE 수백 행). `fs` 로 연결(CFS)/별도(OFS) 선택.
+- **`download_document`**: 공시 원문 XML(DART 전용 마크업) ZIP 해제 → UTF-8 텍스트. 대형 보고서 `truncate_at` 절단 (기본 10만 자).
+- **`get_xbrl`**: XBRL 원본 ZIP 을 `~/.korean-dart-mcp/xbrl/{rcept_no}_{reprt_code}/` 로 해제. 파싱 없이 원본 경로 반환 — Claude 가 직접 파일 업로드해 임의 집계하는 패턴 지원.
+- **`get_periodic_report`**: 사업보고서 29개 섹션(주주·임직원·보수·감사인·배당·자기주식·채권·자금사용 등)을 `report_type` enum 단일화. OpenDartReader 매핑 기반.
+- `iconv-lite` 의존성 추가 (원문 XML 의 EUC-KR 인코딩 대응 예비)
+
+### Fixed
+- `DartClient.getZip` 가 DART 에러 응답(JSON/HTML)을 ZIP 으로 받아 파싱 실패하던 문제 — PK 매직 넘버 검사 + JSON 에러 파싱 추가
+- `get_xbrl` 엔드포인트 `xbrl.xml` → `fnlttXbrl.xml` 로 수정
+
+### Verified
+- 삼성전자 2023 사업보고서 원문 6MB XML 정상 추출, XBRL 8개 파일(.xbrl/.xsd/lab/pre/cal/def) 총 20MB+ 정상 해제
+- `get_periodic_report` 로 배당·최대주주·회계감사 섹션 교차 검증 완료
+
 ## [0.1.0] - 2026-04-18
 
 초기 릴리스 — P0 MVP. 4개 도구 + corp_code 자동 해결.

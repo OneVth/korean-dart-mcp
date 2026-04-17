@@ -37,7 +37,8 @@ export class DartClient {
     return (await res.json()) as T;
   }
 
-  /** ZIP 엔드포인트 호출 (corp_code 덤프, 원문 XML, XBRL 등) */
+  /** ZIP 엔드포인트 호출 (corp_code 덤프, 원문 XML, XBRL 등).
+   *  DART 는 에러 시 Content-Type 은 zip 이지만 바디는 {"status":"013",...} JSON 을 돌려준다. */
   async getZip(
     path: string,
     params: Record<string, string | number | undefined> = {},
@@ -48,7 +49,22 @@ export class DartClient {
       throw new Error(`DART ${path} → HTTP ${res.status}`);
     }
     const ab = await res.arrayBuffer();
-    return Buffer.from(ab);
+    const buf = Buffer.from(ab);
+    // PK\x03\x04 (zip local file header) 또는 PK\x05\x06 (empty zip) 으로 시작해야 정상
+    if (buf.length >= 2 && buf[0] === 0x50 && buf[1] === 0x4b) return buf;
+    // JSON 에러 응답 감지
+    const head = buf.subarray(0, Math.min(512, buf.length)).toString("utf8");
+    if (head.trimStart().startsWith("{")) {
+      try {
+        const err = JSON.parse(head) as { status?: string; message?: string };
+        throw new Error(
+          `DART ${path} → [${err.status ?? "?"}] ${err.message ?? head}`,
+        );
+      } catch (e) {
+        if (e instanceof Error && e.message.startsWith("DART ")) throw e;
+      }
+    }
+    throw new Error(`DART ${path} → 비-ZIP 응답 (${buf.length}B): ${head.slice(0, 200)}`);
   }
 
   private buildUrl(
