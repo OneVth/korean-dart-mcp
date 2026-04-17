@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.7.0] - 2026-04-18
+
+도구 **18 → 15** 통폐합 + 페이지 병렬화. LLM 컨텍스트 절약과 선택 혼란 감소.
+
+### Merged (3 도구 제거)
+- **`get_full_financials` → `get_financials`**: `scope: "summary" | "full"` enum 으로 통합. summary 는 단일/다중사 자동, full 은 단일사 전체 재무제표(fs=consolidated/separate).
+- **`quality_compare` → `buffett_quality_snapshot`**: `corps: string[]` (1~10). 1개면 시계열+체크리스트, 2+면 기업별 스냅샷 + 5지표 랭킹. 기업별 병렬 실행.
+- **`list_recent_filings` → `search_disclosures`**: `preset` 파라미터로 22 프리셋 흡수. preset 또는 `all_pages: true` 지정 시 배치 모드.
+
+### Performance
+- **`search_disclosures` 페이지 병렬화**: 1페이지로 total_page 확인 후 2~N 페이지 `Promise.all` (동시성 5). 기존 `list_recent_filings` 30일 배치 30~50초 → **~17초** (2~3배 개선).
+- rate limit 고려해 동시성 5 로 제한 (DART 권고 1,000 req/min 내).
+
+### 설계 노트
+- 합성 래퍼(get_shareholders, get_executive_compensation, get_major_holdings) 와 애널리스트 프레임(insider_signal, disclosure_anomaly) 은 **유지**. 파라미터 셋이 너무 달라 enum 분기 시 오히려 혼란.
+- `download_document` 와 `get_attachments` 는 접근 경로(표준 API vs 뷰어 스크래핑) 다름 → 유지.
+
+### Verified
+- `search_disclosures` 3 모드 (page/preset/all_pages) 전수 통과
+- `get_financials` summary(단일/다중)·full(단일 OK, 다중 에러로 가드)
+- `buffett_quality_snapshot` corps=1 snapshot / corps=3 compare+rankings 모두 정상
+- 총 **15 도구** 실 DART API 검증 완료
+
 ## [0.6.0] - 2026-04-18
 
 배치·비교 편의 — 2개 신규 도구 (17, 18번).

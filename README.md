@@ -1,6 +1,6 @@
 # korean-dart-mcp
 
-> OpenDART 83개 API → 18개 MCP 도구. 금융감독원 전자공시(DART)를 AI로 검색·조회·분석.
+> OpenDART 83개 API → 15개 MCP 도구. 금융감독원 전자공시(DART)를 AI로 검색·조회·분석.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -28,15 +28,15 @@
 - "카카오 최근 3년 회계 리스크 스코어 뽑아줘 — 정정공시·감사인 교체·의견 종합" → `disclosure_anomaly`
 - "네이버 지난 10년 버핏식 퀄리티 체크리스트 돌려줘" → `buffett_quality_snapshot`
 - "LG에너지솔루션 2021년 이후 자본 이벤트 타임라인 전부" → `get_corporate_event(mode=timeline)`
-- "삼성전자·SK하이닉스·LG전자 5년 퀄리티 비교 + 순위" → `quality_compare`
+- "삼성전자·SK하이닉스·LG전자 5년 퀄리티 비교 + 순위" → `buffett_quality_snapshot(corps=[...])`
 
 원문 분석:
 - "삼성전자 2023 사업보고서 PDF 본문 직접 읽어 리스크 요소 섹션 요약해줘" → `get_attachments(mode=extract)`
 - "삼성전자 자기주식 취득 결정 원본 텍스트 마크다운으로 줘" → `download_document(format=markdown)`
 
 배치 조회:
-- "최근 7일 자기주식 취득 결정 상장사 전부" → `list_recent_filings(preset=treasury_buy)`
-- "최근 30일 전환사채 발행 공시 배치 조회" → `list_recent_filings(preset=cb_issue, days=30)`
+- "최근 7일 자기주식 취득 결정 상장사 전부" → `search_disclosures(preset=treasury_buy)`
+- "최근 30일 전환사채 발행 공시 배치 조회" → `search_disclosures(preset=cb_issue, days=30)`
 
 ## 설치
 
@@ -79,45 +79,38 @@ npm 배포 후:
 }
 ```
 
-## 도구 목록 (18개)
+## 도구 목록 (15개)
 
-### 기본 조회 (8)
+### 기본 조회 (7)
 | # | 도구 | 용도 |
 |---|------|------|
 | 1 | `resolve_corp_code` | 회사명 → corp_code |
-| 2 | `search_disclosures` | 공시 검색 (10개 `kind` enum) |
+| 2 | `search_disclosures` | 공시 검색. `page` / `preset`(22종 자동필터) / `all_pages` 3 모드. 페이지 병렬. |
 | 3 | `get_company` | 기업 개황 |
-| 4 | `get_financials` | 단일/다중 주요계정 |
-| 5 | `download_document` | 공시 원문 → 마크다운/raw/text (DART XML 자체 파서) |
-| 6 | `get_full_financials` | 전체 재무제표 + 지표 |
-| 7 | `get_xbrl` | XBRL 원본 + 택사노미 |
-| 8 | `get_periodic_report` | 정기보고서 29개 섹션 (`report_type` enum) |
+| 4 | `get_financials` | `scope: summary`(단일/다중사) 또는 `full`(전체 재무제표, 단일사) |
+| 5 | `download_document` | 공시 원문 → `format: markdown/raw/text` (DART XML 자체 파서) |
+| 6 | `get_xbrl` | XBRL 원본 + 택사노미 |
+| 7 | `get_periodic_report` | 정기보고서 29섹션 (`report_type` enum) |
 
 ### 합성 래퍼 (4)
 | # | 도구 | 용도 |
 |---|------|------|
-| 9 | `get_shareholders` | 지배구조 4섹션 1회 합성 |
-| 10 | `get_executive_compensation` | 임원 보수 6섹션 1회 합성 |
-| 11 | `get_major_holdings` | 5%룰(majorstock) + 임원지분(elestock) |
-| 12 | `get_corporate_event` | 주요사항 36종 enum + `timeline` 모드 |
+| 8 | `get_shareholders` | 지배구조 4섹션 1회 합성 |
+| 9 | `get_executive_compensation` | 임원 보수 6섹션 1회 합성 |
+| 10 | `get_major_holdings` | 5%룰(majorstock) + 임원지분(elestock) |
+| 11 | `get_corporate_event` | 주요사항 36 enum + `timeline` 모드 |
 
 ### 애널리스트 프레임 (3 · 킬러)
 | # | 도구 | 용도 |
 |---|------|------|
-| 13 | `insider_signal` | 임원 매수/매도 클러스터 · `strong_buy_cluster` 등 시그널 |
-| 14 | `disclosure_anomaly` | 회계 리스크 0-100 스코어 (정정·감사인·의견·자본스트레스) |
-| 15 | `buffett_quality_snapshot` | N년 ROE·부채비율·CAGR + 버핏 체크리스트 4종 |
+| 12 | `insider_signal` | 임원 매수/매도 클러스터 · `strong_buy_cluster` 시그널 |
+| 13 | `disclosure_anomaly` | 회계 리스크 0-100 스코어 |
+| 14 | `buffett_quality_snapshot` | `corps` 1개=시계열+체크리스트, 2+=기업별 비교+5지표 랭킹 |
 
 ### 원문 분석 (1)
 | # | 도구 | 용도 |
 |---|------|------|
-| 16 | `get_attachments` | 공시 첨부 HWP/PDF/DOCX/XLSX → 마크다운 (kordoc) + ZIP 재귀 파싱 |
-
-### 배치·비교 (2)
-| # | 도구 | 용도 |
-|---|------|------|
-| 17 | `list_recent_filings` | 22개 프리셋(자기주식·CB·합병·정정공시 등) 으로 최근 N일 배치 조회 |
-| 18 | `quality_compare` | 기업 2~10개 N년 퀄리티 지표 비교 + 지표별 순위 |
+| 15 | `get_attachments` | 공시 첨부 HWP/PDF/DOCX/XLSX → 마크다운 (kordoc) + ZIP 재귀 |
 
 ## 개발
 
