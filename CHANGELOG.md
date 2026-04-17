@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.3.0] - 2026-04-18
+
+P2 릴리스 — **15/15 도구 완성**. 3종 킬러 분석 도구로 기존 Python 래퍼 대비 차별화.
+
+### Added (합성 래퍼 4개)
+- **`get_shareholders`**: 지배구조 4개 섹션(최대주주·변동·소액주주·주식총수)을 1회 호출로 병렬 수집. `get_periodic_report` 4회 대비 1/4 왕복.
+- **`get_executive_compensation`**: 임원 보수 6개 섹션(전체·5억 이상 개인별·상위 5인·미등기·주총 승인·유형별)을 1회 합성.
+- **`get_major_holdings`**: DS004 2개 엔드포인트(`majorstock` 5%룰 + `elestock` 임원·주요주주 본인 보유) 합성.
+- **`get_corporate_event`**: DS005 **36종 이벤트 enum**. `mode="single"` (단일 조회) / `mode="timeline"` (자본 관련 이벤트 전체 병렬 → 날짜순 통합) 듀얼 모드.
+
+### Added (킬러 분석 도구 3개)
+- **`insider_signal`**: 임원·주요주주 거래(`elestock`)를 **매수/매도 클러스터로 집계**. 분기 단위 N명 이상 같은 방향이면 `buy_cluster` / `sell_cluster` 시그널. 워렌 버핏 식 "경영진이 본인 돈으로 매수하는가" 프레임을 데이터로 제공.
+  - 검증 사례: 삼성전자 2023-2024 기간 `reports=134, unique_buyers=103 vs sellers=4 → strong_buy_cluster`
+- **`disclosure_anomaly`**: 정정공시 비율 + 감사인 교체 + 감사의견 비적정 + 자본 스트레스를 교차해 **0-100 risk score + verdict (clean/watch/warning/red_flag)** 산출. 회계 신뢰도 조기경보.
+- **`buffett_quality_snapshot`**: N년치 재무를 `fnlttSinglAcnt` N/3 호출로 수집 → **ROE·영업이익률·부채비율 시계열 + 매출/순이익 CAGR** + 버핏 체크리스트 4종(consistent ROE / low debt / growing revenue / growing earnings) 판정.
+  - 검증 사례: 삼성전자 최근 6년 `avg_roe=10.26%, 3/4 통과`
+
+### 차별화 포인트
+- 기존 Python 래퍼(OpenDartReader/dart-fss)는 raw 테이블만 반환. 본 버전은 raw 를 **LLM 이 스토리로 해석 가능한 분석 프레임**으로 가공해 제공. "재무 데이터 nomenclature"가 아니라 "애널리스트 프레임" 레벨.
+
+### Fixed
+- `insider_signal` 기간 필터 버그: `elestock.rcept_dt` 가 `YYYY-MM-DD` 포맷인데 `YYYYMMDD` 만 받던 문제 → 양쪽 정규화
+- `get_corporate_event` timeline 날짜 변환: `YYYY-MM-DD` 입력도 수용
+
+### Verified
+- 삼성전자 / LG에너지솔루션 대상 실 DART API 호출로 7개 신규 도구 전수 검증 (`scripts/smoke-p2.mjs`)
+
+### 의존성
+- 신규 추가 없음 (기존 `zod` + `fetch` 만 사용)
+
 ## [0.2.0] - 2026-04-18
 
 P1 릴리스 — 8/15 도구 완성. enum 압축 핵심 도구 `get_periodic_report` 포함.

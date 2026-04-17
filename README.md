@@ -10,15 +10,23 @@
 
 - **키 1개**로 83개 엔드포인트 접근 (일 20,000건 무료)
 - **회사명 자동 해결** — "삼성전자" → `corp_code=00126380` 자동 변환
-- **enum 압축** — 정기보고서 28개·주요사항 36개를 `report_type`/`event_type` 파라미터로 단일화
+- **enum 압축** — 정기보고서 29개·주요사항 36개를 `report_type`/`event_type` 파라미터로 단일화
 - **XBRL 원본 노출** — 재무제표 원본을 Claude에 바로 업로드해 임의 집계 가능
+- **애널리스트 프레임 3종** — raw 테이블이 아니라 LLM 이 해석 가능한 시그널/스코어/체크리스트 단위로 가공해 제공
 
 ## 킬러 프롬프트 예시
 
+기본:
 - "삼성전자 최근 분기 매출/영업이익, 전년동기 대비 변화"
 - "최근 7일 자기주식 취득 결정한 상장사 전부 리스트"
 - "네이버 임원 보수 5억 이상 명단 최근 5년 시계열"
 - "지난 30일 합병·분할·교환 공시 전수 1페이지 요약"
+
+애널리스트:
+- "삼성전자 임원 거래 최근 2년 매수/매도 클러스터 분석해줘" → `insider_signal`
+- "카카오 최근 3년 회계 리스크 스코어 뽑아줘 — 정정공시·감사인 교체·의견 종합" → `disclosure_anomaly`
+- "네이버 지난 10년 버핏식 퀄리티 체크리스트 돌려줘" → `buffett_quality_snapshot`
+- "LG에너지솔루션 2021년 이후 자본 이벤트 타임라인 전부" → `get_corporate_event(mode=timeline)`
 
 ## 설치
 
@@ -61,25 +69,34 @@ npm 배포 후:
 }
 ```
 
-## 도구 목록 (15개)
+## 도구 목록 (15개 / 전부 완성)
 
+### 기본 조회 (8)
 | # | 도구 | 용도 |
 |---|------|------|
 | 1 | `resolve_corp_code` | 회사명 → corp_code |
-| 2 | `search_disclosures` | 공시 검색 |
+| 2 | `search_disclosures` | 공시 검색 (10개 `kind` enum) |
 | 3 | `get_company` | 기업 개황 |
 | 4 | `get_financials` | 단일/다중 주요계정 |
-| 5 | `download_document` | 공시 원문 + 첨부파일 |
-| 6 | `get_full_financials` | 전체 재무제표 + 주요 지표 |
+| 5 | `download_document` | 공시 원문 XML |
+| 6 | `get_full_financials` | 전체 재무제표 + 지표 |
 | 7 | `get_xbrl` | XBRL 원본 + 택사노미 |
-| 8 | `get_periodic_report` | 정기보고서 28개 |
-| 9 | `get_executive_compensation` | 임원·직원 보수 |
-| 10 | `get_shareholders` | 최대주주/소액주주/변동 |
-| 11 | `get_major_holdings` | 5%룰 + 임원지분 |
-| 12 | `get_corporate_event` | 주요사항보고(36종) |
-| 13 | `get_securities_filing` | 증권신고서 |
-| 14 | `list_recent_filings` | 최근 공시 프리셋 필터 |
-| 15 | `compare_companies` | 다중사 재무·공시 크로스 |
+| 8 | `get_periodic_report` | 정기보고서 29개 섹션 (`report_type` enum) |
+
+### 합성 래퍼 (4)
+| # | 도구 | 용도 |
+|---|------|------|
+| 9 | `get_shareholders` | 지배구조 4섹션 1회 합성 |
+| 10 | `get_executive_compensation` | 임원 보수 6섹션 1회 합성 |
+| 11 | `get_major_holdings` | 5%룰(majorstock) + 임원지분(elestock) |
+| 12 | `get_corporate_event` | 주요사항 36종 enum + `timeline` 모드 |
+
+### 애널리스트 프레임 (3 · 킬러)
+| # | 도구 | 용도 |
+|---|------|------|
+| 13 | `insider_signal` | 임원 매수/매도 클러스터 · `strong_buy_cluster` 등 시그널 |
+| 14 | `disclosure_anomaly` | 회계 리스크 0-100 스코어 (정정·감사인·의견·자본스트레스) |
+| 15 | `buffett_quality_snapshot` | N년 ROE·부채비율·CAGR + 버핏 체크리스트 4종 |
 
 ## 개발
 
