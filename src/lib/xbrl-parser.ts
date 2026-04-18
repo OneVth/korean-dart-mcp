@@ -16,8 +16,8 @@
  *   접미 00=연결, 05=별도. D8xxxxx 는 주석/공시.
  */
 
-import yauzl from "yauzl";
 import { DOMParser } from "@xmldom/xmldom";
+import { safeUnzipToMemory } from "../utils/safe-zip.js";
 
 // 한국 상장사 XBRL 주요 태그 whitelist — 재무제표 본체만. 순서가 표 출력 순서.
 // IFRS-Full 과 K-IFRS(dart) 태그를 둘 다 등록해 엔티티별 사용 차이 흡수.
@@ -135,6 +135,8 @@ export interface XbrlData {
   labels: Map<string, string>;
   entityId: string | null;
   taxonomy?: XbrlTaxonomy;
+  /** DOM 파싱 중 누적된 경고·에러 메시지. 빈 결과와 파싱 실패를 구분하기 위함. */
+  parseWarnings?: string[];
 }
 
 export interface RoleInfo {
@@ -213,32 +215,13 @@ export interface Statements {
 
 // ── ZIP extraction ─────────────────────────────────────
 
-export function extractXbrlFilesFromZip(zipBuf: Buffer): Promise<Map<string, string>> {
-  return new Promise((resolve, reject) => {
-    yauzl.fromBuffer(zipBuf, { lazyEntries: true }, (err, zip) => {
-      if (err || !zip) return reject(err ?? new Error("zip open failed"));
-      const out = new Map<string, string>();
-      zip.on("entry", (entry: yauzl.Entry) => {
-        if (/\/$/.test(entry.fileName) || !/\.(xbrl|xml|xsd)$/i.test(entry.fileName)) {
-          zip.readEntry();
-          return;
-        }
-        zip.openReadStream(entry, (err2, stream) => {
-          if (err2 || !stream) return reject(err2 ?? new Error("stream open failed"));
-          const chunks: Buffer[] = [];
-          stream.on("data", (c: Buffer) => chunks.push(c));
-          stream.on("end", () => {
-            out.set(entry.fileName, Buffer.concat(chunks).toString("utf8"));
-            zip.readEntry();
-          });
-          stream.on("error", reject);
-        });
-      });
-      zip.on("end", () => resolve(out));
-      zip.on("error", reject);
-      zip.readEntry();
-    });
+export async function extractXbrlFilesFromZip(zipBuf: Buffer): Promise<Map<string, string>> {
+  const entries = await safeUnzipToMemory(zipBuf, {
+    filter: (name) => /\.(xbrl|xml|xsd)$/i.test(name),
   });
+  const out = new Map<string, string>();
+  for (const e of entries) out.set(e.name, e.data.toString("utf8"));
+  return out;
 }
 
 // ── Instance parsing ───────────────────────────────────
@@ -284,6 +267,7 @@ export function parseInstance(xml: string): {
   facts: XbrlFact[];
   contexts: Map<string, XbrlContext>;
   entityId: string | null;
+  errors: string[];
 } {
   const errors: string[] = [];
   const doc = new DOMParser({
@@ -361,7 +345,7 @@ export function parseInstance(xml: string): {
     }
   }
 
-  return { facts, contexts, entityId };
+  return { facts, contexts, entityId, errors };
 }
 
 // ── Label parsing ──────────────────────────────────────
@@ -478,8 +462,9 @@ export function parsePresentationLinkbase(xml: string): RolePresentation[] {
 
     const nodes: PresentationNode[] = [];
     const visited = new Set<string>();
+    const MAX_DEPTH = 100; // 비정상 taxonomy 재귀 방어 (정상 트리는 ≤10)
     const visit = (label: string, parentTag: string | null, depth: number, order: number) => {
-      if (visited.has(label)) return;
+      if (visited.has(label) || depth > MAX_DEPTH) return;
       visited.add(label);
       const tag = locs.get(label);
       if (tag) nodes.push({ tag, depth, order, parent: parentTag });
@@ -550,7 +535,7 @@ export async function parseXbrlZip(
   }
   if (!instanceXml) throw new Error("XBRL instance document (.xbrl) not found in ZIP");
 
-  const { facts, contexts, entityId } = parseInstance(instanceXml);
+  const { facts, contexts, entityId, errors } = parseInstance(instanceXml);
   const labels = labelXml ? parseLabels(labelXml) : new Map<string, string>();
 
   let taxonomy: XbrlTaxonomy | undefined;
@@ -561,7 +546,14 @@ export async function parseXbrlZip(
     };
   }
 
-  return { facts, contexts, labels, entityId, taxonomy };
+  // instance 파싱에서 DOM 에러가 많은데 facts 가 비어있으면 parseWarnings 노출
+  // (빈 결과 = 실제 데이터 없음 vs 파싱 실패 구분용)
+  const parseWarnings =
+    errors.length > 0 && facts.length === 0
+      ? [`XBRL instance 파싱 중 ${errors.length}건 에러 발생, fact 0건 추출됨. 샘플: ${errors.slice(0, 3).join(" | ")}`]
+      : undefined;
+
+  return { facts, contexts, labels, entityId, taxonomy, parseWarnings };
 }
 
 // ── Statement building ─────────────────────────────────

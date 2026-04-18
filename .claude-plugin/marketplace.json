@@ -1,0 +1,25 @@
+{
+  "name": "korean-dart-marketplace",
+  "owner": {
+    "name": "Chris",
+    "email": "ryuseungin@gmail.com",
+    "url": "https://github.com/chrisryugj"
+  },
+  "plugins": [
+    {
+      "name": "korean-dart",
+      "source": {
+        "source": "github",
+        "repo": "chrisryugj/korean-dart-mcp"
+      },
+      "description": "OpenDART 83개 API → 15개 MCP 도구. 공시·재무·XBRL + 내부자 시그널·회계 리스크·버핏 체크리스트 + HWP/PDF 첨부 마크다운",
+      "version": "0.9.1",
+      "author": {
+        "name": "Chris"
+      },
+      "homepage": "https://github.com/chrisryugj/korean-dart-mcp",
+      "license": "MIT",
+      "keywords": ["dart", "opendart", "공시", "전자공시", "금융감독원", "xbrl", "finance-ai"]
+    }
+  ]
+}

@@ -14,13 +14,13 @@
  */
 
 import { z } from "zod";
-import yauzl from "yauzl";
 import { parse as kordocParse } from "kordoc";
 import { defineTool } from "./_helpers.js";
+import { safeUnzipToMemory } from "../utils/safe-zip.js";
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
-const DART_ORIGIN = "http://dart.fss.or.kr";
+const DART_ORIGIN = "https://dart.fss.or.kr";
 
 const Input = z
   .object({
@@ -134,37 +134,10 @@ async function fetchBinary(url: string): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer());
 }
 
-interface ZipEntry {
-  name: string;
-  data: Buffer;
-}
+type ZipEntry = { name: string; data: Buffer };
 
 function extractZipEntries(buf: Buffer): Promise<ZipEntry[]> {
-  return new Promise((resolve, reject) => {
-    yauzl.fromBuffer(buf, { lazyEntries: true }, (err, zip) => {
-      if (err || !zip) return reject(err ?? new Error("zip open failed"));
-      const files: ZipEntry[] = [];
-      zip.on("entry", (entry: yauzl.Entry) => {
-        if (/\/$/.test(entry.fileName)) {
-          zip.readEntry();
-          return;
-        }
-        zip.openReadStream(entry, (err2, stream) => {
-          if (err2 || !stream) return reject(err2 ?? new Error("stream open failed"));
-          const chunks: Buffer[] = [];
-          stream.on("data", (c: Buffer) => chunks.push(c));
-          stream.on("end", () => {
-            files.push({ name: entry.fileName, data: Buffer.concat(chunks) });
-            zip.readEntry();
-          });
-          stream.on("error", reject);
-        });
-      });
-      zip.on("end", () => resolve(files));
-      zip.on("error", reject);
-      zip.readEntry();
-    });
-  });
+  return safeUnzipToMemory(buf);
 }
 
 interface ListResult {

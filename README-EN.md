@@ -27,11 +27,12 @@ They complement each other. Want DataFrames? Use the Python wrappers. Want agent
 
 ---
 
-## v0.8.0 — What's new
+## v0.9 — What's new
 
-- **XBRL → Markdown conversion** (`get_xbrl` with `format: "markdown"`). 6MB XBRL ZIP → 8KB markdown (BS/IS/CF tables with current / prior / prior-prior year columns). ~99% size reduction, ~500ms.
-- **Configurable concurrency** (`search_disclosures`, `concurrency` 1–10, default 5). Measured 6.73× speedup at 10 with no rate-limit errors.
-- **Resolver bug fix** — 6-digit stock codes and 8-digit corp codes now resolve directly via `resolve_corp_code` (previously fell through to LIKE search only).
+- **`get_xbrl format="markdown_full"`** — full presentation/calculation linkbase parsing: every account with hierarchy + calculation-linkbase validation. BS 50+ / IS 15+ / CF 10+ rows vs v0.8's 50-tag whitelist. Handles industry-specific taxonomies (financial holdings `DX` prefix, insurance) automatically. 6MB XBRL → ~30-60KB markdown.
+- **`search_disclosures` auto-split** — no `corp_code` + range >90 days auto-chunks into 90-day windows (works around OpenDART's "3-month limit for market-wide queries"). Cap: 40 chunks (~10 years).
+- **`summary_text` field** on `insider_signal` and `disclosure_anomaly` — one-line Korean summaries for quick context before raw tables.
+- **Security hardening** (v0.9.1) — ZIP slip / ZIP bomb guards via shared helper, HTTPS viewer scraping, chunk cap, presentation-recursion depth guard, XBRL parse-warning exposure.
 
 Full history → [CHANGELOG.md](CHANGELOG.md)
 
@@ -109,6 +110,19 @@ All methods require an **OpenDART auth key**.
 1. Sign up at [OpenDART registration](https://opendart.fss.or.kr/uss/umt/cmm/EgovMberInsertView.do)
 2. After login, [request an auth key](https://opendart.fss.or.kr/mng/apiUsageStatusView.do) — a 40-character key arrives by email instantly
 3. Place it in `DART_API_KEY` in your config below. Free tier: 20,000 requests/day.
+
+---
+
+### Method 0: Claude Code plugin (one-liner)
+
+[Claude Code](https://docs.claude.com/en/docs/claude-code) users can install via marketplace:
+
+```
+/plugin marketplace add chrisryugj/korean-dart-mcp
+/plugin install korean-dart
+```
+
+Prompts for the OpenDART key once. 15 DART tools are live after that.
 
 ---
 
@@ -220,11 +234,11 @@ On first run, the server downloads OpenDART's **full company dump (~116,000 entr
 | Tool | Purpose |
 |---|---|
 | `resolve_corp_code` | Company name → corp_code (SQLite FTS over ~116k entries) |
-| `search_disclosures` | Disclosure search. `page` / `preset` (22 auto-filtered) / `all_pages` **3 modes** + parallel page fetch |
+| `search_disclosures` | Disclosure search. `page` / `preset` (22 auto-filtered) / `all_pages` **3 modes** + parallel fetch + **auto-split** for >90-day ranges (v0.9) |
 | `get_company` | Company profile (industry / CEO / founding date) |
 | `get_financials` | Financials. `scope: summary` (key accounts, single/multi-corp) / `full` (complete BS/IS/CF, single corp) |
 | `download_document` | Disclosure full text → `format: markdown` (DART XML parser) / `raw` / `text` |
-| `get_xbrl` | `format: raw` (ZIP extracted to filesystem, Claude uploads files) / **`markdown`** (BS/IS/CF tables, v0.8.0+) |
+| `get_xbrl` | `format: raw` (hardened ZIP extraction) / `markdown` (50-tag whitelist) / **`markdown_full`** (taxonomy-driven full statements + calc validation, v0.9) |
 | `get_periodic_report` | Annual report **29 sections enum** (dividends / largest shareholder / auditor / compensation / fund usage ...) |
 
 ### Composite wrappers (4)

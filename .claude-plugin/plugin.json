@@ -1,0 +1,41 @@
+{
+  "name": "korean-dart",
+  "version": "0.9.1",
+  "description": "OpenDART 83개 API → 15개 MCP 도구. 금융감독원 전자공시(DART) 기반 AI 리서치 — 공시 검색·재무·XBRL + 버핏 애널리스트 프레임(insider_signal · disclosure_anomaly · buffett_quality_snapshot) + HWP/PDF 첨부 마크다운화",
+  "author": {
+    "name": "Chris",
+    "email": "ryuseungin@gmail.com",
+    "url": "https://github.com/chrisryugj"
+  },
+  "homepage": "https://github.com/chrisryugj/korean-dart-mcp",
+  "repository": "https://github.com/chrisryugj/korean-dart-mcp",
+  "license": "MIT",
+  "keywords": [
+    "dart",
+    "opendart",
+    "공시",
+    "전자공시",
+    "금융감독원",
+    "xbrl",
+    "korean-stocks",
+    "finance-ai",
+    "mcp"
+  ],
+  "mcpServers": {
+    "korean-dart": {
+      "command": "npx",
+      "args": ["-y", "korean-dart-mcp@latest"],
+      "env": {
+        "DART_API_KEY": "${user_config.api_key}"
+      }
+    }
+  },
+  "userConfig": {
+    "api_key": {
+      "type": "string",
+      "title": "OpenDART 인증키 (DART_API_KEY)",
+      "description": "OpenDART 40자 인증키. https://opendart.fss.or.kr/mng/apiUsageStatusView.do 에서 무료 발급 (일 20,000건 한도)",
+      "sensitive": true
+    }
+  }
+}

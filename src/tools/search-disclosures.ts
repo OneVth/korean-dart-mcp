@@ -310,11 +310,18 @@ export const searchDisclosuresTool = defineTool({
     // === 배치 모드 (preset 또는 all_pages) ===
     // OpenDART 제약: corp_code 없이 list.json 호출 시 bgn_de~end_de 는 90일(3개월) 이내.
     // 기간 > 90일 && 회사 미지정 시 90일 청크로 자동 분할 (v0.9.0+).
+    // 청크 상한: bgn_de=1900 같은 악의·실수 입력에서 수천 chunks 폭발 방지.
+    const MAX_CHUNKS = 40; // ≈10년 × 4 청크/년
     const rangeDays = daysBetween(bgn_de, end_de);
     const needsSplit = !corp_code && rangeDays > 90;
     const chunks = needsSplit
       ? splitDateRange(bgn_de, end_de, 90)
       : [{ bgn: bgn_de, end: end_de }];
+    if (chunks.length > MAX_CHUNKS) {
+      throw new Error(
+        `기간이 너무 깁니다 (${chunks.length} chunks > 상한 ${MAX_CHUNKS}). corp 지정 또는 기간 축소 필요.`,
+      );
+    }
 
     let collected: ListItem[] = [];
     let totalPages = 0;

@@ -15,9 +15,9 @@ import { mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import Database from "better-sqlite3";
-import yauzl from "yauzl";
 import { DOMParser } from "@xmldom/xmldom";
 import type { DartClient } from "./dart-client.js";
+import { safeUnzipToMemory } from "../utils/safe-zip.js";
 
 export interface CorpRecord {
   corp_code: string;
@@ -199,28 +199,17 @@ function normalize(row: CorpRecord): CorpRecord {
   };
 }
 
-function extractCorpCodeXml(zipBuf: Buffer): Promise<string> {
-  return new Promise((resolve, reject) => {
-    yauzl.fromBuffer(zipBuf, { lazyEntries: true }, (err, zip) => {
-      if (err || !zip) return reject(err ?? new Error("zip open failed"));
-      zip.on("entry", (entry: yauzl.Entry) => {
-        if (!/CORPCODE\.xml$/i.test(entry.fileName)) {
-          zip.readEntry();
-          return;
-        }
-        zip.openReadStream(entry, (err2, stream) => {
-          if (err2 || !stream) return reject(err2 ?? new Error("stream open failed"));
-          const chunks: Buffer[] = [];
-          stream.on("data", (c: Buffer) => chunks.push(c));
-          stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-          stream.on("error", reject);
-        });
-      });
-      zip.on("end", () => reject(new Error("CORPCODE.xml not found in zip")));
-      zip.on("error", reject);
-      zip.readEntry();
-    });
+async function extractCorpCodeXml(zipBuf: Buffer): Promise<string> {
+  // corp_code 전량 덤프는 현재 ~30MB 수준. 장기 성장 대비 총 300MB · 단일 300MB 허용.
+  const entries = await safeUnzipToMemory(zipBuf, {
+    maxTotalBytes: 300 * 1024 * 1024,
+    maxEntryBytes: 300 * 1024 * 1024,
+    maxEntries: 16,
+    filter: (name) => /CORPCODE\.xml$/i.test(name),
   });
+  const hit = entries[0];
+  if (!hit) throw new Error("CORPCODE.xml not found in zip");
+  return hit.data.toString("utf8");
 }
 
 function parseCorpCodeXml(xml: string): CorpRecord[] {

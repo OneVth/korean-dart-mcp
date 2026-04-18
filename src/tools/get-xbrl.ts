@@ -11,10 +11,7 @@
  */
 
 import { z } from "zod";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
-import yauzl from "yauzl";
 import { defineTool } from "./_helpers.js";
 import {
   parseXbrlZip,
@@ -22,6 +19,7 @@ import {
   buildStatementsFull,
   renderMarkdown,
 } from "../lib/xbrl-parser.js";
+import { safeUnzipToDisk, defaultXbrlOutDir } from "../utils/safe-zip.js";
 
 const REPORT_CODE = {
   q1: "11013",
@@ -100,17 +98,10 @@ export const getXbrlTool = defineTool({
       };
     }
 
-    // raw 모드 — 기존 동작
+    // raw 모드 — 기존 동작 (zip slip · zip bomb 방어 포함)
     const outDir =
-      args.out_dir ??
-      join(
-        homedir(),
-        ".korean-dart-mcp",
-        "xbrl",
-        `${args.rcept_no}_${reprt_code}`,
-      );
-    mkdirSync(outDir, { recursive: true });
-    const files = await extractAndWrite(buf, outDir);
+      args.out_dir ?? defaultXbrlOutDir(homedir(), args.rcept_no, reprt_code);
+    const files = await safeUnzipToDisk(buf, outDir);
     return {
       rcept_no: args.rcept_no,
       report: args.report,
@@ -120,37 +111,3 @@ export const getXbrlTool = defineTool({
     };
   },
 });
-
-function extractAndWrite(
-  buf: Buffer,
-  outDir: string,
-): Promise<Array<{ name: string; size: number; path: string }>> {
-  return new Promise((resolve, reject) => {
-    yauzl.fromBuffer(buf, { lazyEntries: true }, (err, zip) => {
-      if (err || !zip) return reject(err ?? new Error("zip open failed"));
-      const out: Array<{ name: string; size: number; path: string }> = [];
-      zip.on("entry", (entry: yauzl.Entry) => {
-        if (/\/$/.test(entry.fileName)) {
-          zip.readEntry();
-          return;
-        }
-        zip.openReadStream(entry, (err2, stream) => {
-          if (err2 || !stream) return reject(err2 ?? new Error("stream open failed"));
-          const chunks: Buffer[] = [];
-          stream.on("data", (c: Buffer) => chunks.push(c));
-          stream.on("end", () => {
-            const data = Buffer.concat(chunks);
-            const path = join(outDir, entry.fileName);
-            writeFileSync(path, data);
-            out.push({ name: entry.fileName, size: data.length, path });
-            zip.readEntry();
-          });
-          stream.on("error", reject);
-        });
-      });
-      zip.on("end", () => resolve(out));
-      zip.on("error", reject);
-      zip.readEntry();
-    });
-  });
-}

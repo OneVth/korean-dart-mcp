@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.9.1] - 2026-04-18
+
+프로덕션 publish 직전 보안·품질 하드닝. 기능 변경 없음, API 완전 호환.
+
+### Security
+- **ZIP Slip 방어** (`safeUnzipToDisk`): `get_xbrl format=raw` 에서 `out_dir` 밖으로 탈출하는 엔트리 경로(`..`, 절대경로, Windows 드라이브, `\0`) 를 거부. 이전에는 악성 ZIP 이 `../../../authorized_keys` 같은 경로로 임의 파일 쓰기 이론적으로 가능.
+- **ZIP Bomb 방어** (`safeUnzipToMemory` / `safeUnzipToDisk`): 모든 yauzl 사용처 5곳을 공용 헬퍼로 통합. 기본 한도 총 200MB · 엔트리당 100MB · 엔트리 5000개. 10KB ZIP 이 수 GB 로 해제되는 OOM 크래시 방지. corp_code 전량 덤프 경로는 300MB 로 상향.
+- **HTTPS 강제**: DART 뷰어 HTML 스크래핑(`get_attachments`) 의 origin 을 `http://dart.fss.or.kr` → `https://` 로 교체. MITM 시 악성 첨부 URL 주입 방어.
+- **chunks 상한**: `search_disclosures` 자동분할이 `bgn=1900-01-01` 같은 악의·실수 입력에서 수천 chunks 로 폭발하지 않도록 40 chunks(≈10년) 상한.
+
+### Quality
+- **재귀 depth 가드** (xbrl-parser `visit()`): 비정상 presentation taxonomy 의 stack overflow 방어 (MAX_DEPTH=100).
+- **parseWarnings** (`XbrlData`): DOM 파싱 에러가 누적됐는데 fact 가 0건이면 `parseWarnings` 로 노출. "데이터 없음" vs "파싱 실패" 혼동 해소.
+
+### Internal
+- **신규**: `src/utils/safe-zip.ts` — `safeUnzipToMemory` / `safeUnzipToDisk` 공용 헬퍼.
+- `get-xbrl.ts`, `get-attachments.ts`, `download-document.ts`, `xbrl-parser.ts`, `corp-code.ts` 의 중복 yauzl 루프를 공용 헬퍼로 리팩터.
+
 ## [0.9.0] - 2026-04-18
 
 XBRL 본격 taxonomy 파싱 + search 90일 자동분할 + insider/anomaly 요약문.

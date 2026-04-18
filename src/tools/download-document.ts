@@ -13,10 +13,10 @@
  */
 
 import { z } from "zod";
-import yauzl from "yauzl";
 import iconv from "iconv-lite";
 import { defineTool } from "./_helpers.js";
 import { dartXmlToMarkdown } from "../lib/dart-xml.js";
+import { safeUnzipToMemory } from "../utils/safe-zip.js";
 
 const Input = z.object({
   rcept_no: z
@@ -82,37 +82,10 @@ export const downloadDocumentTool = defineTool({
   },
 });
 
-interface ZipFile {
-  name: string;
-  data: Buffer;
-}
+type ZipFile = { name: string; data: Buffer };
 
 function extractZipEntries(buf: Buffer): Promise<ZipFile[]> {
-  return new Promise((resolve, reject) => {
-    yauzl.fromBuffer(buf, { lazyEntries: true }, (err, zip) => {
-      if (err || !zip) return reject(err ?? new Error("zip open failed"));
-      const files: ZipFile[] = [];
-      zip.on("entry", (entry: yauzl.Entry) => {
-        if (/\/$/.test(entry.fileName)) {
-          zip.readEntry();
-          return;
-        }
-        zip.openReadStream(entry, (err2, stream) => {
-          if (err2 || !stream) return reject(err2 ?? new Error("stream open failed"));
-          const chunks: Buffer[] = [];
-          stream.on("data", (c: Buffer) => chunks.push(c));
-          stream.on("end", () => {
-            files.push({ name: entry.fileName, data: Buffer.concat(chunks) });
-            zip.readEntry();
-          });
-          stream.on("error", reject);
-        });
-      });
-      zip.on("end", () => resolve(files));
-      zip.on("error", reject);
-      zip.readEntry();
-    });
-  });
+  return safeUnzipToMemory(buf);
 }
 
 function decodeXml(buf: Buffer): string {

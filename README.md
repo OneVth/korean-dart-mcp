@@ -14,6 +14,15 @@ English documentation → [README-EN.md](README-EN.md)
 
 ---
 
+## v0.9 — 무엇이 새로운가
+
+- **`get_xbrl format="markdown_full"`** — presentation/calculation linkbase 를 파싱해 **전체 계정 + 계층 구조 + 합산 검증**. 기존 `markdown` 의 whitelist 50태그 대비 BS 50+ / IS 15+ / CF 10+ 전부 커버. 금융지주 `DX` prefix 등 업종별 택소노미 자동 대응. 6MB XBRL → ~30-60KB 마크다운.
+- **`search_disclosures` 90일 자동분할** — `corp_code` 미지정 + 기간 90일 초과 시 자동으로 90일 청크 분할 (OpenDART "전체시장 3개월 제약" 우회). 최대 40 chunks(≈10년).
+- **`insider_signal` / `disclosure_anomaly` `summary_text`** — 한국어 자동 요약문 필드 추가. LLM 이 원시 테이블 뽑기 전 한 줄로 맥락 파악.
+- **보안 하드닝** (v0.9.1) — ZIP slip / ZIP bomb 방어 공용 헬퍼, HTTPS 뷰어 스크래핑, chunks 상한, presentation 재귀 depth 가드, XBRL 파싱 경고 노출.
+
+---
+
 ## v0.7.0 — LLM 네이티브 분석 레이어
 
 DART 83 API 를 LLM 이 **스토리로 해석 가능한 분석 프레임**으로 가공해서 넘깁니다. 아래는 대표적인 네 가지 사용 시나리오.
@@ -101,6 +110,19 @@ DART XML 원문(`download_document(format=markdown)`) 도 자체 파서로 headi
 1. [OpenDART 가입 페이지](https://opendart.fss.or.kr/uss/umt/cmm/EgovMberInsertView.do) 에서 회원가입
 2. 로그인 후 [인증키 신청](https://opendart.fss.or.kr/mng/apiUsageStatusView.do) → 이메일로 **40자 인증키** 즉시 수신
 3. 이 인증키를 아래 설정의 `DART_API_KEY` 에 넣습니다. 일 20,000건 무료.
+
+---
+
+### 방법 0: Claude Code 플러그인 (한 줄 설치)
+
+[Claude Code](https://docs.claude.com/en/docs/claude-code) 사용자는 marketplace 등록 후 `/plugin` 으로 설치하면 끝.
+
+```
+/plugin marketplace add chrisryugj/korean-dart-mcp
+/plugin install korean-dart
+```
+
+설치 시 OpenDART 인증키 입력 프롬프트가 뜸 (한 번만). 이후 15개 DART 도구 자동 활성화.
 
 ---
 
@@ -213,11 +235,11 @@ npm install -g korean-dart-mcp
 | 도구 | 용도 |
 |---|---|
 | `resolve_corp_code` | 회사명 → corp_code (SQLite FTS 선적재, 전수 11.6만 건) |
-| `search_disclosures` | 공시 검색. `page` / `preset`(22종 자동필터) / `all_pages` **3모드** + 페이지 병렬화 |
+| `search_disclosures` | 공시 검색. `page` / `preset`(22종 자동필터) / `all_pages` **3모드** + 페이지 병렬화 + **90일 자동분할**(v0.9) |
 | `get_company` | 기업 개황 (업종·대표자·설립일) |
 | `get_financials` | 재무정보. `scope: summary`(주요계정, 단일/다중사) / `full`(전체 BS/IS/CF, 단일사) |
 | `download_document` | 공시 원문 → `format: markdown`(DART XML 자체 파서) / `raw` / `text` |
-| `get_xbrl` | XBRL 원본 ZIP 해제 경로 반환 — Claude 가 직접 파일 업로드해 임의 집계 |
+| `get_xbrl` | XBRL. `format: raw` ZIP 해제(보안 가드) / `markdown` whitelist 50태그 / `markdown_full` taxonomy 전체(v0.9) |
 | `get_periodic_report` | 정기보고서 **29 섹션 enum** (배당·최대주주·감사인·보수·자금사용 등) |
 
 ### 합성 래퍼 (4)
