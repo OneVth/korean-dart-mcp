@@ -121,6 +121,15 @@ const Input = z.object({
     .max(3000)
     .default(500)
     .describe("배치 모드 최종 반환 개수 상한"),
+  concurrency: z
+    .number()
+    .int()
+    .min(1)
+    .max(10)
+    .default(5)
+    .describe(
+      "배치 모드 페이지 병렬 동시성 (1~10, 기본 5). 높이면 빠르지만 DART 일일 20,000건 한도/분당 쿼터 근접 위험.",
+    ),
 });
 
 interface ListItem {
@@ -270,7 +279,11 @@ export const searchDisclosuresTool = defineTool({
     }
 
     // === 배치 모드 (preset 또는 all_pages) ===
-    const { items: collected, totalPages } = await fetchAllPages(ctx.client, baseParams);
+    const { items: collected, totalPages } = await fetchAllPages(
+      ctx.client,
+      baseParams,
+      args.concurrency,
+    );
 
     const includeCorrections =
       args.include_corrections || args.preset === "correction_all";

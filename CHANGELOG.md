@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.8.0] - 2026-04-18
+
+XBRL 마크다운 변환 + concurrency 옵션화 + 필드테스트 안정화.
+
+### Added
+- **`get_xbrl` format=markdown 모드**: instance document 파싱 → BS/IS/CF 3개 표를 **당기·전기·전전기 3열** 로 마크다운 생성. whitelist 기반 약 50 태그 (ifrs-full + K-IFRS dart). 연결/별도 선택. lab-ko.xml primary role 라벨 + `KO_FALLBACK` 내장 매핑. 6MB XBRL → **~8KB 마크다운 (~99% 절감), ~500ms**.
+  - 본격 taxonomy/계층/계산관계 파싱은 v0.9.0 에서 추가 예정.
+  - format 기본값은 `"raw"` 유지 → 기존 ZIP 해제 플로우 완전 호환.
+- **`search_disclosures` concurrency 파라미터** (1–10, 기본 5). 벤치 결과: concurrency=10 에서 **6.73× 빠름** (24.5s → 3.6s), rate limit 에러 없음, 동일 결과.
+- **scripts/field-test-v0_8.mjs** — 15 도구 × 28 실전 시나리오 자동 회귀 테스트.
+- **scripts/bench-concurrency.mjs** — 1/3/5/7/10 단계별 × 3 trial 측정.
+- **scripts/test-xbrl-markdown.mjs** — 삼성·LG·SK 대형 3사 × 연간 XBRL 변환 검증.
+- **README-EN.md** — 영문권 독자용 (DART/EDGAR 비유, corp_code/rcept_no 용어 설명).
+
+### Fixed
+- **`resolve_corp_code` 숫자 코드 직접 매칭**: 6자리 종목코드(예 `005930`) 또는 8자리 corp_code 를 넘기면 `resolver.byStockCode`/`byCorpCode` 경로로 즉시 매칭. 기존에는 LIKE 검색만 시도해 숫자 코드는 0건 반환.
+
+### Verified
+- field-test-v0_8.mjs: **28/28 PASS** (resolver alias / 3종 포맷 download / XBRL / 29 periodic sections / 36 event timeline / insider cluster / anomaly score / buffett 비교 모두 정상)
+- XBRL 마크다운: 삼성 자산 455.9조·영업수익 258.9조 / LG 자산 60.2조 / SK 자산 100.3조 (3사 ×  당기·전기·전전기 3열 완결)
+- smoke-v0_7_1.mjs 9/9 PASS (기존 핫픽스 회귀 없음)
+
+## [0.7.1] - 2026-04-18
+
+Critical 6건 핫픽스 — 응답 사이즈 폭발 + 파서 에러 방어.
+
+### Fixed
+- Resolver alias: "네이버" → NAVER 본체, "현대차" → 현대자동차 본체 (한글 약칭 우선).
+- dart-xml errorHandler: 사업보고서 markdown 변환 시 malformed XML 에서 throw 안 함.
+- get_financials full sj_div 기본 필터: BS+IS 만 반환 (전체 대비 응답 ~70% 절감).
+- get_major_holdings 기간+limit 기본값: 최근 3년, majorstock 50 / elestock 200 limit.
+- insider_signal reporters_topn 기본 5: 분기별 reporters 명단 컷.
+- get_attachments outline_max_items 기본 50: 사업보고서 outline 수천 행 → 50 행 컷.
+
 ## [0.7.0] - 2026-04-18
 
 도구 **18 → 15** 통폐합 + 페이지 병렬화. LLM 컨텍스트 절약과 선택 혼란 감소.

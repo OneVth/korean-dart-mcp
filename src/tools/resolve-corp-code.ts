@@ -25,6 +25,15 @@ export const resolveCorpCodeTool = defineTool({
     "결과가 모호할 때 후보를 확인하는 용도로 사용하세요.",
   input: Input,
   handler: async (ctx, args) => {
+    const q = args.query.trim();
+    const direct = /^\d{8}$/.test(q)
+      ? ctx.resolver.byCorpCode(q)
+      : /^\d{6}$/.test(q)
+        ? ctx.resolver.byStockCode(q)
+        : undefined;
+    if (direct) {
+      return { query: args.query, count: 1, results: [direct] };
+    }
     const results = ctx.resolver.search(args.query, args.limit);
     return {
       query: args.query,

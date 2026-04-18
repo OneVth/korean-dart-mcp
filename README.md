@@ -10,6 +10,8 @@
 
 자매 프로젝트: [korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp) (법제처 41 API → 15 도구)
 
+English documentation → [README-EN.md](README-EN.md)
+
 ---
 
 ## v0.7.0 — LLM 네이티브 분석 레이어
