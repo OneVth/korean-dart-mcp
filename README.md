@@ -427,7 +427,7 @@ DART XML 원문(`download_document(format=markdown)`) 도 자체 파서로 headi
 
 ### 방법 1: Claude Desktop / Cursor / Windsurf (가장 쉬움)
 
-**사전 준비**: [Node.js 20+](https://nodejs.org) 설치.
+**사전 준비**: [Node.js 20.19.0 이상](https://nodejs.org) 설치 (LTS 권장).
 
 설정 파일에 아래 내용을 추가하세요 (`YOUR_API_KEY` 를 본인 키로 교체):
 
@@ -459,6 +459,22 @@ DART XML 원문(`download_document(format=markdown)`) 도 자체 파서로 headi
 저장 후 앱을 **재시작**하면 15개 DART 도구가 활성화됩니다.
 
 > 이미 다른 MCP 서버를 쓰고 있다면, `"mcpServers": { ... }` 안에 `"korean-dart": { ... }` 부분만 추가하세요.
+
+> **⚠️ Windows 사용자**: 위 설정으로 fail 이 뜨면 Claude Desktop 이 Windows PATH 의 `.cmd` 확장자를 해석하지 못해 `npx` 를 못 찾는 이슈입니다. 아래처럼 `cmd /c` 로 래핑하세요:
+>
+> ```json
+> {
+>   "mcpServers": {
+>     "korean-dart": {
+>       "command": "cmd",
+>       "args": ["/c", "npx", "-y", "korean-dart-mcp"],
+>       "env": { "DART_API_KEY": "YOUR_API_KEY" }
+>     }
+>   }
+> }
+> ```
+>
+> 그래도 안 되면: ① Node.js **20.19.0 이상** 설치 여부 확인 (`node --version`), ② 방화벽이 `opendart.fss.or.kr` 차단하는지 확인, ③ 첫 기동 시 corp_code 덤프(11.6만건, 약 5-10초) 다운로드 중이니 10초 정도 기다린 후 재시도.
 
 ---
 
