@@ -167,6 +167,35 @@ function daysAgo(n: number): string {
   return ymd(d);
 }
 
+function parseYmd(s: string): Date {
+  return new Date(
+    parseInt(s.slice(0, 4), 10),
+    parseInt(s.slice(4, 6), 10) - 1,
+    parseInt(s.slice(6, 8), 10),
+  );
+}
+
+function daysBetween(a: string, b: string): number {
+  const ms = parseYmd(b).getTime() - parseYmd(a).getTime();
+  return Math.floor(ms / (24 * 3600 * 1000));
+}
+
+/** [bgn, end] 구간을 chunkDays 이하로 분할. 마지막 청크는 end 고정. */
+function splitDateRange(bgn: string, end: string, chunkDays: number): Array<{ bgn: string; end: string }> {
+  const out: Array<{ bgn: string; end: string }> = [];
+  let cursor = parseYmd(bgn);
+  const last = parseYmd(end);
+  while (cursor.getTime() <= last.getTime()) {
+    const chunkEnd = new Date(cursor);
+    chunkEnd.setDate(chunkEnd.getDate() + chunkDays - 1);
+    if (chunkEnd.getTime() > last.getTime()) chunkEnd.setTime(last.getTime());
+    out.push({ bgn: ymd(cursor), end: ymd(chunkEnd) });
+    cursor = new Date(chunkEnd);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return out;
+}
+
 /** total_page 파악 후 2..N 페이지 병렬 수집 (동시성 제한). */
 async function fetchAllPages(
   client: DartClient,
@@ -279,11 +308,25 @@ export const searchDisclosuresTool = defineTool({
     }
 
     // === 배치 모드 (preset 또는 all_pages) ===
-    const { items: collected, totalPages } = await fetchAllPages(
-      ctx.client,
-      baseParams,
-      args.concurrency,
-    );
+    // OpenDART 제약: corp_code 없이 list.json 호출 시 bgn_de~end_de 는 90일(3개월) 이내.
+    // 기간 > 90일 && 회사 미지정 시 90일 청크로 자동 분할 (v0.9.0+).
+    const rangeDays = daysBetween(bgn_de, end_de);
+    const needsSplit = !corp_code && rangeDays > 90;
+    const chunks = needsSplit
+      ? splitDateRange(bgn_de, end_de, 90)
+      : [{ bgn: bgn_de, end: end_de }];
+
+    let collected: ListItem[] = [];
+    let totalPages = 0;
+    for (const chunk of chunks) {
+      const { items, totalPages: tp } = await fetchAllPages(
+        ctx.client,
+        { ...baseParams, bgn_de: chunk.bgn, end_de: chunk.end },
+        args.concurrency,
+      );
+      collected.push(...items);
+      totalPages += tp;
+    }
 
     const includeCorrections =
       args.include_corrections || args.preset === "correction_all";
@@ -304,6 +347,7 @@ export const searchDisclosuresTool = defineTool({
       period: { start: bgn_de, end: end_de },
       corp: resolved,
       include_corrections: includeCorrections,
+      chunks: chunks.length > 1 ? chunks.length : undefined,
       pages_fetched: totalPages,
       total_fetched: collected.length,
       matched: filtered.length,

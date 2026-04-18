@@ -156,7 +156,7 @@ export const disclosureAnomalyTool = defineTool({
       message: (r as { message?: string }).message ?? null,
     }));
 
-    const auditors = auditTimeline.map((a) => a.auditor).filter(Boolean);
+    const auditors = auditTimeline.map((a) => a.auditor).filter((x): x is string => Boolean(x));
     const uniqueAuditors = Array.from(new Set(auditors));
     const auditor_changes = Math.max(0, uniqueAuditors.length - 1);
 
@@ -221,8 +221,26 @@ export const disclosureAnomalyTool = defineTool({
 
     score = Math.min(100, score);
 
-    const verdict =
+    const verdict: "red_flag" | "warning" | "watch" | "clean" =
       score >= 70 ? "red_flag" : score >= 40 ? "warning" : score >= 15 ? "watch" : "clean";
+
+    const summary_text = buildAnomalySummary({
+      corpName: record.corp_name,
+      score,
+      verdict,
+      flags: flags.map((f) => f.flag),
+      stats: {
+        disclosures_total: disclosures.length,
+        amendments: amendments.length,
+        amendment_ratio,
+        capital_stress_filings: capitalStress.length,
+        auditor_changes,
+        non_clean_opinions: nonCleanOpinions.length,
+      },
+      bgn_de,
+      end_de,
+      auditors: uniqueAuditors,
+    });
 
     return {
       resolved: record,
@@ -230,6 +248,7 @@ export const disclosureAnomalyTool = defineTool({
       audit_years: years,
       score,
       verdict,
+      summary_text,
       flags,
       stats: {
         disclosures_total: disclosures.length,
@@ -244,3 +263,47 @@ export const disclosureAnomalyTool = defineTool({
     };
   },
 });
+
+function buildAnomalySummary(p: {
+  corpName: string;
+  score: number;
+  verdict: string;
+  flags: string[];
+  stats: {
+    disclosures_total: number;
+    amendments: number;
+    amendment_ratio: number;
+    capital_stress_filings: number;
+    auditor_changes: number;
+    non_clean_opinions: number;
+  };
+  bgn_de: string;
+  end_de: string;
+  auditors: string[];
+}): string {
+  const verdictKo: Record<string, string> = {
+    red_flag: "🚨 적색경보",
+    warning: "⚠️ 경고",
+    watch: "👀 관찰",
+    clean: "✅ 이상 없음",
+  };
+  const head = `${p.corpName} (${p.bgn_de}~${p.end_de}): ${verdictKo[p.verdict] ?? p.verdict}, 점수 ${p.score}/100.`;
+
+  const parts: string[] = [];
+  if (p.stats.amendments > 0) {
+    parts.push(
+      `정정공시 ${p.stats.amendments}/${p.stats.disclosures_total}건 (${(p.stats.amendment_ratio * 100).toFixed(1)}%)`,
+    );
+  }
+  if (p.stats.auditor_changes > 0) {
+    parts.push(`감사인 ${p.stats.auditor_changes}회 교체 (${p.auditors.join(" → ")})`);
+  }
+  if (p.stats.non_clean_opinions > 0) {
+    parts.push(`비적정 감사의견 ${p.stats.non_clean_opinions}건`);
+  }
+  if (p.stats.capital_stress_filings >= 3) {
+    parts.push(`자본 스트레스 공시 ${p.stats.capital_stress_filings}건`);
+  }
+  const body = parts.length > 0 ? ` 주요 지표: ${parts.join(" · ")}.` : " 모든 지표 정상 범위.";
+  return head + body;
+}

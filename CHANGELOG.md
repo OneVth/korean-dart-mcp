@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.9.0] - 2026-04-18
+
+XBRL 본격 taxonomy 파싱 + search 90일 자동분할 + insider/anomaly 요약문.
+
+### Added
+- **`get_xbrl` `format="markdown_full"`**: presentation linkbase(`*_pre.xml`) 기반 **전체 계정 + 계층 구조**, calculation linkbase(`*_cal.xml`) 기반 **합산 검증**. 기존 `markdown` 모드의 whitelist 50태그 대비 BS 50+ / IS 15+ / CF 10+ 모든 공시 계정을 반영. 업종별 택소노미 (금융지주 `DX2xx` / 보험 등) 에 자동 대응.
+  - role 코드 자동 분류: `D210xxx`=BS, `D310xxx`=IS, `D410xxx`=CI, `D610xxx`=CF. 접미 `00`=연결/`05`=별도.
+  - 계산 검증(`validations`): calculation linkbase 의 `summation-item` 관계로 부모=합산자식 비교. 0.1% 이상 or 5원 이상 차이만 보고.
+  - 라벨 depth 마크다운 들여쓰기 (`&nbsp;` × 2 × depth).
+- **`search_disclosures` 90일 자동 분할**: `corp_code` 미지정 + 기간 90일 초과 시 90일 청크로 자동 분할 → OpenDART 의 "전체시장 3개월 제약" 우회. 응답에 `chunks` 필드 노출 (단일 청크는 생략).
+- **`insider_signal.summary_text`**: 한국어 3~4문장 자동 요약 (보고건수·고유매수자/매도자·순증감·cluster 시그널·최강분기).
+- **`disclosure_anomaly.summary_text`**: 한국어 요약 (점수·verdict·정정공시·감사인교체·비적정의견·자본스트레스 핵심지표).
+- **scripts/field-test-v0_9.mjs** — 신규 5 시나리오 (XBRL full × 일반/금융, 자동분할, 2개 요약문).
+
+### Fixed
+- XBRL role regex: `role-D210000` 은 `D(\d)\d{4}(\d\d)` 로는 매칭 실패 — 6자리 role 코드 기준으로 `D(\d)\d{3}(\d\d)` + `DX?` (금융지주 prefix) 로 교정.
+
+### Verified (45/45 PASS)
+- smoke-v0_7_1.mjs: 9/9 (v0.7.1 핫픽스 회귀 없음)
+- field-test-v0_8.mjs: 28/28 (15 도구 전체 시나리오)
+- test-xbrl-markdown.mjs: 3/3 (whitelist 모드 삼성/LG/SK)
+- field-test-v0_9.mjs: 5/5 (full 모드 + 금융지주 + auto-split + summary_text × 2)
+
 ## [0.8.0] - 2026-04-18
 
 XBRL 마크다운 변환 + concurrency 옵션화 + 필드테스트 안정화.

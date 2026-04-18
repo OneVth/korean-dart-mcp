@@ -187,10 +187,32 @@ export const insiderSignalTool = defineTool({
       clusters.find((c) => c.cluster === "sell_cluster") ??
       null;
 
+    const signal: "strong_buy_cluster" | "strong_sell_cluster" | "neutral_or_mixed" =
+      buyers.size >= args.cluster_threshold && buyers.size > sellers.size * 2
+        ? "strong_buy_cluster"
+        : sellers.size >= args.cluster_threshold && sellers.size > buyers.size * 2
+          ? "strong_sell_cluster"
+          : "neutral_or_mixed";
+
+    const summary_text = buildInsiderSummary({
+      corpName: record.corp_name,
+      reports: filtered.length,
+      buyCount,
+      sellCount,
+      buyers: buyers.size,
+      sellers: sellers.size,
+      netChange,
+      signal,
+      strongestCluster,
+      startYmd,
+      endYmd,
+    });
+
     return {
       resolved: record,
       period: { start: startYmd, end: endYmd },
       cluster_threshold: args.cluster_threshold,
+      summary_text,
       summary: {
         reports_total: filtered.length,
         buy_events: buyCount,
@@ -198,12 +220,7 @@ export const insiderSignalTool = defineTool({
         unique_buyers: buyers.size,
         unique_sellers: sellers.size,
         net_change_shares: netChange,
-        signal:
-          buyers.size >= args.cluster_threshold && buyers.size > sellers.size * 2
-            ? "strong_buy_cluster"
-            : sellers.size >= args.cluster_threshold && sellers.size > buyers.size * 2
-              ? "strong_sell_cluster"
-              : "neutral_or_mixed",
+        signal,
         strongest_quarter: strongestCluster?.quarter ?? null,
       },
       quarterly_clusters: clusters,
@@ -211,3 +228,43 @@ export const insiderSignalTool = defineTool({
     };
   },
 });
+
+function buildInsiderSummary(p: {
+  corpName: string;
+  reports: number;
+  buyCount: number;
+  sellCount: number;
+  buyers: number;
+  sellers: number;
+  netChange: number;
+  signal: string;
+  strongestCluster: { quarter: string; buyers: number; sellers: number; net_change: number } | null;
+  startYmd: string | null;
+  endYmd: string | null;
+}): string {
+  const periodStr =
+    p.startYmd || p.endYmd
+      ? `${p.startYmd ?? "처음"}~${p.endYmd ?? "현재"}`
+      : "전체 보고 기간";
+  if (p.reports === 0) return `${p.corpName}: ${periodStr} 임원·주요주주 변동 보고 없음.`;
+
+  const netStr =
+    p.netChange === 0
+      ? "순증감 0"
+      : p.netChange > 0
+        ? `순매수 +${p.netChange.toLocaleString("ko-KR")}주`
+        : `순매도 ${p.netChange.toLocaleString("ko-KR")}주`;
+
+  const signalStr =
+    p.signal === "strong_buy_cluster"
+      ? "→ 내부자 매수 클러스터 시그널"
+      : p.signal === "strong_sell_cluster"
+        ? "→ 내부자 매도 클러스터 시그널"
+        : "→ 중립/혼조";
+
+  const clusterStr = p.strongestCluster
+    ? ` 최강 클러스터: ${p.strongestCluster.quarter} (매수 ${p.strongestCluster.buyers}명/매도 ${p.strongestCluster.sellers}명).`
+    : "";
+
+  return `${p.corpName} ${periodStr}: ${p.reports}건 보고 (매수 ${p.buyCount} / 매도 ${p.sellCount}). 고유 매수자 ${p.buyers}명 / 매도자 ${p.sellers}명, ${netStr}. ${signalStr}.${clusterStr}`;
+}
