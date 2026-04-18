@@ -38,6 +38,76 @@ Full history → [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
+## 💡 For retail investors — 5 things you can actually do
+
+Practical use cases for **Korean-equity retail investors** whose broker app isn't enough. Just ask Claude in plain language.
+
+### 1. "Is management buying with their own money on my holdings?"
+
+```
+"Samsung Electronics — insider buy/sell activity over the last 12 months"
+```
+
+→ `insider_signal` aggregates reports into **cluster signals**. Live result: 2,429 buys vs 43 sells → `strong_buy_cluster`. A 24:1 buying dominance by executives. Impossible to spot manually from DART's filing-by-filing view.
+
+### 2. "Any accounting skeletons in this company?"
+
+```
+"Kakao — 3-year accounting/governance risk score"
+```
+
+→ `disclosure_anomaly` returns a **0-100 score + verdict** (clean/watch/warning/red_flag). Live: Kakao 40/100 `warning` — amendment ratio 32.8% exceeds the 20% threshold. Automated flag detection no retail investor does by hand.
+
+### 3. "I don't want to read a 300-page annual report"
+
+```
+"Summarize the 'Risk Factors' and 'Business Overview' sections from Samsung's 2023 annual report"
+```
+
+→ `get_attachments(mode="extract")` converts 2.2MB PDFs into 920k-char markdown in 3.7 seconds. Claude reads and summarizes section-by-section. **You get primary-source reading without paying for analyst reports.**
+
+### 4. "Who filed what today?"
+
+```
+"All listed companies that filed treasury stock purchase decisions in the last 30 days"
+"Convertible/exchangeable bond issuance filings, last 7 days"
+"M&A / spin-off decisions in the last 30 days"
+```
+
+→ `search_disclosures(preset=...)` covers 22 presets. Treasury buys = bullish signal / CB/BW issuance = dilution warning. Live: 59 treasury-buy filings in 30 days. Batch views brokerage apps miss entirely.
+
+### 5. "Which of these is more solid, A or B?"
+
+```
+"Compare Samsung, SK Hynix, LG Electronics on 5-year ROE / debt / growth"
+```
+
+→ `buffett_quality_snapshot(corps=[...])` auto-ranks across 5 metrics. Live (see [Scenario 1](#1-buffett-style-5-year-quality-comparison--auto-ranking) above): SK Hynix passes 3/4 checklist; Samsung dominates debt stability. **Pick stocks by numbers instead of vibes.**
+
+---
+
+### Who this fits
+
+- **Intermediate retail investors** holding 5-20 stocks, reviewing disclosures quarterly/semi-annually
+- People who want **primary-source disclosures** instead of journalist-filtered news
+- Investors frustrated by the limits of Naver Finance / HTS app data
+- DIY analysts who'd rather not pay for brokerage research
+
+### Who this is overkill for
+
+- **Day traders on charts** — no chart / real-time price here
+- **KOSPI ETF buy-and-holders** — no need for single-stock analysis
+- **Quants running DataFrames in Excel/Python** — use OpenDartReader or dart-fss instead (pandas-native)
+
+### Honest barriers to entry
+
+- Claude Desktop / Cursor install + OpenDART key provisioning (**~10 min**, free, 20k requests/day)
+- Terms like ROE / CAGR / debt-to-equity are assumed
+- Claude Pro subscription $20/month (large-PDF summarization benefits from a plan with a bigger context window)
+- This is a **research assistant**. Investment decisions are yours.
+
+---
+
 ## Real scenarios — live API results
 
 All results below are **actual values** from live DART API calls. Reproducible via `scripts/showcase-v0_9_1.mjs` (12/12 PASS).
