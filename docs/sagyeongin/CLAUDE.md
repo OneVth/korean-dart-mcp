@@ -63,7 +63,7 @@
 
 - [x] 기능 명세 v0.2 확정 (2026-04-24)
 - [x] 구현 전략 합의 (이 ADR들, 2026-04-25)
-- [ ] 1단계: `feat/scaffold-sagyeongin` — 디렉토리 골격 + index.ts 등록
+- [x] 1단계: `feat/scaffold-sagyeongin` — 디렉토리 골격 + index.ts 등록 (2026-04-27)
 - [ ] 2단계: `feat/config-store` — config-store + update_watchlist + update_scan_preset
 - [ ] 3단계: `feat/srim-stack` — required_return + srim + naver-price + srim-calc
 - [ ] 4단계: `feat/killer-check`
@@ -78,9 +78,10 @@
 
 ### 현재 작업 단계
 
-마일스톤 합의 완료. 다음 작업은 1단계 `feat/scaffold-sagyeongin`.
+1단계 완료 (2026-04-27, merge b5f4b88). 다음 작업은 2단계 `feat/config-store`.
 
-ADR-0004의 1단계 작업 목록 12 항목 참조.
+ADR-0004 2단계 — config-store + update_watchlist + update_scan_preset 통째 구현.
+spec §6 (설정 파일 스키마), §10.10/§10.11 참조.
 
 ## 자주 막히는 곳
 
