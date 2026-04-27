@@ -9,6 +9,7 @@
 > 금융감독원 [OpenDART](https://opendart.fss.or.kr/) 전자공시 기반 MCP 서버 + CLI. Claude Desktop, Cursor, Windsurf, Claude Code 등에서 바로 사용 가능.
 
 자매 프로젝트: [korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp) (법제처 41 API → 15 도구)
+사경인 fork: [README-SAGYEONGIN.md](README-SAGYEONGIN.md) — 사경인 회계사 투자 철학 기반 한국 주식 스크리닝 도구 11종
 
 English documentation → [README-EN.md](README-EN.md)
 

@@ -2,6 +2,8 @@
 
 OpenDART(금융감독원 전자공시) 를 MCP 서버로 래핑. `korean-law-mcp`(법제처) 와 자매 프로젝트.
 
+> 이 레포는 `chrisryugj/korean-dart-mcp` fork이며 사경인 회계사 투자 철학 기반 도구 11개를 추가한다. 사경인 작업에 진입하는 세션은 [docs/sagyeongin/CLAUDE.md](docs/sagyeongin/CLAUDE.md)를 먼저 본다.
+
 ## 구조
 
 ```

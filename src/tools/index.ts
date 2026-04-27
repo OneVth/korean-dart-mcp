@@ -24,6 +24,7 @@ import { insiderSignalTool } from "./insider-signal.js";
 import { disclosureAnomalyTool } from "./disclosure-anomaly.js";
 import { buffettQualitySnapshotTool } from "./buffett-quality-snapshot.js";
 import { getAttachmentsTool } from "./get-attachments.js";
+import { sagyeonginTools } from "./sagyeongin/index.js";   // ← 신규
 
 export type ToolContext = ToolCtx;
 export type ToolDefinition = ToolDef;
@@ -70,4 +71,5 @@ export const TOOL_REGISTRY: ToolDef[] = [
   disclosureAnomalyTool,
   buffettQualitySnapshotTool,
   getAttachmentsTool,
+  ...sagyeonginTools,
 ];
