@@ -9,7 +9,9 @@
 
 import type { ToolDef } from "../_helpers.js";
 import { updateWatchlistTool } from "./update-watchlist.js";
+import { updateScanPresetTool } from "./update-scan-preset.js";
 
 export const sagyeonginTools: ToolDef[] = [
   updateWatchlistTool,
+  updateScanPresetTool,
 ];
