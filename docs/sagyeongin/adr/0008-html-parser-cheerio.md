@@ -30,6 +30,8 @@ upstream `package.json` 확인 결과:
 - `src/tools/sagyeongin/_lib/kis-rating-scraper.ts`
 - `src/tools/sagyeongin/_lib/naver-price.ts`
 
+> *2026-04-28 install 결과: npm semver 해결로 cheerio 1.2.0 lock. ^1.x 의도 정합. 실제 `package.json` 추가 위치는 알파벳 순(better-sqlite3 다음, commander 앞) — ADR 본문 "끝부분" 표기는 일반 정신("사경인 변경이 분리되어 충돌 면 작음") 영역으로 해석.*
+
 ## 근거
 
 ### cheerio가 채택된 이유
