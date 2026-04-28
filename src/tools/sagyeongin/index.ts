@@ -10,8 +10,12 @@
 import type { ToolDef } from "../_helpers.js";
 import { updateWatchlistTool } from "./update-watchlist.js";
 import { updateScanPresetTool } from "./update-scan-preset.js";
+import { requiredReturnTool } from "./required-return.js";
+import { srimTool } from "./srim.js";
 
 export const sagyeonginTools: ToolDef[] = [
   updateWatchlistTool,
   updateScanPresetTool,
+  requiredReturnTool,
+  srimTool,
 ];

@@ -61,6 +61,7 @@
 | [0005](./0005-commit-conventions.md) | Commit Conventions | Accepted | 2026-04-25 | Conventional Commits + 한국어 + Ref |
 | [0006](./0006-documentation-strategy.md) | Documentation Strategy | Accepted | 2026-04-25 | `docs/sagyeongin/` + ADR + 별도 README/CHANGELOG |
 | [0007](./0007-config-store-design.md) | config-store Design | Accepted | 2026-04-28 | loadConfig/saveConfig 2개, atomic write, 기본값 머지, H2 read-only 부작용 없음 |
+| [0008](./0008-html-parser-cheerio.md) | HTML Parser (cheerio) | Accepted | 2026-04-28 | cheerio ^1.0.0, dependencies, kis-rating-scraper + naver-price 사용 |
 
 ## 상태 정의
 

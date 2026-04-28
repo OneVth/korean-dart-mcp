@@ -60,6 +60,62 @@
 
 **상태**: pending
 
+### [§10.4] avg_roe / K 단위 표기 불일치
+
+**현재**: §10.4 564줄 `inputs.avg_roe` 단위 표기 `'%'`, §10.5 620줄 `output.value` 단위 표기 분수 (예: 0.0742).
+
+**정정**: spec 본문 전체에서 분수로 통일. 비율은 모두 소수 분수(0.20 = 20%) 표기.
+
+**근거**: 3단계 srim-calc 인터페이스 설계 중 발견 (2026-04-28). 모듈 내부는 G1 결정에 따라 모두 분수 통일. 마일스톤 시 spec 본문 표기 통일 필요.
+
+**상태**: pending
+
+### [§10.5] 607줄 메뉴 경로 탭 선택 정보 누락
+
+**현재**: §10.5 607줄 메뉴 경로 명시("한국신용평가 → 신용등급 → 등급통계 → 등급별금리스프레드 → BBB- 등급 5년 채권 수익률")에 탭 선택 정보 누락.
+
+**정정**: 실제 페이지에 "수익률"/"스프레드" 두 탭이 있고 채권 수익률 값은 "수익률" 탭에서 확인. 메뉴 경로에 탭 선택 정보 보강 필요.
+
+**근거**: 3단계 묶음 2 (2026-04-28) 사용자 페이지 확인 중 발견. 실제 스크래핑 URL은 statics_spread.do 페이지 안의 수익률 탭 영역. 의미 변경 아닌 표현 정정(ADR-0006 강도 분기).
+
+**상태**: pending
+
+### [§10.4] verdict 타입에 null 추가
+
+**현재**: §10.4 574줄 verdict 타입 `"BUY" | "BUY_FAIR" | "HOLD" | "SELL"`은 current_price 가용 시 정의.
+
+**정정**: §11.3 946줄 "current_price: null + verdict 계산 불가" 케이스 명시 시 verdict도 null. 통합 표현 보강 — verdict 타입에 null 추가:
+`"BUY" | "BUY_FAIR" | "HOLD" | "SELL" | null`
+
+**근거**: 3단계 묶음 3 srim 도구 구현 중 발견. naver 실패 또는 stock_code 부재 시 verdict 계산 불가, null 자연 표현.
+
+**상태**: pending
+
+### [§11.3] 네이버 실패 정의 보강 — stock_code 부재 케이스
+
+**현재**: §11.3 946줄 "네이버 금융 / 현재가 크롤링 / sagyeongin_srim 내부 / 실패 시 srim 결과에서 current_price: null + verdict 계산 불가 표시" — "실패"가 네이버 호출 실패만 명시.
+
+**정정**: "실패" 정의에 두 케이스 모두 포함:
+- 네이버 호출 실패 (HTTP/네트워크/페이지 구조 변경)
+- stock_code 자체 부재 (비상장 / DART 등록 중 미발급) — naver 호출 자체 스킵
+
+**근거**: 3단계 묶음 3 srim.ts 구현 중 발견. CorpRecord.stock_code는 옵셔널 필드라 부재 가능. 두 케이스 모두 동일 처리(current_price: null + verdict: null + note에 price_source=null 사유) 명시 필요.
+
+**상태**: pending
+
+### [§10.4] ROE < K 케이스 가격 순서 역전 영역
+
+**현재**: §10.4 공식과 verdict 분기가 정상 케이스(ROE > K, 가격 순서 buy < fair < sell) 가정.
+
+**정정**: ROE < K(자본 비용 못 만회) 케이스에서 가격 순서 역전(sell < fair < buy) 발생. 수학적으로 정상이지만 verdict 분기 의미 모호 — 현재가 ≤ buy_price 검사가 자동 BUY 분기로 빠질 위험. 보강 방향:
+- note에 `roe_lt_k=true` 신호 추가 (사용자 인지)
+- 또는 verdict 분기 자체에 ROE<K 케이스 별도 처리 (사경인 본질상 해당 회사 SELL 영역)
+- field-test sanity에서도 가격 순서 검증 영역 정의
+
+**근거**: 3단계 묶음 3 field-test 중 삼성전자 2023년 데이터(avg_ROE 8.75% < K 10.36%)에서 발생. 위임자가 sanity를 prices > 0으로 완화 처리.
+
+**상태**: pending
+
 ## Applied 항목
 
 (아직 없음. v0.3에서 일괄 반영 시 채워짐.)
