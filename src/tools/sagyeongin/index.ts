@@ -8,5 +8,8 @@
  */
 
 import type { ToolDef } from "../_helpers.js";
+import { updateWatchlistTool } from "./update-watchlist.js";
 
-export const sagyeonginTools: ToolDef[] = [];
+export const sagyeonginTools: ToolDef[] = [
+  updateWatchlistTool,
+];
