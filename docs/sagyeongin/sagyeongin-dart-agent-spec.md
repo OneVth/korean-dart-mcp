@@ -1,11 +1,12 @@
 # 사경인식 DART 에이전트 — 기능 명세 문서
 
-**버전**: v0.3 (구현 전략 합의 + ADR 도입 반영)
-**작성일**: 2026-04-24 (v0.1), 마지막 갱신 2026-04-25 (v0.3)
+**버전**: v0.4 (§10.10/§10.11 동작 명세 + ADR-0007 도입)
+**작성일**: 2026-04-24 (v0.1), 마지막 갱신 2026-04-28 (v0.4)
 **수정 이력**:
 - v0.1 (2026-04-24): 초안
 - v0.2 (2026-04-24): K값 처리 방식 수정 — 하드코딩 제거, `sagyeongin_required_return` 도구 신설 (wikidocs.net/94787 근거)
 - v0.3 (2026-04-25): 구현 전략 합의 결과 반영. ADR-0001~0006 도입. §10.12 insider PR 절차 강화 (Issue 필수). 메타 결정의 단일 출처가 ADR로 이동. spec은 도구 명세 reference 역할에 집중.
+- v0.4 (2026-04-28): §10.10/§10.11 action별 동작 명세 추가. config-store 설계 ADR-0007 도입 (B1 corp_code → name 자동 조회 / D1 add 중복 throw / E1 update_tags 부분 갱신 / F2 remove 멱등 / G1 preset update 부분 patch / H1 active preset 삭제 throw).
 
 **참조 문서**: 
 - `sakyeongin_philosophy.md` — 사상 토대
@@ -841,6 +842,17 @@ Stage 6. dividend_check (7부 E) — 태그만
 
 **Output**: 갱신된 watchlist 전체.
 
+**동작**:
+
+- **add**: `corp_codes` 필수. 각 corp_code에 대해 (i) 이미 watchlist에 존재하면 throw (ii) `ctx.resolver.byCorpCode`로 `name` 자동 조회, 부재 시 throw. 모든 corp_code를 검증한 후 일괄 추가 (부분 실패 방지). `tags`/`notes`는 모든 추가 항목에 동일 적용. `notes`가 부재면 키 자체 누락. `added_at`은 `YYYY-MM-DD` 형식, 호출 시점 자동 채움.
+- **remove**: `corp_codes` 필수. 일치하는 항목 제거. 없는 corp_code는 silently skip (멱등).
+- **list**: 디스크 변경 없음. 현재 watchlist 반환.
+- **update_tags**: `corp_codes` 필수, `tags`와 `notes` 중 하나 이상 필수. 각 corp_code가 watchlist에 없으면 throw. 모든 항목 검증 후 일괄 갱신. `tags`/`notes`는 부분 갱신 — 제공된 키만 교체, 미제공 키는 보존.
+
+모든 action에서 `{ watchlist: WatchlistEntry[] }` 형태 반환.
+
+**구현 결정**: ADR-0007 (config-store 설계)
+
 ---
 
 ### 10.11 `sagyeongin_update_scan_preset`
@@ -860,6 +872,18 @@ Stage 6. dividend_check (7부 E) — 태그만
 ```
 
 **Output**: 갱신된 scan_presets 전체.
+
+**동작**:
+
+- **create**: `preset_name` + `config` 필수. 이미 존재하는 `preset_name`이면 throw.
+- **update**: `preset_name` 필수, 존재 검증. `config` 필수. 부분 patch — `config` 안 정의된 키만 교체, 나머지 필드는 보존.
+- **delete**: `preset_name` 필수, 존재 검증. active 프리셋이면 throw (set_active로 다른 프리셋 활성화 후 시도 안내).
+- **list**: 디스크 변경 없음. 현재 scan_presets + active_preset 반환.
+- **set_active**: `preset_name` 필수, 존재 검증. `active_preset` 갱신.
+
+모든 action에서 `{ scan_presets, active_preset }` 형태 반환.
+
+**구현 결정**: ADR-0007 (config-store 설계)
 
 ---
 
