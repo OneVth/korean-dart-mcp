@@ -103,6 +103,19 @@
 
 **상태**: pending
 
+### [§10.4] ROE < K 케이스 가격 순서 역전 영역
+
+**현재**: §10.4 공식과 verdict 분기가 정상 케이스(ROE > K, 가격 순서 buy < fair < sell) 가정.
+
+**정정**: ROE < K(자본 비용 못 만회) 케이스에서 가격 순서 역전(sell < fair < buy) 발생. 수학적으로 정상이지만 verdict 분기 의미 모호 — 현재가 ≤ buy_price 검사가 자동 BUY 분기로 빠질 위험. 보강 방향:
+- note에 `roe_lt_k=true` 신호 추가 (사용자 인지)
+- 또는 verdict 분기 자체에 ROE<K 케이스 별도 처리 (사경인 본질상 해당 회사 SELL 영역)
+- field-test sanity에서도 가격 순서 검증 영역 정의
+
+**근거**: 3단계 묶음 3 field-test 중 삼성전자 2023년 데이터(avg_ROE 8.75% < K 10.36%)에서 발생. 위임자가 sanity를 prices > 0으로 완화 처리.
+
+**상태**: pending
+
 ## Applied 항목
 
 (아직 없음. v0.3에서 일괄 반영 시 채워짐.)

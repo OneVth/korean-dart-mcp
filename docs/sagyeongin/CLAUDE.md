@@ -65,7 +65,7 @@
 - [x] 구현 전략 합의 (이 ADR들, 2026-04-25)
 - [x] 1단계: `feat/scaffold-sagyeongin` — 디렉토리 골격 + index.ts 등록 (2026-04-27)
 - [x] 2단계: `feat/config-store` — config-store + update_watchlist + update_scan_preset (2026-04-28)
-- [ ] 3단계: `feat/srim-stack` — required_return + srim + naver-price + srim-calc
+- [x] 3단계: `feat/srim-stack` — required_return + srim + naver-price + srim-calc (2026-04-28)
 - [ ] 4단계: `feat/killer-check`
 - [ ] 5단계: `feat/cashflow-check`
 - [ ] 6단계: `feat/capex-signal`
