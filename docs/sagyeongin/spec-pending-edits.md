@@ -80,6 +80,29 @@
 
 **상태**: pending
 
+### [§10.4] verdict 타입에 null 추가
+
+**현재**: §10.4 574줄 verdict 타입 `"BUY" | "BUY_FAIR" | "HOLD" | "SELL"`은 current_price 가용 시 정의.
+
+**정정**: §11.3 946줄 "current_price: null + verdict 계산 불가" 케이스 명시 시 verdict도 null. 통합 표현 보강 — verdict 타입에 null 추가:
+`"BUY" | "BUY_FAIR" | "HOLD" | "SELL" | null`
+
+**근거**: 3단계 묶음 3 srim 도구 구현 중 발견. naver 실패 또는 stock_code 부재 시 verdict 계산 불가, null 자연 표현.
+
+**상태**: pending
+
+### [§11.3] 네이버 실패 정의 보강 — stock_code 부재 케이스
+
+**현재**: §11.3 946줄 "네이버 금융 / 현재가 크롤링 / sagyeongin_srim 내부 / 실패 시 srim 결과에서 current_price: null + verdict 계산 불가 표시" — "실패"가 네이버 호출 실패만 명시.
+
+**정정**: "실패" 정의에 두 케이스 모두 포함:
+- 네이버 호출 실패 (HTTP/네트워크/페이지 구조 변경)
+- stock_code 자체 부재 (비상장 / DART 등록 중 미발급) — naver 호출 자체 스킵
+
+**근거**: 3단계 묶음 3 srim.ts 구현 중 발견. CorpRecord.stock_code는 옵셔널 필드라 부재 가능. 두 케이스 모두 동일 처리(current_price: null + verdict: null + note에 price_source=null 사유) 명시 필요.
+
+**상태**: pending
+
 ## Applied 항목
 
 (아직 없음. v0.3에서 일괄 반영 시 채워짐.)
