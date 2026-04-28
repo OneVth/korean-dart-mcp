@@ -162,25 +162,33 @@ export async function extractRoeSeries(
     .map(([, roe]) => roe);
 }
 
+interface StockRow {
+  se?: string;
+  istc_totqy?: string;
+}
+
+interface StockResp {
+  status: string;
+  message: string;
+  list?: StockRow[];
+}
+
 // 발행주식수 추출 (주). 최근 사업보고서 기준.
-// fnlttSinglAcntAll (전체계정) 사용 — 주요계정(fnlttSinglAcnt)에 미포함.
+// stockTotqySttus (주식총수 현황) 사용 — fnlttSinglAcnt에 발행주식수 계정 미포함.
+// 보통주(se="보통주") istc_totqy 반환. 우선주 제외.
 export async function extractSharesOutstanding(corp_code: string, ctx: ToolCtx): Promise<number> {
   const year = new Date().getFullYear() - 1;
-  const raw = await ctx.client.getJson<DartResp>("fnlttSinglAcntAll.json", {
+  const raw = await ctx.client.getJson<StockResp>("stockTotqySttus.json", {
     corp_code,
     bsns_year: String(year),
     reprt_code: "11011",
   });
-  const items = raw.status === "000" ? (raw.list ?? []) : [];
-  const filtered = filterCfsOfs(items);
-
-  const candidates = [
-    "보통주발행주식수",
-    "발행주식총수",
-    "보통주 발행주식수",
-    "발행주식수(보통주)",
-  ];
-  const shares = pickAccountValue(filtered, candidates);
+  const rows = raw.status === "000" ? (raw.list ?? []) : [];
+  const common = rows.find((r) => r.se === "보통주");
+  if (!common?.istc_totqy) {
+    throw new Error(`financial-extractor: shares_outstanding not found for ${corp_code}`);
+  }
+  const shares = parseAccountAmount(common.istc_totqy);
   if (shares !== null && shares > 0) return shares;
   throw new Error(`financial-extractor: shares_outstanding not found for ${corp_code}`);
 }
