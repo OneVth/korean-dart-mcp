@@ -7,6 +7,7 @@
  * 책임:
  * - 계정명 변형 처리 (자본총계 / 자기자본 합계 / Total Equity / 등)
  * - CFS(연결) → OFS(별도) 폴백
+ * - OFS 강제 영역 (룰 본질이 별도재무제표 요구 시 — 7부 A consecutive_operating_loss / low_revenue_kosdaq)
  * - 연도 폴백 (사업보고서 미공시 시 가능한 만큼)
  *
  * 단위 정책 (G1):
@@ -191,4 +192,106 @@ export async function extractSharesOutstanding(corp_code: string, ctx: ToolCtx):
   const shares = parseAccountAmount(common.istc_totqy);
   if (shares !== null && shares > 0) return shares;
   throw new Error(`financial-extractor: shares_outstanding not found for ${corp_code}`);
+}
+
+// N년 영업이익 시계열 (오래된→최근, 원). OFS 강제 — 별도재무제표 기준.
+// philosophy 7부 A: "별도재무제표 4년 연속 영업손실. HTS는 연결만 보여주므로
+// DART 감사보고서 직접 확인". CFS 폴백 0 — OFS 부재 시 해당 연도는 배열에서 누락
+// (partial array). 호출자(killer-check.ts)가 length === years 검증.
+//
+// extractRoeSeries 패턴 그대로: 3년 간격 base year로 API 호출 절약 (years=4 → 2 call).
+// 빈 배열 가능 (미공시) — 호출자 책임으로 throw 처리.
+//
+// Ref: spec §10.1 consecutive_operating_loss, philosophy 7부 A
+export async function extractOperatingIncomeSeries(
+  corp_code: string,
+  years: number,
+  ctx: ToolCtx,
+): Promise<number[]> {
+  const endYear = new Date().getFullYear() - 1;
+  const startYear = endYear - years + 1;
+
+  const baseYears: number[] = [];
+  for (let y = endYear; y >= startYear; y -= 3) baseYears.push(y);
+
+  const responses = await Promise.all(
+    baseYears.map(async (baseYear) => {
+      try {
+        const raw = await ctx.client.getJson<DartResp>("fnlttSinglAcnt.json", {
+          corp_code,
+          bsns_year: String(baseYear),
+          reprt_code: "11011",
+        });
+        return { baseYear, items: raw.status === "000" ? (raw.list ?? []) : [] };
+      } catch {
+        return { baseYear, items: [] as AccountItem[] };
+      }
+    }),
+  );
+
+  const byYear = new Map<number, number>();
+  for (const { baseYear, items } of responses) {
+    if (!items.length) continue;
+    const ofsItems = items.filter((i) => i.fs_div === "OFS");
+    if (!ofsItems.length) continue;
+    const periods = [
+      ["thstrm", baseYear],
+      ["frmtrm", baseYear - 1],
+      ["bfefrmtrm", baseYear - 2],
+    ] as const;
+    for (const [period, y] of periods) {
+      if (y < startYear || y > endYear || byYear.has(y)) continue;
+      const periodItems = ofsItems.map((item) => ({
+        account_nm: item.account_nm,
+        thstrm_amount: (item[`${period}_amount`] as string | undefined) ?? null,
+      }));
+      const operatingIncome = pickAccountValue(periodItems, [
+        "영업이익",
+        "영업이익(손실)",
+        "영업손실",
+      ]);
+      if (operatingIncome !== null) {
+        byYear.set(y, operatingIncome);
+      }
+    }
+  }
+
+  return Array.from(byYear.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([, v]) => v);
+}
+
+// 단일 연도 매출 추출 (원). OFS 강제 — 코스닥 관리종목 규정 매출(별도재무제표) 기준.
+// philosophy 7부 A: "매출 30억 미만 (코스닥 관리종목 기준)" — 코스닥시장 상장규정의
+// "최근 사업연도 매출액 30억원 미만" 규정이 별도재무제표 기준. CFS 폴백 시 룰 의미 깨짐.
+//
+// OFS 부재 시 throw — extractEquityCurrent 패턴이지만 OFS-only 영역.
+// 호출자(killer-check.ts)는 try/catch로 감싸 룰 미트리거 처리.
+//
+// Ref: spec §10.1 low_revenue_kosdaq, philosophy 7부 A
+export async function extractRevenue(
+  corp_code: string,
+  year: number,
+  ctx: ToolCtx,
+): Promise<number> {
+  const raw = await ctx.client.getJson<DartResp>("fnlttSinglAcnt.json", {
+    corp_code,
+    bsns_year: String(year),
+    reprt_code: "11011",
+  });
+  const items = raw.status === "000" ? (raw.list ?? []) : [];
+  const ofsItems = items.filter((i) => i.fs_div === "OFS");
+  const revenue = pickAccountValue(ofsItems, [
+    "매출액",
+    "수익(매출액)",
+    "영업수익",
+    "Revenue",
+    "Sales",
+  ]);
+  if (revenue === null) {
+    throw new Error(
+      `financial-extractor: revenue not found for ${corp_code} (year=${year}, OFS only)`,
+    );
+  }
+  return revenue;
 }
