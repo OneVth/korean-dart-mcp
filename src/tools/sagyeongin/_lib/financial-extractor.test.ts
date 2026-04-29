@@ -10,7 +10,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { pickAccountValue, extractOperatingIncomeSeries, extractCashflowSeries } from "./financial-extractor.js";
+import { pickAccountValue, extractOperatingIncomeSeries, extractCashflowSeries, extractTotalAssets } from "./financial-extractor.js";
 
 // --- 그룹 1: 정상 케이스 ---
 
@@ -232,4 +232,58 @@ test("CF 빈 응답 — 모든 항목 빈 배열", async () => {
   assert.deepEqual(result.operating, []);
   assert.deepEqual(result.investing, []);
   assert.deepEqual(result.financing, []);
+});
+
+// --- 그룹 6: extractTotalAssets ---
+
+function makeTaCtx(list: Record<string, unknown>[]): ToolCtx {
+  return {
+    client: {
+      getJson: async () => ({ status: "000", list }),
+    },
+  } as unknown as ToolCtx;
+}
+
+test("자산총계 — CFS 항목 반환", async () => {
+  const items = [
+    { account_nm: "자산총계", fs_div: "CFS", thstrm_amount: "500,000,000,000" },
+  ];
+  const v = await extractTotalAssets("000000", 2024, makeTaCtx(items));
+  assert.equal(v, 500_000_000_000);
+});
+
+test("자산총계 CFS 부재 + OFS 존재 — OFS 폴백", async () => {
+  const items = [
+    { account_nm: "자산총계", fs_div: "OFS", thstrm_amount: "300,000,000,000" },
+  ];
+  const v = await extractTotalAssets("000000", 2024, makeTaCtx(items));
+  assert.equal(v, 300_000_000_000);
+});
+
+test("자산총계 둘 다 부재 — throw", async () => {
+  const items = [
+    { account_nm: "부채총계", fs_div: "CFS", thstrm_amount: "100,000,000" },
+  ];
+  await assert.rejects(
+    () => extractTotalAssets("000000", 2024, makeTaCtx(items)),
+    /total_assets not found/,
+  );
+});
+
+test("자산총계 빈 응답 — throw", async () => {
+  const ctx = {
+    client: { getJson: async () => ({ status: "000", list: [] }) },
+  } as unknown as ToolCtx;
+  await assert.rejects(
+    () => extractTotalAssets("000000", 2024, ctx),
+    /total_assets not found/,
+  );
+});
+
+test("자산총계 괄호 음수 — parseAccountAmount 일관성", async () => {
+  const items = [
+    { account_nm: "자산총계", fs_div: "CFS", thstrm_amount: "(100,000)" },
+  ];
+  const v = await extractTotalAssets("000000", 2024, makeTaCtx(items));
+  assert.equal(v, -100_000);
 });

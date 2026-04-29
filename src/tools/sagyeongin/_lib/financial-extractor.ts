@@ -417,3 +417,45 @@ export async function extractCashflowSeries(
     financing: sortAndExtract(financingByYear),
   };
 }
+
+/**
+ * 자산총계 단일 연도 추출 (원). CFS 우선 → OFS 폴백.
+ *
+ * 5단계 negative_ocf_with_active_icf 룰의 "자산총계 10%+" 비교 영역.
+ * 비교 시점은 분석 윈도 가장 최근 연도 — 룰 본질이 "현재 자산 규모 대비 투자 강도"
+ * (spec §10.2 명시 누락 영역, 묶음 2 spec-pending-edits 누적).
+ *
+ * extractEquityCurrent 패턴 정합. account_nm 매처 단일 ("자산총계") —
+ * buffett-quality-snapshot.ts ACCOUNT_MATCHERS 정합. 부재 시 throw —
+ * 호출자(cashflow-check.ts)가 try/catch로 룰 미트리거 처리.
+ *
+ * Ref: spec §10.2 negative_ocf_with_active_icf, philosophy 7부 B
+ */
+export async function extractTotalAssets(
+  corp_code: string,
+  year: number,
+  ctx: ToolCtx,
+): Promise<number> {
+  const raw = await ctx.client.getJson<DartResp>("fnlttSinglAcnt.json", {
+    corp_code,
+    bsns_year: String(year),
+    reprt_code: "11011",
+  });
+  const items = raw.status === "000" ? (raw.list ?? []) : [];
+
+  const cfsItems = items.filter((i) => i.fs_div === "CFS");
+  if (cfsItems.length) {
+    const v = pickAccountValue(cfsItems, ["자산총계"]);
+    if (v !== null) return v;
+  }
+
+  const ofsItems = items.filter((i) => i.fs_div === "OFS");
+  if (ofsItems.length) {
+    const v = pickAccountValue(ofsItems, ["자산총계"]);
+    if (v !== null) return v;
+  }
+
+  throw new Error(
+    `financial-extractor: total_assets not found for ${corp_code} (year=${year})`,
+  );
+}
