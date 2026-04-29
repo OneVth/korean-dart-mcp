@@ -23,6 +23,7 @@ import type { ToolCtx } from "../../_helpers.js";
 interface AccountItem {
   account_nm: string;
   fs_div?: string;
+  sj_div?: string;  // 5단계 현금흐름표 분기 (buffett-quality-snapshot.ts 정합)
   thstrm_amount?: string;
   frmtrm_amount?: string;
   bfefrmtrm_amount?: string;
@@ -74,6 +75,22 @@ function filterCfsOfs(items: AccountItem[]): AccountItem[] {
   if (ofs.length) return ofs;
   return items;
 }
+
+const OPERATING_CF_CANDIDATES = [
+  "영업활동현금흐름",
+  "영업활동으로인한현금흐름",
+  "영업활동 현금흐름",
+];
+const INVESTING_CF_CANDIDATES = [
+  "투자활동현금흐름",
+  "투자활동으로인한현금흐름",
+  "투자활동 현금흐름",
+];
+const FINANCING_CF_CANDIDATES = [
+  "재무활동현금흐름",
+  "재무활동으로인한현금흐름",
+  "재무활동 현금흐름",
+];
 
 // 자본총계 추출 (원). 최근 사업보고서 기준. CFS 우선 → OFS 폴백.
 export async function extractEquityCurrent(corp_code: string, ctx: ToolCtx): Promise<number> {
@@ -194,19 +211,28 @@ export async function extractSharesOutstanding(corp_code: string, ctx: ToolCtx):
   throw new Error(`financial-extractor: shares_outstanding not found for ${corp_code}`);
 }
 
-// N년 영업이익 시계열 (오래된→최근, 원). OFS 강제 — 별도재무제표 기준.
-// philosophy 7부 A: "별도재무제표 4년 연속 영업손실. HTS는 연결만 보여주므로
-// DART 감사보고서 직접 확인". CFS 폴백 0 — OFS 부재 시 해당 연도는 배열에서 누락
-// (partial array). 호출자(killer-check.ts)가 length === years 검증.
-//
-// extractRoeSeries 패턴 그대로: 3년 간격 base year로 API 호출 절약 (years=4 → 2 call).
-// 빈 배열 가능 (미공시) — 호출자 책임으로 throw 처리.
-//
-// Ref: spec §10.1 consecutive_operating_loss, philosophy 7부 A
+/**
+ * N년 영업이익 시계열 (오래된→최근, 원).
+ *
+ * fs_div_policy 분기:
+ * - "OFS": 별도재무제표 강제. philosophy 7부 A consecutive_operating_loss 룰의
+ *   "별도재무제표 4년 연속 영업손실" 규정 정합. CFS 폴백 0 — OFS 부재 시 해당
+ *   연도는 배열에서 누락 (partial array). 호출자(killer-check.ts)가 length === years 검증.
+ * - "CFS_FIRST": CFS 우선 → OFS 폴백. philosophy 7부 B oi_cf_divergence 룰의
+ *   "이익(수치) vs 영업CF(사실) 어긋남" 검증. 그룹 전체 사실 영역 정합.
+ *   호출자(cashflow-check.ts)가 length 검증 + 룰별 처리.
+ *
+ * extractRoeSeries 패턴 그대로: 3년 간격 base year로 API 호출 절약.
+ * 빈 배열 가능 (미공시) — 호출자 책임으로 throw 처리.
+ *
+ * Ref: spec §10.1 consecutive_operating_loss (OFS), §10.2 oi_cf_divergence (CFS_FIRST),
+ *      philosophy 7부 A·B
+ */
 export async function extractOperatingIncomeSeries(
   corp_code: string,
   years: number,
   ctx: ToolCtx,
+  fs_div_policy: "OFS" | "CFS_FIRST",
 ): Promise<number[]> {
   const endYear = new Date().getFullYear() - 1;
   const startYear = endYear - years + 1;
@@ -232,8 +258,10 @@ export async function extractOperatingIncomeSeries(
   const byYear = new Map<number, number>();
   for (const { baseYear, items } of responses) {
     if (!items.length) continue;
-    const ofsItems = items.filter((i) => i.fs_div === "OFS");
-    if (!ofsItems.length) continue;
+    const filtered = fs_div_policy === "OFS"
+      ? items.filter((i) => i.fs_div === "OFS")
+      : filterCfsOfs(items);
+    if (!filtered.length) continue;
     const periods = [
       ["thstrm", baseYear],
       ["frmtrm", baseYear - 1],
@@ -241,7 +269,7 @@ export async function extractOperatingIncomeSeries(
     ] as const;
     for (const [period, y] of periods) {
       if (y < startYear || y > endYear || byYear.has(y)) continue;
-      const periodItems = ofsItems.map((item) => ({
+      const periodItems = filtered.map((item) => ({
         account_nm: item.account_nm,
         thstrm_amount: (item[`${period}_amount`] as string | undefined) ?? null,
       }));
@@ -294,4 +322,140 @@ export async function extractRevenue(
     );
   }
   return revenue;
+}
+
+/**
+ * N년 현금흐름표 시계열 (영업/투자/재무, 오래된→최근, 원).
+ *
+ * philosophy 7부 B "수익은 수치, 현금흐름은 사실" + 6부 "초보자에게는 현금흐름표".
+ * 그룹 전체 사실 영역이라 CFS 우선 → OFS 폴백 (extractEquityCurrent 정합).
+ *
+ * 3년 간격 base year 절약 패턴 (extractRoeSeries / extractOperatingIncomeSeries 정합).
+ * 항목별 독립 누락 — 한 항목 부재 시 그 연도 그 항목만 누락. 5단계 룰들이 항목별
+ * 다른 영역 사용 (negative_ocf_persistent는 영업CF만, cf_pattern_risky는 3 항목 동시).
+ *
+ * sj_div="CF" 분기 가정 — 묶음 2 field-test 확정 영역. 어긋날 시 정정 +
+ * spec-pending-edits 누적 (CLAUDE.md "DART 응답 형태 가정" 영역 정합).
+ *
+ * 영업CF 음수가 7부 B 본질 시그널이라 parseAccountAmount 괄호/부호 음수 처리 핵심.
+ *
+ * Ref: spec §10.2 cashflow_check, philosophy 7부 B + 6부
+ */
+export async function extractCashflowSeries(
+  corp_code: string,
+  years: number,
+  ctx: ToolCtx,
+): Promise<{ operating: number[]; investing: number[]; financing: number[] }> {
+  const endYear = new Date().getFullYear() - 1;
+  const startYear = endYear - years + 1;
+
+  const baseYears: number[] = [];
+  for (let y = endYear; y >= startYear; y -= 3) baseYears.push(y);
+
+  const responses = await Promise.all(
+    baseYears.map(async (baseYear) => {
+      try {
+        const raw = await ctx.client.getJson<DartResp>("fnlttSinglAcnt.json", {
+          corp_code,
+          bsns_year: String(baseYear),
+          reprt_code: "11011",
+        });
+        return { baseYear, items: raw.status === "000" ? (raw.list ?? []) : [] };
+      } catch {
+        return { baseYear, items: [] as AccountItem[] };
+      }
+    }),
+  );
+
+  const operatingByYear = new Map<number, number>();
+  const investingByYear = new Map<number, number>();
+  const financingByYear = new Map<number, number>();
+
+  for (const { baseYear, items } of responses) {
+    if (!items.length) continue;
+    const cfItems = items.filter((i) => i.sj_div === "CF");
+    if (!cfItems.length) continue;
+    const filtered = filterCfsOfs(cfItems);
+    if (!filtered.length) continue;
+
+    const periods = [
+      ["thstrm", baseYear],
+      ["frmtrm", baseYear - 1],
+      ["bfefrmtrm", baseYear - 2],
+    ] as const;
+
+    for (const [period, y] of periods) {
+      if (y < startYear || y > endYear) continue;
+      const periodItems = filtered.map((item) => ({
+        account_nm: item.account_nm,
+        thstrm_amount: (item[`${period}_amount`] as string | undefined) ?? null,
+      }));
+
+      if (!operatingByYear.has(y)) {
+        const v = pickAccountValue(periodItems, OPERATING_CF_CANDIDATES);
+        if (v !== null) operatingByYear.set(y, v);
+      }
+      if (!investingByYear.has(y)) {
+        const v = pickAccountValue(periodItems, INVESTING_CF_CANDIDATES);
+        if (v !== null) investingByYear.set(y, v);
+      }
+      if (!financingByYear.has(y)) {
+        const v = pickAccountValue(periodItems, FINANCING_CF_CANDIDATES);
+        if (v !== null) financingByYear.set(y, v);
+      }
+    }
+  }
+
+  const sortAndExtract = (m: Map<number, number>) =>
+    Array.from(m.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([, v]) => v);
+
+  return {
+    operating: sortAndExtract(operatingByYear),
+    investing: sortAndExtract(investingByYear),
+    financing: sortAndExtract(financingByYear),
+  };
+}
+
+/**
+ * 자산총계 단일 연도 추출 (원). CFS 우선 → OFS 폴백.
+ *
+ * 5단계 negative_ocf_with_active_icf 룰의 "자산총계 10%+" 비교 영역.
+ * 비교 시점은 분석 윈도 가장 최근 연도 — 룰 본질이 "현재 자산 규모 대비 투자 강도"
+ * (spec §10.2 명시 누락 영역, 묶음 2 spec-pending-edits 누적).
+ *
+ * extractEquityCurrent 패턴 정합. account_nm 매처 단일 ("자산총계") —
+ * buffett-quality-snapshot.ts ACCOUNT_MATCHERS 정합. 부재 시 throw —
+ * 호출자(cashflow-check.ts)가 try/catch로 룰 미트리거 처리.
+ *
+ * Ref: spec §10.2 negative_ocf_with_active_icf, philosophy 7부 B
+ */
+export async function extractTotalAssets(
+  corp_code: string,
+  year: number,
+  ctx: ToolCtx,
+): Promise<number> {
+  const raw = await ctx.client.getJson<DartResp>("fnlttSinglAcnt.json", {
+    corp_code,
+    bsns_year: String(year),
+    reprt_code: "11011",
+  });
+  const items = raw.status === "000" ? (raw.list ?? []) : [];
+
+  const cfsItems = items.filter((i) => i.fs_div === "CFS");
+  if (cfsItems.length) {
+    const v = pickAccountValue(cfsItems, ["자산총계"]);
+    if (v !== null) return v;
+  }
+
+  const ofsItems = items.filter((i) => i.fs_div === "OFS");
+  if (ofsItems.length) {
+    const v = pickAccountValue(ofsItems, ["자산총계"]);
+    if (v !== null) return v;
+  }
+
+  throw new Error(
+    `financial-extractor: total_assets not found for ${corp_code} (year=${year})`,
+  );
 }
