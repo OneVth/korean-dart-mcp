@@ -116,6 +116,31 @@
 
 **상태**: pending
 
+### [§10.1] 데이터 소스 표의 corporate_event 키 명칭 불일치
+
+**현재**: §10.1 데이터 소스 컬럼이 `get_corporate_event(event_type="convertible_bond")` 형태로 표기.
+
+**정정**: upstream `src/tools/get-corporate-event.ts` 실제 키와 일치시킴 —
+`cb_issuance` / `bw_issuance` / `rights_offering`. 또는 DART 엔드포인트 직접 표기
+(`cvbdIsDecsn` / `bdwtIsDecsn` / `piicDecsn`).
+
+**근거**: 4단계 묶음 3 killer-check.ts 구현 중 발견 (2026-04-29). 의미 변경 0, 표현 정정.
+
+**상태**: pending
+
+### [§10.1] non_clean_opinion 룰의 비교 기준 불명확
+
+**현재**: spec §10.1이 감사의견 비교 기준을 "적정" 으로 표기.
+
+**정정**: DART `accnutAdtorNmNdAdtOpinion.json` 엔드포인트의 `adt_opinion` 실제 반환값은
+`"적정의견"` (suffix 포함). 정확 비교 대신 `startsWith("적정")` 패턴 사용. 또한 다수 종목이
+연결/별도 구분으로 2 row를 반환하며, 별도 row 중 `"-"` 플레이스홀더가 포함될 수 있음.
+spec §10.1에 실제 필드 값 표기 보완 필요.
+
+**근거**: 4단계 묶음 3 field-test 중 발견 (2026-04-29). killer-check.ts 구현 버그 수정으로 연결.
+
+**상태**: pending
+
 ## Applied 항목
 
 (아직 없음. v0.3에서 일괄 반영 시 채워짐.)
