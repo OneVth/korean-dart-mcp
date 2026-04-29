@@ -136,7 +136,8 @@ async function evaluateAuditRules(
 
   // Rule 3: auditor_change
   const auditors = series.map((r) => r.auditor_name);
-  const uniqueAuditors = new Set(auditors.filter((a) => a !== ""));
+  // "-"는 OFS 미제출 플레이스홀더 — 실제 감사인명 아님, 제외 필요
+  const uniqueAuditors = new Set(auditors.filter((a) => a !== "" && a !== "-"));
   if (uniqueAuditors.size >= 2) {
     result.push({
       rule: "auditor_change",
@@ -152,8 +153,10 @@ async function evaluateAuditRules(
   }
 
   // Rule 4: non_clean_opinion
-  const latest = series[0];
-  if (latest.opinion !== "적정" && latest.opinion !== "") {
+  // DART adt_opinion 실제 값: "적정의견" (suffix 포함) — startsWith로 비교
+  // 빈 문자열("") 및 OFS 플레이스홀더("-")는 미트리거
+  const latest = series.find((r) => r.opinion !== "" && r.opinion !== "-") ?? series[0];
+  if (latest.opinion !== "" && latest.opinion !== "-" && !latest.opinion.startsWith("적정")) {
     result.push({
       rule: "non_clean_opinion",
       detail: "감사의견 적정 외",
