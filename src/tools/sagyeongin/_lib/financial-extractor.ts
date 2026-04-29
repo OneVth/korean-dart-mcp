@@ -23,6 +23,7 @@ import type { ToolCtx } from "../../_helpers.js";
 interface AccountItem {
   account_nm: string;
   fs_div?: string;
+  sj_div?: string;  // 5단계 현금흐름표 분기 (buffett-quality-snapshot.ts 정합)
   thstrm_amount?: string;
   frmtrm_amount?: string;
   bfefrmtrm_amount?: string;
@@ -74,6 +75,22 @@ function filterCfsOfs(items: AccountItem[]): AccountItem[] {
   if (ofs.length) return ofs;
   return items;
 }
+
+const OPERATING_CF_CANDIDATES = [
+  "영업활동현금흐름",
+  "영업활동으로인한현금흐름",
+  "영업활동 현금흐름",
+];
+const INVESTING_CF_CANDIDATES = [
+  "투자활동현금흐름",
+  "투자활동으로인한현금흐름",
+  "투자활동 현금흐름",
+];
+const FINANCING_CF_CANDIDATES = [
+  "재무활동현금흐름",
+  "재무활동으로인한현금흐름",
+  "재무활동 현금흐름",
+];
 
 // 자본총계 추출 (원). 최근 사업보고서 기준. CFS 우선 → OFS 폴백.
 export async function extractEquityCurrent(corp_code: string, ctx: ToolCtx): Promise<number> {
@@ -305,4 +322,98 @@ export async function extractRevenue(
     );
   }
   return revenue;
+}
+
+/**
+ * N년 현금흐름표 시계열 (영업/투자/재무, 오래된→최근, 원).
+ *
+ * philosophy 7부 B "수익은 수치, 현금흐름은 사실" + 6부 "초보자에게는 현금흐름표".
+ * 그룹 전체 사실 영역이라 CFS 우선 → OFS 폴백 (extractEquityCurrent 정합).
+ *
+ * 3년 간격 base year 절약 패턴 (extractRoeSeries / extractOperatingIncomeSeries 정합).
+ * 항목별 독립 누락 — 한 항목 부재 시 그 연도 그 항목만 누락. 5단계 룰들이 항목별
+ * 다른 영역 사용 (negative_ocf_persistent는 영업CF만, cf_pattern_risky는 3 항목 동시).
+ *
+ * sj_div="CF" 분기 가정 — 묶음 2 field-test 확정 영역. 어긋날 시 정정 +
+ * spec-pending-edits 누적 (CLAUDE.md "DART 응답 형태 가정" 영역 정합).
+ *
+ * 영업CF 음수가 7부 B 본질 시그널이라 parseAccountAmount 괄호/부호 음수 처리 핵심.
+ *
+ * Ref: spec §10.2 cashflow_check, philosophy 7부 B + 6부
+ */
+export async function extractCashflowSeries(
+  corp_code: string,
+  years: number,
+  ctx: ToolCtx,
+): Promise<{ operating: number[]; investing: number[]; financing: number[] }> {
+  const endYear = new Date().getFullYear() - 1;
+  const startYear = endYear - years + 1;
+
+  const baseYears: number[] = [];
+  for (let y = endYear; y >= startYear; y -= 3) baseYears.push(y);
+
+  const responses = await Promise.all(
+    baseYears.map(async (baseYear) => {
+      try {
+        const raw = await ctx.client.getJson<DartResp>("fnlttSinglAcnt.json", {
+          corp_code,
+          bsns_year: String(baseYear),
+          reprt_code: "11011",
+        });
+        return { baseYear, items: raw.status === "000" ? (raw.list ?? []) : [] };
+      } catch {
+        return { baseYear, items: [] as AccountItem[] };
+      }
+    }),
+  );
+
+  const operatingByYear = new Map<number, number>();
+  const investingByYear = new Map<number, number>();
+  const financingByYear = new Map<number, number>();
+
+  for (const { baseYear, items } of responses) {
+    if (!items.length) continue;
+    const cfItems = items.filter((i) => i.sj_div === "CF");
+    if (!cfItems.length) continue;
+    const filtered = filterCfsOfs(cfItems);
+    if (!filtered.length) continue;
+
+    const periods = [
+      ["thstrm", baseYear],
+      ["frmtrm", baseYear - 1],
+      ["bfefrmtrm", baseYear - 2],
+    ] as const;
+
+    for (const [period, y] of periods) {
+      if (y < startYear || y > endYear) continue;
+      const periodItems = filtered.map((item) => ({
+        account_nm: item.account_nm,
+        thstrm_amount: (item[`${period}_amount`] as string | undefined) ?? null,
+      }));
+
+      if (!operatingByYear.has(y)) {
+        const v = pickAccountValue(periodItems, OPERATING_CF_CANDIDATES);
+        if (v !== null) operatingByYear.set(y, v);
+      }
+      if (!investingByYear.has(y)) {
+        const v = pickAccountValue(periodItems, INVESTING_CF_CANDIDATES);
+        if (v !== null) investingByYear.set(y, v);
+      }
+      if (!financingByYear.has(y)) {
+        const v = pickAccountValue(periodItems, FINANCING_CF_CANDIDATES);
+        if (v !== null) financingByYear.set(y, v);
+      }
+    }
+  }
+
+  const sortAndExtract = (m: Map<number, number>) =>
+    Array.from(m.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([, v]) => v);
+
+  return {
+    operating: sortAndExtract(operatingByYear),
+    investing: sortAndExtract(investingByYear),
+    financing: sortAndExtract(financingByYear),
+  };
 }
