@@ -194,19 +194,28 @@ export async function extractSharesOutstanding(corp_code: string, ctx: ToolCtx):
   throw new Error(`financial-extractor: shares_outstanding not found for ${corp_code}`);
 }
 
-// N년 영업이익 시계열 (오래된→최근, 원). OFS 강제 — 별도재무제표 기준.
-// philosophy 7부 A: "별도재무제표 4년 연속 영업손실. HTS는 연결만 보여주므로
-// DART 감사보고서 직접 확인". CFS 폴백 0 — OFS 부재 시 해당 연도는 배열에서 누락
-// (partial array). 호출자(killer-check.ts)가 length === years 검증.
-//
-// extractRoeSeries 패턴 그대로: 3년 간격 base year로 API 호출 절약 (years=4 → 2 call).
-// 빈 배열 가능 (미공시) — 호출자 책임으로 throw 처리.
-//
-// Ref: spec §10.1 consecutive_operating_loss, philosophy 7부 A
+/**
+ * N년 영업이익 시계열 (오래된→최근, 원).
+ *
+ * fs_div_policy 분기:
+ * - "OFS": 별도재무제표 강제. philosophy 7부 A consecutive_operating_loss 룰의
+ *   "별도재무제표 4년 연속 영업손실" 규정 정합. CFS 폴백 0 — OFS 부재 시 해당
+ *   연도는 배열에서 누락 (partial array). 호출자(killer-check.ts)가 length === years 검증.
+ * - "CFS_FIRST": CFS 우선 → OFS 폴백. philosophy 7부 B oi_cf_divergence 룰의
+ *   "이익(수치) vs 영업CF(사실) 어긋남" 검증. 그룹 전체 사실 영역 정합.
+ *   호출자(cashflow-check.ts)가 length 검증 + 룰별 처리.
+ *
+ * extractRoeSeries 패턴 그대로: 3년 간격 base year로 API 호출 절약.
+ * 빈 배열 가능 (미공시) — 호출자 책임으로 throw 처리.
+ *
+ * Ref: spec §10.1 consecutive_operating_loss (OFS), §10.2 oi_cf_divergence (CFS_FIRST),
+ *      philosophy 7부 A·B
+ */
 export async function extractOperatingIncomeSeries(
   corp_code: string,
   years: number,
   ctx: ToolCtx,
+  fs_div_policy: "OFS" | "CFS_FIRST",
 ): Promise<number[]> {
   const endYear = new Date().getFullYear() - 1;
   const startYear = endYear - years + 1;
@@ -232,8 +241,10 @@ export async function extractOperatingIncomeSeries(
   const byYear = new Map<number, number>();
   for (const { baseYear, items } of responses) {
     if (!items.length) continue;
-    const ofsItems = items.filter((i) => i.fs_div === "OFS");
-    if (!ofsItems.length) continue;
+    const filtered = fs_div_policy === "OFS"
+      ? items.filter((i) => i.fs_div === "OFS")
+      : filterCfsOfs(items);
+    if (!filtered.length) continue;
     const periods = [
       ["thstrm", baseYear],
       ["frmtrm", baseYear - 1],
@@ -241,7 +252,7 @@ export async function extractOperatingIncomeSeries(
     ] as const;
     for (const [period, y] of periods) {
       if (y < startYear || y > endYear || byYear.has(y)) continue;
-      const periodItems = ofsItems.map((item) => ({
+      const periodItems = filtered.map((item) => ({
         account_nm: item.account_nm,
         thstrm_amount: (item[`${period}_amount`] as string | undefined) ?? null,
       }));

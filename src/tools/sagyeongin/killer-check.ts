@@ -65,7 +65,8 @@ async function evaluateConsecutiveOperatingLoss(
   ctx: ToolCtx,
 ): Promise<TriggeredRule | null> {
   try {
-    const series = await extractOperatingIncomeSeries(corp_code, 4, ctx);
+    // 7부 A consecutive_operating_loss: 별도재무제표 강제 (상장폐지 규정 영역)
+    const series = await extractOperatingIncomeSeries(corp_code, 4, ctx, "OFS");
     if (series.length !== 4) return null;
     if (!series.every((v) => v < 0)) return null;
     return {

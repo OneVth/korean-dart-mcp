@@ -10,7 +10,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { pickAccountValue } from "./financial-extractor.js";
+import { pickAccountValue, extractOperatingIncomeSeries } from "./financial-extractor.js";
 
 // --- 그룹 1: 정상 케이스 ---
 
@@ -83,4 +83,49 @@ test("콤마 없는 경우", () => {
   ];
   const v = pickAccountValue(accounts, ["자본총계"]);
   assert.equal(v, 1000);
+});
+
+// --- 그룹 4: extractOperatingIncomeSeries fs_div_policy 분기 ---
+
+import type { ToolCtx } from "../../_helpers.js";
+
+function makeOiCtx(list: Record<string, unknown>[]): ToolCtx {
+  return {
+    client: {
+      getJson: async () => ({ status: "000", list }),
+    },
+  } as unknown as ToolCtx;
+}
+
+test("OFS 분기 — OFS 항목 존재 시 값 반환", async () => {
+  const items = [
+    { account_nm: "영업이익", fs_div: "OFS", thstrm_amount: "5,000,000" },
+  ];
+  const series = await extractOperatingIncomeSeries("000000", 1, makeOiCtx(items), "OFS");
+  assert.deepEqual(series, [5_000_000]);
+});
+
+test("OFS 분기 — CFS만 있고 OFS 부재 시 해당 연도 누락", async () => {
+  const items = [
+    { account_nm: "영업이익", fs_div: "CFS", thstrm_amount: "5,000,000" },
+  ];
+  const series = await extractOperatingIncomeSeries("000000", 1, makeOiCtx(items), "OFS");
+  assert.deepEqual(series, []);
+});
+
+test("CFS_FIRST 분기 — CFS + OFS 모두 존재 시 CFS 우선", async () => {
+  const items = [
+    { account_nm: "영업이익", fs_div: "CFS", thstrm_amount: "5,000,000" },
+    { account_nm: "영업이익", fs_div: "OFS", thstrm_amount: "3,000,000" },
+  ];
+  const series = await extractOperatingIncomeSeries("000000", 1, makeOiCtx(items), "CFS_FIRST");
+  assert.deepEqual(series, [5_000_000]);
+});
+
+test("CFS_FIRST 분기 — CFS 부재 + OFS 존재 시 OFS 폴백", async () => {
+  const items = [
+    { account_nm: "영업이익", fs_div: "OFS", thstrm_amount: "3,000,000" },
+  ];
+  const series = await extractOperatingIncomeSeries("000000", 1, makeOiCtx(items), "CFS_FIRST");
+  assert.deepEqual(series, [3_000_000]);
 });
