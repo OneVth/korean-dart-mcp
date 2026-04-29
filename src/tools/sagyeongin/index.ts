@@ -12,10 +12,12 @@ import { updateWatchlistTool } from "./update-watchlist.js";
 import { updateScanPresetTool } from "./update-scan-preset.js";
 import { requiredReturnTool } from "./required-return.js";
 import { srimTool } from "./srim.js";
+import { killerCheckTool } from "./killer-check.js";
 
 export const sagyeonginTools: ToolDef[] = [
   updateWatchlistTool,
   updateScanPresetTool,
   requiredReturnTool,
   srimTool,
+  killerCheckTool,
 ];
