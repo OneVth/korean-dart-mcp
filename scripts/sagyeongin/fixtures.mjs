@@ -69,11 +69,20 @@ export const FREQUENT_RIGHTS_SAMPLE = {
   expected_triggered_rule: "frequent_rights_offering",
 };
 
-// TODO: non_clean_opinion 케이스 미발견 — 5단계 이후 누적 (ADR-0003 65줄 목표)
-// 탐색 경로 시도: KOSDAQ 소형주 + 전문 바이오 + 강제폐지 인접 종목 22개
-// 미발견 원인 추정: DART adt_opinion 필드가 "한정의견"/"의견거절" 대신 "적정의견"으로만 응답하는
-// 비율이 높음 (의견거절 종목은 이미 DART에서 제거됐을 가능성).
+// 알파AI (코스닥). 당기 감사의견 "의견거절".
+// 발견 경로: list.json pblntf_ty=B 3년 CB 빈발 후보 탐색 → extractAuditorOpinionSeries 직접 확인
+// killer_check 기대: non_clean_opinion 룰 트리거 → verdict EXCLUDE
+export const NON_CLEAN_OPINION_SAMPLE = {
+  corp_code: "00220109",
+  expected_corp_name: "알파AI",
+  expected_triggered_rule: "non_clean_opinion",
+};
 
-// TODO: frequent_bw_issuance 케이스 미발견 — 5단계 이후 누적
-// 탐색 경로 시도: KOSDAQ 바이오/소형주 28개에 bdwtIsDecsn 직접 조회
-// 미발견 원인 추정: BW(신주인수권부사채)는 CB 대비 발행 빈도가 낮음.
+// 젬백스 (코스닥 바이오). 3년 내 BW(신주인수권부사채) 발행 6회.
+// 발견 경로: list.json pblntf_ty=B BW 빈발 후보 탐색 → bdwtIsDecsn 직접 조회 검증
+// killer_check 기대: frequent_bw_issuance 룰 트리거 → verdict EXCLUDE
+export const FREQUENT_BW_SAMPLE = {
+  corp_code: "00492894",
+  expected_corp_name: "젬백스",
+  expected_triggered_rule: "frequent_bw_issuance",
+};
