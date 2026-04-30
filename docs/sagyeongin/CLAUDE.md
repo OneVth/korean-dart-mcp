@@ -67,7 +67,7 @@
 - [x] 2단계: `feat/config-store` — config-store + update_watchlist + update_scan_preset (2026-04-28)
 - [x] 3단계: `feat/srim-stack` — required_return + srim + naver-price + srim-calc (2026-04-28)
 - [x] 4단계: `feat/killer-check` — killer_check + financial-extractor 확장 + audit-extractor (2026-04-29)
-- [ ] 5단계: `feat/cashflow-check`
+- [x] 5단계: `feat/cashflow-check` — cashflow_check + financial-extractor 확장 (2026-04-30)
 - [ ] 6단계: `feat/capex-signal`
 - [ ] 7단계: `feat/dividend-check`
 - [ ] 8단계: `feat/scan-preview`
@@ -78,7 +78,7 @@
 
 ### 현재 작업 단계
 
-4단계 완료 (2026-04-29). 다음 작업은 5단계 `feat/cashflow-check`.
+5단계 완료 (2026-04-30). 다음 작업은 6단계 `feat/capex-signal`.
 
 ## 자주 막히는 곳
 
@@ -197,6 +197,100 @@ field-test가 응답 검증 유일 영역이라는 ADR-0003 정신 그대로.
 - Claude 환경에서 직접 빌드 시도 시 `npm install typescript@5.9.3 --silent`로 핀하면 통과
 
 세션 메모리에도 동일 영역 박아둠.
+
+### 매듭/머지 commit push 누락 빈발
+
+발견: 5단계 진행 중 3회 누적 (2026-04-29 ~ 2026-04-30):
+- 5단계 직전 fixtures 보완 매듭 `2230393` (4단계 fixture 누락분 추가) — local commit 후 push 누락
+- 5단계 묶음 1 머지 commit `78bddde` — local merge 후 push 누락
+- 5단계 묶음 2 push — local commit 4개 생성 후 `git push origin feat/cashflow-check` 누락
+
+세 번 모두 Claude 검증 1단계(`git fetch origin` + `git log -1 origin/main` 또는
+`git ls-remote origin`)에서 즉시 발견. 사용자 안내 후 push 처리.
+
+원인: 사용자 작업 흐름에서 commit 후 즉시 push가 자동화 안 됨. 특히 매듭 commit /
+머지 commit은 작업 단위 종료 직후라 "끝났다" 인식이 강해 push 단계 누락 빈발.
+
+대응:
+- 사용자가 commit 또는 merge 후 즉시 `git push origin <branch>` 실행 패턴 정합
+- Claude 검증 1단계는 항상 `git fetch origin` + GitHub origin HEAD 직접 확인
+  (보고된 commit hash가 origin에 반영됐는지) — push 누락 즉시 발견
+- 보고서에 "main HEAD = X" / "feat HEAD = Y" 명시되면 origin과 비교 검증
+
+### 묶음 1 추출 함수 가정 어긋남이 묶음 2 field-test에서 정정되는 패턴
+
+발견: 5단계 묶음 2 (2026-04-30). 묶음 1 `extractCashflowSeries` 가정 3건이 묶음 2
+field-test 실행 중 어긋남 발견:
+- 엔드포인트 가정: `fnlttSinglAcnt.json` (sj_div="CF" 필터) → 실제: BS+IS만 반환,
+  CF는 `fnlttSinglAcntAll.json`에만 존재
+- fs_div 분기 가정: items 필터로 CFS/OFS 분기 → 실제: CF 항목은 fs_div 미설정,
+  API fs_div 파라미터로 분기 필요
+- account_nm 후보 가정: "영업활동현금흐름" / "영업활동으로인한현금흐름" 등 →
+  실제: 종목별 변형 다수 ("순현금흐름" / "인한 현금흐름" 등)
+
+위임자가 묶음 2 같은 commit 안에서 코드 정정 + spec-pending-edits 누적 처리
+(4단계 묶음 3 audit-extractor 패턴 정합 — DART 응답 형태 가정의 field-test 검증
+기존 룰의 자연 적용).
+
+향후 단계에도 적용되는 함정: 추출 함수 작성 묶음(묶음 1)의 응답 형태 가정은
+도구 통합 묶음(묶음 2) field-test 전까지 검증 영역 0. 묶음 1 단위 테스트가
+합성 입력값 기반이라 실제 응답 형태 강제 검증 영역 아님 (ADR-0003 정신 정합).
+
+대응:
+- 추출 함수 위임 명세에 "응답 형태는 가정만, field-test 묶음에서 정정 가능" 명시
+  (이미 5단계 묶음 1 명세에 명시됨 — 패턴 유지)
+- 도구 통합 묶음 위임 명세에 "묶음 1 가정 어긋남 발견 시 같은 commit 안에서 코드 정정 +
+  spec-pending-edits 누적" 패턴 명시 (4단계 묶음 3 + 5단계 묶음 2 패턴 정합)
+- 명세 외 함수 정정 commit 위치 룰: 같은 묶음의 통합 commit 안 자연 정합
+  (별도 commit 분리는 broken state 위험 ↑)
+
+### DART 엔드포인트 분기 — fnlttSinglAcnt.json은 BS+IS만, fnlttSinglAcntAll.json은 전체
+
+발견: 5단계 묶음 2 field-test (2026-04-30). 3단계 srim-stack에서 사용한
+`fnlttSinglAcnt.json` 엔드포인트는 "주요계정"이라 BS(재무상태표) + IS(손익계산서)만
+반환. CF(현금흐름표) 데이터를 얻으려면 `fnlttSinglAcntAll.json` (전체 재무) 사용 필수.
+
+자산총계, 자본총계, 영업이익, 매출 등은 fnlttSinglAcnt.json으로 충분 (3단계·4단계
+사용 패턴). 영업/투자/재무 CF는 fnlttSinglAcntAll.json 필수 (5단계 신규 발견).
+
+향후 단계 적용:
+- 6단계 capex_signal: 유형자산은 BS 항목 (fnlttSinglAcnt.json 가능)이지만 자산
+  매입/매각의 정확한 분류는 CF의 투자활동 세부 항목 필요할 가능성 → fnlttSinglAcntAll.json
+  검토 영역
+- 7단계 dividend_check: 배당 관련 항목이 어디 분류되는지 확인 영역
+  (재무CF 세부 항목? 자본 변동표?)
+
+대응:
+- 신규 도구 명세 단계에서 필요 데이터의 엔드포인트 분기 사전 검토
+- 묶음 1 추출 함수 가정 단계에서 엔드포인트 명시 (가정), 묶음 2 field-test로 확정
+
+### account_nm 종목별 변형 패턴 — 공백/접속사/접두어 차이 누적
+
+발견: 5단계 묶음 2 field-test (2026-04-30). 영업/투자/재무 CF의 account_nm이
+종목별로 미묘한 변형:
+
+| 종목 | 영업CF account_nm |
+|---|---|
+| 삼성전자, 젬백스 | "영업활동현금흐름" |
+| 헬릭스미스 | "영업활동으로 인한 순현금흐름" |
+| 현대자동차 | "영업활동으로 인한 현금흐름" |
+
+변형 축: 공백 위치 ("으로인한" vs "으로 인한"), 접속사 유무 ("순"현금흐름 / "인한"
+현금흐름), 접두어 (없음 vs 로마자 Ⅰ./Ⅱ./Ⅲ.)
+
+특히 코오롱티슈진 OFS는 로마자 접두어 변형(Ⅰ./Ⅱ./Ⅲ.) 사용 — 현재 후보 리스트
+미지원. spec-pending-edits §10.2 §3 항목에 TODO 명시.
+
+향후 단계 적용:
+- 후보 리스트 패턴은 모든 신규 추출 함수 공통 — 종목별 변형이 누적될수록 후보
+  보강 필요
+- 로마자 접두어 변형은 정규식 정규화 영역 (예: `^[ⅠⅡⅢⅣ]\.\s*` strip 후 매칭)
+  검토 영역 — 미래 단계 누적 케이스 보고 결정
+
+대응:
+- 신규 추출 함수의 account_nm 후보 리스트는 "field-test 확정 영역" 명시
+- 발견된 변형은 코드 주석으로 종목 명시 (예: `// 헬릭스미스` — 5단계 묶음 2 패턴 정합)
+- 로마자 접두어 정규화는 별도 ADR 또는 spec-pending-edits로 후속 결정
 
 ## 의사결정 시 주의
 
