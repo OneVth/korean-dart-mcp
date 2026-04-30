@@ -2,25 +2,37 @@
 // PASS 케이스(안정적 대형주) + EXCLUDE 케이스(구현 중 발견) 누적.
 // 신선도 점검: 분기 watchlist_check 시 fixture 종목도 함께 검증 (ADR-0003 79~85줄).
 //
+// === EXCLUDE 의미 layer (단계별 구분) ===
+// 4단계 EXCLUDE = killer_check 회피 대상 (verdict EXCLUDE → 분석 영역 차단).
+//   - 키: expected_triggered_rule (단일 룰 검증)
+//   - 7부 A 본질 — 상장폐지/관리종목 회피 결정 자체
+// 5단계 EXCLUDE = cashflow_check 검토 대상 (verdict REVIEW_REQUIRED → 사용자가
+//   investigation_hints 따라 주석/맥락 확인).
+//   - 키: expected_flag + expected_severity (다층 검증)
+//   - 7부 B 본질 — 도구는 raw 트리거 + severity만, 분식/보수/사업 건강성 판정은 사람
+// 두 단계 모두 *_SAMPLE 명명 통일 — field-test가 키 분기로 자연 분리.
+//
 // Ref: ADR-0003
 
 // === PASS 케이스 ===
 
 // 코스피 시가총액 1위 대형주. 향후 5년 내 EXCLUDE 가능성 거의 0.
-// killer_check: PASS, srim: 시장 상황별, dividend: A~B 등급 예상
+// killer_check: PASS, cashflow_check: CLEAN, srim: 시장 상황별, dividend: A~B 등급 예상
 export const SAMSUNG = {
   corp_code: "00126380",
   expected_corp_name: "삼성전자",
 };
 
 // 코스피 자동차 대표주. 안정적 대형주.
-// killer_check: PASS, srim: 시장 상황별
+// killer_check: PASS (공시 이상 없음)
+// cashflow_check: REVIEW_REQUIRED — oi_cf_divergence + negative_ocf_persistent 트리거 (2026-04-30 확인)
+// 주의: cashflow_check CLEAN 케이스로 사용 불가 — OI_CF_DIVERGENCE_SAMPLE 참조
 export const HYUNDAI = {
   corp_code: "00164742",
   expected_corp_name: "현대자동차",
 };
 
-// === EXCLUDE 케이스 ===
+// === 4단계 EXCLUDE 케이스 (killer_check 회피 대상) ===
 // 발견 경로: 훈련 데이터 기반 KOSDAQ 후보 → killer_check 실행 검증 (2026-04-29)
 // 각 케이스는 `expected_triggered_rule` 룰이 triggered_rules에 포함되어야 함.
 
@@ -85,4 +97,50 @@ export const FREQUENT_BW_SAMPLE = {
   corp_code: "00492894",
   expected_corp_name: "젬백스",
   expected_triggered_rule: "frequent_bw_issuance",
+};
+
+// === 5단계 EXCLUDE 케이스 (cashflow_check 검토 대상) ===
+// 발견 경로: 4단계 EXCLUDE 종목 + 대형주 5단계 도구 직접 호출 (2026-04-30)
+// 각 케이스는 `expected_flag` 룰이 flags에 포함 + `expected_severity` 정합이어야 함.
+// verdict: REVIEW_REQUIRED (검토 진입 결정, 회피 결정 아님 — 7부 B 본질)
+
+// 헬릭스미스 (코스닥 유전자치료 바이오). 영업CF 3년 연속 음수.
+// 발견 경로: 4단계 EXCLUDE 종목 5단계 도구 직접 호출 → negative_ocf_persistent 트리거 확인
+// cashflow_check 기대: negative_ocf_persistent flag (severity=high) → verdict REVIEW_REQUIRED
+export const NEGATIVE_OCF_PERSISTENT_SAMPLE = {
+  corp_code: "00359395",
+  expected_corp_name: "헬릭스미스",
+  expected_flag: "negative_ocf_persistent",
+  expected_severity: "high",
+};
+
+// 코오롱티슈진 (코스닥 조직공학 바이오). 영업CF 음수 + 투자CF 자산총계 10%+ 활발.
+// 발견 경로: 4단계 EXCLUDE 종목 5단계 도구 직접 호출 → negative_ocf_with_active_icf 트리거 확인
+// cashflow_check 기대: negative_ocf_with_active_icf flag (severity=medium) → verdict REVIEW_REQUIRED
+export const NEGATIVE_OCF_ACTIVE_ICF_SAMPLE = {
+  corp_code: "01245062",
+  expected_corp_name: "코오롱티슈진",
+  expected_flag: "negative_ocf_with_active_icf",
+  expected_severity: "medium",
+};
+
+// 알파AI (코스닥). 영업−/투자+/재무+ 패턴 — 6부 건전 패턴 역상.
+// 발견 경로: 4단계 EXCLUDE 종목 5단계 도구 직접 호출 → cf_pattern_risky 트리거 확인
+// cashflow_check 기대: cf_pattern_risky flag (severity=medium) → verdict REVIEW_REQUIRED
+export const CF_PATTERN_RISKY_SAMPLE = {
+  corp_code: "00220109",
+  expected_corp_name: "알파AI",
+  expected_flag: "cf_pattern_risky",
+  expected_severity: "medium",
+};
+
+// 현대자동차 (코스피). 영업이익 양수 vs 영업CF 음수 2회+ 어긋남.
+// 발견 경로: PASS 케이스 5단계 도구 호출 → oi_cf_divergence 트리거 (예상 외 — 운전자본 변동)
+// 주의: killer_check PASS이지만 cashflow_check REVIEW_REQUIRED — 두 도구 의미 layer 분리
+// cashflow_check 기대: oi_cf_divergence flag (severity=high) → verdict REVIEW_REQUIRED
+export const OI_CF_DIVERGENCE_SAMPLE = {
+  corp_code: "00164742",
+  expected_corp_name: "현대자동차",
+  expected_flag: "oi_cf_divergence",
+  expected_severity: "high",
 };
