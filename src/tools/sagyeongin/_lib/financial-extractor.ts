@@ -76,19 +76,29 @@ function filterCfsOfs(items: AccountItem[]): AccountItem[] {
   return items;
 }
 
+// field-test 확정 (묶음 2): DART fnlttSinglAcntAll.json CF 항목 account_nm 실측값
+// 확인된 변형: "현금흐름" / "순현금흐름" / "인한 현금흐름" (공백/접속사 차이)
+// 로마자 접두어 변형(Ⅰ./Ⅱ./Ⅲ.) 종목은 현재 미지원 — spec-pending-edits 누적
 const OPERATING_CF_CANDIDATES = [
-  "영업활동현금흐름",
-  "영업활동으로인한현금흐름",
+  "영업활동현금흐름",            // 삼성전자, 젬백스
+  "영업활동으로 인한 순현금흐름",  // 헬릭스미스
+  "영업활동으로 인한 현금흐름",   // 현대자동차
+  "영업활동으로인한현금흐름",      // 기존 후보 유지
   "영업활동 현금흐름",
 ];
 const INVESTING_CF_CANDIDATES = [
-  "투자활동현금흐름",
-  "투자활동으로인한현금흐름",
+  "투자활동현금흐름",            // 삼성전자, 젬백스
+  "투자활동으로 인한 순현금흐름",  // 헬릭스미스
+  "투자활동으로 인한 현금흐름",   // 현대자동차
+  "투자활동으로인한현금흐름",      // 기존 후보 유지
   "투자활동 현금흐름",
 ];
 const FINANCING_CF_CANDIDATES = [
-  "재무활동현금흐름",
-  "재무활동으로인한현금흐름",
+  "재무활동현금흐름",            // 삼성전자, 젬백스
+  "재무활동으로인한 순현금흐름",  // 헬릭스미스 (공백 위치 고유)
+  "재무활동으로 인한 순현금흐름",  // 변형 대비
+  "재무활동으로 인한 현금흐름",   // 현대자동차
+  "재무활동으로인한현금흐름",      // 기존 후보 유지
   "재무활동 현금흐름",
 ];
 
@@ -334,8 +344,9 @@ export async function extractRevenue(
  * 항목별 독립 누락 — 한 항목 부재 시 그 연도 그 항목만 누락. 5단계 룰들이 항목별
  * 다른 영역 사용 (negative_ocf_persistent는 영업CF만, cf_pattern_risky는 3 항목 동시).
  *
- * sj_div="CF" 분기 가정 — 묶음 2 field-test 확정 영역. 어긋날 시 정정 +
- * spec-pending-edits 누적 (CLAUDE.md "DART 응답 형태 가정" 영역 정합).
+ * fnlttSinglAcntAll.json 필수 (fnlttSinglAcnt.json은 BS+IS만 반환).
+ * CF 항목(sj_div="CF")은 fs_div 미설정 — CFS/OFS 구분은 API fs_div 파라미터로 처리.
+ * CFS call로 CF 항목 없으면 OFS 폴백 (연결재무제표 미작성 법인 대응).
  *
  * 영업CF 음수가 7부 B 본질 시그널이라 parseAccountAmount 괄호/부호 음수 처리 핵심.
  *
@@ -355,12 +366,30 @@ export async function extractCashflowSeries(
   const responses = await Promise.all(
     baseYears.map(async (baseYear) => {
       try {
-        const raw = await ctx.client.getJson<DartResp>("fnlttSinglAcnt.json", {
+        // CFS 우선 — 연결현금흐름표 (7부 B: 그룹 전체 사실)
+        // CF 항목은 fs_div 미설정이므로 filterCfsOfs 미사용 — API 파라미터로 분기
+        let raw = await ctx.client.getJson<DartResp>("fnlttSinglAcntAll.json", {
           corp_code,
           bsns_year: String(baseYear),
           reprt_code: "11011",
+          fs_div: "CFS",
         });
-        return { baseYear, items: raw.status === "000" ? (raw.list ?? []) : [] };
+        let cfItems = (raw.status === "000" ? (raw.list ?? []) : []).filter(
+          (i) => i.sj_div === "CF",
+        );
+        if (!cfItems.length) {
+          // OFS 폴백 — 연결재무제표 미작성 법인
+          raw = await ctx.client.getJson<DartResp>("fnlttSinglAcntAll.json", {
+            corp_code,
+            bsns_year: String(baseYear),
+            reprt_code: "11011",
+            fs_div: "OFS",
+          });
+          cfItems = (raw.status === "000" ? (raw.list ?? []) : []).filter(
+            (i) => i.sj_div === "CF",
+          );
+        }
+        return { baseYear, items: cfItems };
       } catch {
         return { baseYear, items: [] as AccountItem[] };
       }
@@ -373,10 +402,6 @@ export async function extractCashflowSeries(
 
   for (const { baseYear, items } of responses) {
     if (!items.length) continue;
-    const cfItems = items.filter((i) => i.sj_div === "CF");
-    if (!cfItems.length) continue;
-    const filtered = filterCfsOfs(cfItems);
-    if (!filtered.length) continue;
 
     const periods = [
       ["thstrm", baseYear],
@@ -386,7 +411,7 @@ export async function extractCashflowSeries(
 
     for (const [period, y] of periods) {
       if (y < startYear || y > endYear) continue;
-      const periodItems = filtered.map((item) => ({
+      const periodItems = items.map((item) => ({
         account_nm: item.account_nm,
         thstrm_amount: (item[`${period}_amount`] as string | undefined) ?? null,
       }));

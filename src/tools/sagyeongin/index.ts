@@ -13,6 +13,7 @@ import { updateScanPresetTool } from "./update-scan-preset.js";
 import { requiredReturnTool } from "./required-return.js";
 import { srimTool } from "./srim.js";
 import { killerCheckTool } from "./killer-check.js";
+import { cashflowCheckTool } from "./cashflow-check.js";
 
 export const sagyeonginTools: ToolDef[] = [
   updateWatchlistTool,
@@ -20,4 +21,5 @@ export const sagyeonginTools: ToolDef[] = [
   requiredReturnTool,
   srimTool,
   killerCheckTool,
+  cashflowCheckTool,
 ];
