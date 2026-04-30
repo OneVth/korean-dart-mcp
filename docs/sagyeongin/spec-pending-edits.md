@@ -141,6 +141,115 @@ spec §10.1에 실제 필드 값 표기 보완 필요.
 
 **상태**: pending
 
+---
+
+## 5단계 묶음 1·2 pending 항목 (spec §10.2)
+
+### [§10.2] negative_ocf_with_active_icf 자산총계 비교 시점 명시 누락
+
+**현재**: spec §10.2 negative_ocf_with_active_icf 룰 본문이 "자산총계 10%+" 비교를
+명시하나 자산총계의 어느 연도인지 명시 0.
+
+**정정**: 비교 시점을 "분석 윈도 가장 최근 연도(endYear)"로 명시. 룰의 본질이
+"현재 자산 규모 대비 투자 강도"이고 시간축 비교 의미 약함 정합.
+
+**근거**: 5단계 묶음 1 financial-extractor 확장 중 발견 (2026-04-29). 의미 변경 0,
+표현 정정 영역.
+
+**상태**: pending
+
+---
+
+### [§10.2] 룰 fs_div 정책 명시 0
+
+**현재**: spec §10.2 4 룰 본문에 fs_div 정책 명시 없음.
+
+**정정**: 4 룰 모두 "CFS 우선 → OFS 폴백" 명시 (그룹 전체 사실 영역, 7부 B 본질 정합).
+oi_cf_divergence의 영업이익은 extractOperatingIncomeSeries(..., "CFS_FIRST") 호출,
+영업/투자/재무 CF는 extractCashflowSeries (CFS 우선 → OFS 폴백). 자산총계는
+extractTotalAssets (CFS 우선 → OFS 폴백). 7부 A killer_check의 OFS 강제와
+본질 분리.
+
+**근거**: 5단계 묶음 1·2 fs_div 정책 합의 (Q2 답안 정합). 명시 누락이
+미래 단계에서 본질 어긋남 가능성.
+
+**상태**: pending
+
+---
+
+### [§10.2] 현금흐름표 엔드포인트 + account_nm 실측값
+
+**현재**: spec §10.2 룰 본문이 영업CF/투자CF/재무CF 추출의 엔드포인트 및 정확한
+account_nm 명시 없음. 묶음 1 financial-extractor.ts 후보 리스트는 "가정"으로 명시.
+
+**정정 — 엔드포인트**: fnlttSinglAcnt.json(주요계정, BS+IS만 반환)이 아닌
+fnlttSinglAcntAll.json(전체 재무) 필수. CF 항목(sj_div="CF")은 fs_div 미설정 —
+CFS/OFS 구분은 API fs_div 파라미터로 처리.
+
+**정정 — account_nm 실측값** (5단계 묶음 2 field-test 확정, 2026-04-30):
+- 영업CF: "영업활동현금흐름" (삼성전자, 젬백스), "영업활동으로 인한 순현금흐름" (헬릭스미스),
+  "영업활동으로 인한 현금흐름" (현대자동차)
+- 투자CF: "투자활동현금흐름" (삼성전자), "투자활동으로 인한 순현금흐름" (헬릭스미스),
+  "투자활동으로 인한 현금흐름" (현대자동차)
+- 재무CF: "재무활동현금흐름" (삼성전자), "재무활동으로인한 순현금흐름" (헬릭스미스),
+  "재무활동으로 인한 현금흐름" (현대자동차)
+- 로마자 접두어 변형 (Ⅰ./Ⅱ./Ⅲ.) 종목 존재 (코오롱티슈진 OFS) — 현재 미지원
+
+**근거**: 5단계 묶음 2 field-test 결과 (2026-04-30). 묶음 1 가정 어긋남 발견 →
+즉시 코드 정정 포함 (4단계 묶음 3 패턴 정합).
+
+**상태**: pending (로마자 접두어 변형 미지원 TODO 포함)
+
+---
+
+### [§10.2] concern_score 0-100 cap 명시
+
+**현재**: spec §10.2 output에 concern_score 0-100 명시. 4 룰 점수 표 합산 시
+40+30+20+15 = 105로 100 초과 가능.
+
+**정정**: concern_score 계산 영역에 "Math.min(룰 점수 합, 100) cap" 명시.
+또는 룰 점수 조정 (40+30+20+15 → 35+30+20+15 등 100 합산 정합).
+
+**근거**: 5단계 묶음 2 cashflow-check.ts 구현 중 발견 (2026-04-30). 의미 변경
+없음 (cap이 본질 변경 0), 표현 정정.
+
+**상태**: pending
+
+---
+
+### [§10.2] oi_cf_divergence "2년 이상" 합산 vs 연속 명시
+
+**현재**: spec §10.2 oi_cf_divergence 룰 본문이 "영업이익(+) + 영업CF(−) — 2년 이상"
+명시. "2년 이상"이 합산 vs 연속 명시 없음.
+
+**정정**: 합산 2회+ 명시 (분석 윈도 안에서 어긋남 발생 횟수 합산). 7부 B "이익이
+진짜인가" 검증 — 한 해 어긋남이 운전자본 사이클이면 다음 해 정합, 그 다음 해
+어긋남이면 사이클 아닌 신호 본질 정합.
+
+**근거**: 5단계 묶음 2 cashflow-check.ts 구현 중 결정 (2026-04-30). 합산이
+spec 표현 직역 정합.
+
+**상태**: pending
+
+---
+
+### [§10.2] investigation_hints 도구 본체 명시
+
+**현재**: spec §10.2가 oi_cf_divergence의 investigation_hints만 예시 3 항목 명시
+(매출채권 변동 / 재고자산 변동 / 고객 집중도). 다른 3 룰의 hints는 본문 없음.
+
+**정정**: investigation_hints는 도구 본체(cashflow-check.ts INVESTIGATION_HINTS
+객체)에 4 룰 모두 정의. spec §10.2 본문에는 "investigation_hints는 도구 본체
+정의" 명시 + oi_cf_divergence 예시는 도구 본체로 이동 (또는 spec 유지하되 "예시"
+명시 보강). 7부 B "도구는 사전 판정 안 함" 본질 정합 — hints는 도구 산출 영역,
+spec 룰 정의 영역 분리.
+
+**근거**: 5단계 묶음 2 investigation_hints 정의 합의 (2026-04-30).
+
+**상태**: pending
+
+---
+
 ## Applied 항목
 
 (아직 없음. v0.3에서 일괄 반영 시 채워짐.)
