@@ -68,7 +68,7 @@
 - [x] 3단계: `feat/srim-stack` — required_return + srim + naver-price + srim-calc (2026-04-28)
 - [x] 4단계: `feat/killer-check` — killer_check + financial-extractor 확장 + audit-extractor (2026-04-29)
 - [x] 5단계: `feat/cashflow-check` — cashflow_check + financial-extractor 확장 (2026-04-30)
-- [ ] 6단계: `feat/capex-signal`
+- [x] 6단계: `feat/capex-signal` — capex_signal + induty-extractor + DS005 tgastInhDecsn (2026-05-02)
 - [ ] 7단계: `feat/dividend-check`
 - [ ] 8단계: `feat/scan-preview`
 - [ ] 9단계: `feat/insider-chg-rsn` (14a — 포크 로컬 + field test)
@@ -78,7 +78,7 @@
 
 ### 현재 작업 단계
 
-5단계 완료 (2026-04-30). 다음 작업은 6단계 `feat/capex-signal`.
+6단계 완료 (2026-05-02). 다음 작업은 7단계 `feat/dividend-check`.
 
 ## 자주 막히는 곳
 
@@ -244,6 +244,25 @@ field-test 실행 중 어긋남 발견:
 - 명세 외 함수 정정 commit 위치 룰: 같은 묶음의 통합 commit 안 자연 정합
   (별도 commit 분리는 broken state 위험 ↑)
 
+#### 6단계 누적 (2026-05-02)
+
+6단계 묶음 2 field-test에서 DS005 tgastInhDecsn 응답 필드명 가정 5건 모두 어긋남
+발견:
+- aqstn_prd_pric_amount → inhdtl_inhprc (양수가액)
+- inhrtcap_aqstn_prd_pric_rt → 부재 (extractEquityCurrent 직접 계산 폴백)
+- asset_inhtrf_dvsn → ast_sen (자산구분)
+- bsns_objt → inh_pp (양수목적)
+- rcept_dt → bddd (이사회 결의일)
+
+추가 발견: inhdtl_tast_vs는 자산총계 대비 비율(자기자본 아님 — 사상 임계와 본질 분리).
+
+위임자가 같은 묶음 commit 안에서 코드 정정 + spec-pending-edits §10.3 누적 처리
+(4단계 묶음 3 + 5단계 묶음 2 패턴 정합 — 3회 누적 패턴 정착).
+
+3회 누적 패턴이 정착됐으므로 향후 단계 묶음 2 명세 단계는 "응답 형태 가정 어긋남
+발견 시 같은 commit 안에서 정정 + spec-pending-edits 누적" 영역을 명세 본문에
+필수 포함 영역으로 처리.
+
 ### DART 엔드포인트 분기 — fnlttSinglAcnt.json은 BS+IS만, fnlttSinglAcntAll.json은 전체
 
 발견: 5단계 묶음 2 field-test (2026-04-30). 3단계 srim-stack에서 사용한
@@ -291,6 +310,100 @@ field-test 실행 중 어긋남 발견:
 - 신규 추출 함수의 account_nm 후보 리스트는 "field-test 확정 영역" 명시
 - 발견된 변형은 코드 주석으로 종목 명시 (예: `// 헬릭스미스` — 5단계 묶음 2 패턴 정합)
 - 로마자 접두어 정규화는 별도 ADR 또는 spec-pending-edits로 후속 결정
+
+### 사상↔spec 표현 분기 발견 — pending-edits 누적 + 다음 마일스톤 본질 검토 영역
+
+발견: 6단계 묶음 2 field-test (2026-05-02). 사상 본문 7부 C 194줄
+"DART 상세검색에서 '신규시설투자'만 필터" vs spec §10.3 데이터 소스
+"DS005 tgastInhDecsn (유형자산 양수 결정)" — 실제로는 분리된 영역.
+
+집합 관계 가정: 신규시설투자 공시 ⊂ 유형자산 양수 결정 (모든 신규시설투자는 유형자산
+양수지만 역은 아님 — 부동산 매입 등 포함). 그러나 field-test에서 대형 제조업
+(삼성전자 등) tgastInhDecsn 공시 영역 0 발견 — 사상 "신규시설투자"는 별도 양식
+사용 가능 가설.
+
+향후 단계 적용:
+- 사상 본문 표현과 spec 본문 표현이 분기될 때 spec-pending-edits 누적 영역 (의미
+  변경 0 단계). 다음 마일스톤(v0.X minor bump 시점)에서 사상 본문 본질 영역 검토 후
+  ADR로 격상하거나 spec 본문 표현 정정으로 처리
+- MVP 단계는 spec 본문 그대로 유지 (구현 영역 정합 우선) — 사상 본문은 본질 영역
+  추적용 보존
+
+대응:
+- field-test에서 사상↔spec 분기 발견 시 spec-pending-edits §해당 절 누적
+- 매듭 commit 본문에 "사상↔spec 분기 발견 누적 N건" 명시 (마일스톤 시점 일괄 검토 신호)
+
+### DART 응답 비율은 사상 임계와 본질 분리 — 직접 계산 폴백 패턴
+
+발견: 6단계 묶음 2 field-test (2026-05-02). DS005 tgastInhDecsn 응답에
+`inhdtl_tast_vs` 필드(자산총계 대비 양수가액 비율, %) 직접 제공. 사상 본문 7부 C
+"자기자본 10% 이상 의무공시" 임계는 자기자본 기준이라 본질 분리.
+
+응답 필드 그대로 사용 시 임계 의미 어긋남:
+- 자산총계 ≈ 자기자본 + 부채 → 자산총계 대비 비율 < 자기자본 대비 비율
+- 자기자본 대비 10%가 의무공시 임계인데 자산총계 대비 10% 사용 시 임계 통과 종목
+  과다 발생 (false positive)
+
+대응:
+- DART 응답 비율 필드 발견 시 분모 본질 검증 사전 영역 (자산총계? 자기자본? 매출?)
+- 사상 본문 임계와 분모 본질 분리 발견 시 직접 계산 폴백 (extractor 함수 활용)
+- 6단계 capex-signal: `extractEquityCurrent` 직접 계산 단일 (응답 inhdtl_tast_vs
+  사용 영역 0)
+
+향후 단계 적용:
+- 7단계 dividend_check: 배당성향 등 응답 비율 발견 시 분모 본질 검증 영역
+- 11단계 scan-execute: 종합 평가 시 모든 비율의 분모 본질 일관성 영역
+
+### MVP 한정 보수적 default 패턴 — 7부 C 긍정 발굴 본질에서 의심 시 긍정 분기
+
+발견: 6단계 묶음 2 (2026-05-02). `judgeExistingBusinessMatch` 함수의 default true
+결정 본질.
+
+7부 C "선행 지표 기회 포착"의 본질은 긍정 발굴 — verdict SIGNAL_DETECTED는 "신호
+발견 자체"가 의미. 응답 형태 미확정 영역(사업분야 KSIC 직접 부재 등)에서 보수적
+분기 결정 시:
+- 7부 A·B (부정 발굴 — EXCLUDE / REVIEW_REQUIRED)는 의심 시 부정 분기가 자연
+  (false negative 회피 — 회피 대상 누락이 더 위험)
+- 7부 C (긍정 발굴 — SIGNAL_DETECTED)는 의심 시 긍정 분기가 자연 (false positive
+  허용 — 사용자가 공시 본문 직접 확인하는 후속 영역 자연 정합)
+
+→ 7부 A·B vs 7부 C는 보수적 default 분기 본질 거울 영역.
+
+향후 단계 적용:
+- 7단계 dividend_check: 7부 D 본질 (분류 영역 — 안정 vs 성장 vs 회복) — 보수적
+  default 분기 본질 영역 검토 (긍정/부정 분류 분기 안 자연일 가능성)
+- 8단계+ 도구 영역: 7부 본질 분기에 따라 보수적 default 다름 — 명세 단계 결정 영역
+
+대응:
+- 응답 형태 미확정 분기에서 보수적 default 결정 시 7부 본질 영역 검토 우선
+- interpretation_notes / investigation_hints에 "사용자 후속 확인 권장" 명시
+  (false positive 영역 사용자 영역으로 이전)
+
+### 묶음 1 산출 활용 영역 부재 분기 — 미래 정밀화 영역 산출 보존 패턴
+
+발견: 6단계 묶음 2 (2026-05-02). 묶음 1 `induty-extractor.ts` 산출
+(`extractIndutyCode` + `matchInduty`)이 묶음 2 `capex-signal.ts`에서 직접 호출
+영역 0 (MVP 한정 보수적 default true 휴리스틱 채택). 묶음 1 산출이 미래 정밀화
+영역을 위해 보존.
+
+비슷한 영역 — `parseRatio` 함수도 capex-signal.ts에 보존되지만 호출 영역 0
+(응답 `inhrtcap_aqstn_prd_pric_rt` 부재 발견 후 호출 영역 사라짐).
+
+본질: 명세 단계 합리적 가정으로 작성된 산출이 field-test 후 활용 영역 0 발견
+시도 broken 영역 0 — 미래 영역 산출의 자연 보존. dead code 영역 아님 (정밀화
+시점에 호출 영역 추가 가능).
+
+향후 단계 적용:
+- 묶음 1 산출 활용 영역 0 발견 시 commit 메시지 + spec-pending-edits에 "활용
+  영역 부재 — 미래 정밀화 영역 산출" 명시
+- 매듭 시 자주 막히는 곳 누적 영역 0 (이미 정착 패턴) — 단 영역 부재 자체가
+  spec/명세 본질 어긋남 신호일 경우는 별도 ADR 영역 검토
+
+대응:
+- 묶음 1 명세 단계에 "묶음 2 활용 영역 미확정 — field-test 응답 형태 확인 후
+  결정" 명시 가능
+- 묶음 2 명세 단계에 "묶음 1 산출 직접 호출 영역 0 분기 발생 가능 — 미래 정밀화
+  영역으로 보존" 명시 (6단계 묶음 2 패턴 정합)
 
 ## 의사결정 시 주의
 
