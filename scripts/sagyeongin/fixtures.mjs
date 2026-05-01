@@ -144,3 +144,28 @@ export const OI_CF_DIVERGENCE_SAMPLE = {
   expected_flag: "oi_cf_divergence",
   expected_severity: "high",
 };
+
+// === 6단계 SIGNAL 케이스 (capex_signal 기회 포착) ===
+// 7부 C 본질 — 긍정 발굴 layer (4단계 EXCLUDE 회피 / 5단계 EXCLUDE 검토와 의미 분리)
+// 키 패턴: expected_verdict + expected_signal_min (시그널 1개+ 발견 검증)
+// SIGNAL_DETECTED 케이스: 코스닥 중소 제조업 — tgastInhDecsn 주 영역 (대형사 공시 0)
+
+// 하나기술 (코스닥 이차전지 장비 제조업) — 2차전지 생산시설 증설 (기존 사업 케파 증설)
+// 사경인 본문 "케파 증설 = 매출 증가 선행지표" 전형 케이스 (spec §10.3 major_capex_existing_business)
+// 발견 경로: 6단계 field-test 중 tgastInhDecsn 공시 종목 탐색 (2026-05-01)
+// 자산총계 대비 26.17% — 자기자본 대비 비율은 extractEquityCurrent 직접 계산
+export const CAPEX_SIGNAL_SAMPLE_LARGE_MFG = {
+  corp_code: "00601191",
+  expected_corp_name: "하나기술",
+  expected_verdict: "SIGNAL_DETECTED",
+  expected_lookback_months: 60,
+};
+
+// NO_SIGNAL 케이스 — 시설투자 적은 서비스/금융업
+// 헬릭스미스 (4단계 EXCLUDE 케이스 재활용 — 시설투자 부재 종목)
+export const CAPEX_NO_SIGNAL_SAMPLE = {
+  corp_code: "00359395",
+  expected_corp_name: "헬릭스미스",
+  expected_verdict: "NO_SIGNAL",
+  expected_lookback_months: 12,
+};
