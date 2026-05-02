@@ -1,12 +1,13 @@
 # 사경인식 DART 에이전트 — 기능 명세 문서
 
-**버전**: v0.4 (§10.10/§10.11 동작 명세 + ADR-0007 도입)
-**작성일**: 2026-04-24 (v0.1), 마지막 갱신 2026-04-28 (v0.4)
+**버전**: v0.5 (§10.7 stage1_company_resolution + estimated_universe 정밀화 + ADR-0010 도입)
+**작성일**: 2026-04-24 (v0.1), 마지막 갱신 2026-05-02 (v0.5)
 **수정 이력**:
 - v0.1 (2026-04-24): 초안
 - v0.2 (2026-04-24): K값 처리 방식 수정 — 하드코딩 제거, `sagyeongin_required_return` 도구 신설 (wikidocs.net/94787 근거)
 - v0.3 (2026-04-25): 구현 전략 합의 결과 반영. ADR-0001~0006 도입. §10.12 insider PR 절차 강화 (Issue 필수). 메타 결정의 단일 출처가 ADR로 이동. spec은 도구 명세 reference 역할에 집중.
 - v0.4 (2026-04-28): §10.10/§10.11 action별 동작 명세 추가. config-store 설계 ADR-0007 도입 (B1 corp_code → name 자동 조회 / D1 add 중복 throw / E1 update_tags 부분 갱신 / F2 remove 멱등 / G1 preset update 부분 patch / H1 active preset 삭제 throw).
+- v0.5 (2026-05-02): §10.7 estimated_universe 의미 over-estimate 분기 명시 + estimated_api_calls.stage1_company_resolution 항목 추가 + 본문 "기업개황 캐시" 표현 정정. ADR-0010 도입 (옵션 D — 8단계 자체 0 호출 + corp_cls + induty_code 분기 비용 노출 영역).
 
 **참조 문서**: 
 - `sakyeongin_philosophy.md` — 사상 토대
@@ -720,19 +721,25 @@ Stage 6. dividend_check (7부 E) — 태그만
     excluded_industries_count: number,
     excluded_name_patterns: string[],
   },
-  estimated_universe: number,
+  estimated_universe: number,  // market+name filter 적용 후 over-estimate
+                               // (corp_cls + induty_code 분기는 11단계 영역)
   estimated_api_calls: {
-    stage2_killer: number,
-    stage3_srim: number,       // killer 통과 예상 종목 수 기반 추정
-    stage4_5_6_tags: number,
+    stage1_company_resolution: number,  // universe × 1 (company.json 단일 호출,
+                                        // corp_cls + induty_code 합산 영역)
+    stage2_killer: number,              // resolved universe × ~3
+    stage3_srim: number,                // (× killer_pass) × ~4
+    stage4_5_6_tags: number,            // (× killer_pass × srim_pass) × ~7
     total: number,
   },
   daily_limit_usage_pct: number,  // 20,000 중 몇 % 사용 예상
-  sample_companies: Array<{corp_code: string, corp_name: string}>  // 앞 10개
+  sample_companies: Array<{corp_code: string, corp_name: string}>
+                                  // 앞 10개 (정렬 기준은 spec-pending-edits 영역)
 }
 ```
 
-**구현**: corp_code 덤프(서버 기동 시 로드) + 기업개황 캐시만 사용. API 호출 없음.
+**구현**: corp_code 덤프(서버 기동 시 로드) 단독 활용. company.json 호출은 11단계 영역 (`stage1_company_resolution` 단계). 8단계 자체 호출 영역 0.
+
+ADR-0010 영역 정합 — corp_code 덤프 5 컬럼에 `corp_cls` + `induty_code` 부재라 markets + KSIC 분기를 비용 노출 영역으로 처리 (옵션 D). `estimated_universe`는 market+name filter 후 over-estimate, `estimated_api_calls.stage1_company_resolution` 영역에서 분기 비용 합산 노출.
 
 ---
 
