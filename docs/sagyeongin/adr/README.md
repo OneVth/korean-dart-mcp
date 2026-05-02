@@ -62,6 +62,7 @@
 | [0006](./0006-documentation-strategy.md) | Documentation Strategy | Accepted | 2026-04-25 | `docs/sagyeongin/` + ADR + 별도 README/CHANGELOG |
 | [0007](./0007-config-store-design.md) | config-store Design | Accepted | 2026-04-28 | loadConfig/saveConfig 2개, atomic write, 기본값 머지, H2 read-only 부작용 없음 |
 | [0008](./0008-html-parser-cheerio.md) | HTML Parser (cheerio) | Accepted | 2026-04-28 | cheerio ^1.0.0, dependencies, kis-rating-scraper + naver-price 사용 |
+| [0010](./0010-scan-preview-static-filter-cost.md) | scan_preview Static Filter 비용 노출 전략 | Accepted | 2026-05-02 | 옵션 D — 8단계 0 호출 + estimated_api_calls.stage1_company_resolution 비용 노출 |
 
 ## 상태 정의
 
