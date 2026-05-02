@@ -205,7 +205,7 @@ interface AlotRow {
   se?: string;
   thstrm?: string;     // ※ AccountItem의 thstrm_amount와 다름 (_amount 없음)
   frmtrm?: string;
-  bfefrmtrm?: string;
+  lwfr?: string;       // field-test 확정: bfefrmtrm 아님 — alotMatter는 lwfr 사용 (2026-05-02)
   [k: string]: string | undefined;
 }
 
@@ -505,7 +505,7 @@ export async function extractTotalAssets(
 function pickAlotValue(
   rows: AlotRow[],
   candidates: string[],
-  period: "thstrm" | "frmtrm" | "bfefrmtrm",
+  period: "thstrm" | "frmtrm" | "lwfr",
 ): number | null {
   for (const candidate of candidates) {
     const row = rows.find((r) => r.se === candidate);
@@ -650,10 +650,11 @@ export async function extractDividendSeries(
 
   for (const { baseYear, rows } of responses) {
     if (!rows.length) continue;
+    // field-test 확정: alotMatter는 3번째 기간에 bfefrmtrm 아닌 lwfr 사용 (2026-05-02)
     const periods = [
       ["thstrm", baseYear],
       ["frmtrm", baseYear - 1],
-      ["bfefrmtrm", baseYear - 2],
+      ["lwfr", baseYear - 2],
     ] as const;
     for (const [period, y] of periods) {
       if (y < startYear || y > endYear) continue;
