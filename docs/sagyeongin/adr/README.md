@@ -54,7 +54,7 @@
 
 | ID | 제목 | 상태 | 결정일 | 핵심 |
 |---|---|---|---|---|
-| [0001](./0001-fork-isolation-strategy.md) | Fork Isolation Strategy | Accepted | 2026-04-25 | `src/tools/sagyeongin/` 격리, B2 패턴 |
+| [0001](./0001-fork-isolation-strategy.md) | Fork Isolation Strategy | Accepted (β-iii Superseded by 0011) | 2026-04-25 | `src/tools/sagyeongin/` 격리, B2 패턴 |
 | [0002](./0002-branch-strategy.md) | Branch Strategy | Accepted | 2026-04-25 | main + feat/* + sync 단발성, rebase then merge --no-ff |
 | [0003](./0003-test-strategy.md) | Test Strategy | Accepted | 2026-04-25 | 샘플 기반 검증, Node built-in test runner |
 | [0004](./0004-development-order.md) | Development Order | Accepted | 2026-04-25 | 11 코드 단계 + 1 커뮤니케이션 |
@@ -63,6 +63,7 @@
 | [0007](./0007-config-store-design.md) | config-store Design | Accepted | 2026-04-28 | loadConfig/saveConfig 2개, atomic write, 기본값 머지, H2 read-only 부작용 없음 |
 | [0008](./0008-html-parser-cheerio.md) | HTML Parser (cheerio) | Accepted | 2026-04-28 | cheerio ^1.0.0, dependencies, kis-rating-scraper + naver-price 사용 |
 | [0010](./0010-scan-preview-static-filter-cost.md) | scan_preview Static Filter 비용 노출 전략 | Accepted | 2026-05-02 | 옵션 D — 8단계 0 호출 + estimated_api_calls.stage1_company_resolution 비용 노출 |
+| [0011](./0011-stage9-insider-signal-redefinition.md) | 9단계 insider 시그널 본질 재정의 | Accepted | 2026-05-03 | majorstock stkqy_irds 부호, β-iii 폐기 |
 
 ## 상태 정의
 
