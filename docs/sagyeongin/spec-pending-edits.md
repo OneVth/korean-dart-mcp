@@ -326,6 +326,70 @@ spec 룰 정의 영역 분리.
 
 ---
 
+## 7단계 묶음 2 pending 항목 (spec §10.6)
+
+### [§10.6] payout_stddev 임계값 명시 누락
+
+spec §10.6 등급 표에 "변동성 낮음" / "변동성 높음" 정량 임계 0. 7단계 채택 default:
+
+- PAYOUT_STDDEV_LOW = 0.10 (변동성 낮음 임계 — A 등급 진입)
+- PAYOUT_STDDEV_HIGH = 0.20 (변동성 높음 임계 — C 등급 진입)
+- 회색 영역 (0.10 ~ 0.20): A·C 모두 진입 0 — 등급 본질 약함
+
+근거: 사경인 본문 "20~30% 성향 + 이익 소폭 감소에도 배당 급감 위험" — ± 10%p 진폭은
+안정 영역 자연, ± 20%p+ 진폭은 사상 "급감 위험" 영역 진입.
+
+발견: 7단계 묶음 2 (2026-05-02)
+처리 영역: 다음 마일스톤(v0.X minor bump) 시점 spec 본문 표 직접 명시 검토.
+
+### [§10.6] 등급 분류 우선순위 + N/A fallback 명시 누락
+
+spec §10.6 등급 표가 우선순위 없이 병렬 나열 — 겹치는 케이스 처리 미명시.
+7단계 채택 우선순위: D 최우선 → A → B → C → N/A fallback.
+
+N/A 두 분기:
+1. 배당 이력 0 (dividend.total 빈 배열): 조기 N/A — alotMatter 응답 부재 또는 무배당 종목
+2. 등급 표 미명시 영역 fallback: A·B·C·D 어느 것도 부합 0 (years < 5 또는 등급 본질 약함)
+   예: years_of_dividend = 4 + avg_payout = 0.30 + payout_stddev = 0.05 + recent_cut = false
+
+발견: 7단계 묶음 2 (2026-05-02)
+처리 영역: 다음 마일스톤 spec 표에 우선순위 + N/A fallback 영역 명시.
+
+### [§10.6] B등급 "삭감 1회 이내" 조건 단순화
+
+spec §10.6 B등급 조건 "5년 연속 + 성향 20~50% + 삭감 1회 이내".
+B등급 "삭감 1회 이내" 본질은 series 안 다년치 검증 (연도별 cut 카운트).
+
+MVP 단순화: recent_cut=false만 검증 (D 등급에서 이미 걸러짐, B 등급 진입 시 recent_cut false 자연).
+
+차이 영역: 5년 안 cut 2회+ 발생했지만 가장 최근 cut 0 종목 → MVP에서 B 진입 가능
+(실제 spec "1회 이내" 위반). 5년 안 cut 정확히 1회 → MVP와 spec 정합.
+
+발견: 7단계 묶음 2 (2026-05-02)
+처리 영역: 다음 마일스톤 — 다년치 cut 카운트 구현 또는 spec 단순화 명시 검토.
+
+### [§10.6] alotMatter.json 응답 형태 정정 — lwfr 필드 발견
+
+spec §10.6 데이터 소스 "alotMatter.json" — 응답 row 3기간 필드명 가정 영역.
+
+묶음 1 `extractDividendSeries` 가정: `bfefrmtrm` (전전기). 실제 응답 확인 결과:
+```
+{"se":"현금배당금총액(백만원)","thstrm":"588,448","frmtrm":"590,777","lwfr":"581,400",...}
+```
+3기간 필드명: `thstrm` (당기) / `frmtrm` (전기) / `lwfr` (전전기).
+`bfefrmtrm`는 alotMatter 응답에 부재 (fnlttSinglAcntAll.json BS/IS 응답 필드와 혼용 오류).
+
+정정: `AlotRow` interface + `pickAlotValue` period 타입 + `extractDividendSeries` periods 배열
+`"bfefrmtrm"` → `"lwfr"` (묶음 2 commit 3, 16cf4ba).
+
+정정 전 증상: years_of_dividend=2 (전전기 데이터 0 → 2년치만 추출).
+정정 후 확인: 삼성전자 years_div=5, KB금융 years_div=5 (5년 추출 정상).
+
+발견: 7단계 묶음 2 field-test (2026-05-02) — 5·6단계 패턴 정합 (묶음 1 가정이 묶음 2 field-test에서 정정).
+처리: 이미 코드 정정 완료. spec §10.6 데이터 소스 표현에 "lwfr 필드" 명시 검토.
+
+---
+
 ## Applied 항목
 
 (아직 없음. v0.3에서 일괄 반영 시 채워짐.)
