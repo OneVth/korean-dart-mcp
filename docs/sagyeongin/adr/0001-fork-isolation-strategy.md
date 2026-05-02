@@ -107,7 +107,7 @@ src/tools/
 
 ### B2를 선택한 이유
 
-**머지 충돌 면을 정량적으로 최소화한다.** 원본 수정 = 2줄(index.ts) + 2군데(insider-signal.ts). 그 외 사경인 코드는 신규 디렉토리이므로 충돌 발생 0. index.ts는 우리 수정이 항상 배열 끝부분이라 git auto-merge가 보통 처리한다.
+**머지 충돌 면을 정량적으로 최소화한다.** 원본 수정 = 2줄(index.ts). 그 외 사경인 코드는 신규 디렉토리이므로 충돌 발생 0. index.ts는 우리 수정이 항상 배열 끝부분이라 git auto-merge가 보통 처리한다. (β-iii 폐기 후 — 이전 본문은 "+ 2군데(insider-signal.ts)" 포함, ADR-0011 반영)
 
 **`_lib/` 위치 (옵션 Y)를 선택한 이유**: spec §3.1 "사경인 도구는 `tools/sagyeongin/` 하위에 격리" 원칙과 가장 잘 맞는다. `src/lib/sagyeongin/`로 분리하면 사경인 코드가 두 디렉토리(`src/tools/sagyeongin/` + `src/lib/sagyeongin/`)에 흩어진다. `_lib/`로 안에 두면 사경인 코드 통째로 보기/옮기기/격리가 명확하다. 원본 `src/tools/_helpers.ts`도 underscore prefix로 헬퍼를 도구 디렉토리 안에 두는 선례가 있다.
 
@@ -119,7 +119,7 @@ src/tools/
 
 ### 좋은 점
 
-- **머지 충돌 면 정량적으로 최소** (2줄 + 2군데). upstream sync 비용 거의 0.
+- **머지 충돌 면 정량적으로 최소** (index.ts 2줄). upstream sync 비용 거의 0.
 - **사경인 코드 100%가 단일 디렉토리** (`src/tools/sagyeongin/`). 통째로 보기/이동/제거 가능.
 - **원본 컨벤션과 정합** (도구당 1파일, underscore prefix 헬퍼). 멘탈 모델 일관.
 
