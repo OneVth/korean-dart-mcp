@@ -16,6 +16,7 @@ import { killerCheckTool } from "./killer-check.js";
 import { cashflowCheckTool } from "./cashflow-check.js";
 import { capexSignalTool } from "./capex-signal.js";
 import { dividendCheckTool } from "./dividend-check.js";
+import { scanPreviewTool } from "./scan-preview.js";
 
 export const sagyeonginTools: ToolDef[] = [
   updateWatchlistTool,
@@ -26,4 +27,5 @@ export const sagyeonginTools: ToolDef[] = [
   cashflowCheckTool,
   capexSignalTool,
   dividendCheckTool,
+  scanPreviewTool,
 ];
