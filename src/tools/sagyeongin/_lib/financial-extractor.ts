@@ -201,6 +201,20 @@ interface StockResp {
   list?: StockRow[];
 }
 
+interface AlotRow {
+  se?: string;
+  thstrm?: string;     // ※ AccountItem의 thstrm_amount와 다름 (_amount 없음)
+  frmtrm?: string;
+  lwfr?: string;       // field-test 확정: bfefrmtrm 아님 — alotMatter는 lwfr 사용 (2026-05-02)
+  [k: string]: string | undefined;
+}
+
+interface AlotResp {
+  status: string;
+  message: string;
+  list?: AlotRow[];
+}
+
 // 발행주식수 추출 (주). 최근 사업보고서 기준.
 // stockTotqySttus (주식총수 현황) 사용 — fnlttSinglAcnt에 발행주식수 계정 미포함.
 // 보통주(se="보통주") istc_totqy 반환. 우선주 제외.
@@ -483,4 +497,191 @@ export async function extractTotalAssets(
   throw new Error(
     `financial-extractor: total_assets not found for ${corp_code} (year=${year})`,
   );
+}
+
+// alotMatter 행에서 se 키로 첫 유효 매칭 값 반환.
+// AccountItem의 account_nm 구조 다름 — se 필드 사용, _amount suffix 없음.
+// parseAccountAmount 재사용 (괄호 음수, "-" 플레이스홀더, 콤마 제거 포함).
+function pickAlotValue(
+  rows: AlotRow[],
+  candidates: string[],
+  period: "thstrm" | "frmtrm" | "lwfr",
+): number | null {
+  for (const candidate of candidates) {
+    const row = rows.find((r) => r.se === candidate);
+    if (!row) continue;
+    const v = parseAccountAmount(row[period]);
+    if (v !== null) return v;
+  }
+  return null;
+}
+
+/**
+ * N년 당기순이익 시계열 (오래된→최근, 원).
+ *
+ * dividend_check의 배당성향(배당금총액 / 당기순이익) 계산용.
+ * extractRoeSeries 패턴 그대로 — 3년 간격 base year로 API 호출 절약.
+ * CFS 우선 → OFS 폴백 (filterCfsOfs 정합).
+ *
+ * 빈 배열 가능 (미공시) — 호출자 책임으로 throw 처리.
+ *
+ * Ref: spec §10.6 dividend_check, philosophy 7부 E
+ */
+export async function extractNetIncomeSeries(
+  corp_code: string,
+  years: number,
+  ctx: ToolCtx,
+): Promise<number[]> {
+  const endYear = new Date().getFullYear() - 1;
+  const startYear = endYear - years + 1;
+
+  const baseYears: number[] = [];
+  for (let y = endYear; y >= startYear; y -= 3) baseYears.push(y);
+
+  const responses = await Promise.all(
+    baseYears.map(async (baseYear) => {
+      try {
+        const raw = await ctx.client.getJson<DartResp>("fnlttSinglAcnt.json", {
+          corp_code,
+          bsns_year: String(baseYear),
+          reprt_code: "11011",
+        });
+        return { baseYear, items: raw.status === "000" ? (raw.list ?? []) : [] };
+      } catch {
+        return { baseYear, items: [] as AccountItem[] };
+      }
+    }),
+  );
+
+  const byYear = new Map<number, number>();
+  for (const { baseYear, items } of responses) {
+    if (!items.length) continue;
+    const filtered = filterCfsOfs(items);
+    const periods = [
+      ["thstrm", baseYear],
+      ["frmtrm", baseYear - 1],
+      ["bfefrmtrm", baseYear - 2],
+    ] as const;
+    for (const [period, y] of periods) {
+      if (y < startYear || y > endYear || byYear.has(y)) continue;
+      const periodItems = filtered.map((item) => ({
+        account_nm: item.account_nm,
+        thstrm_amount: (item[`${period}_amount`] as string | undefined) ?? null,
+      }));
+      const netIncome = pickAccountValue(periodItems, [
+        "당기순이익",
+        "당기순이익(손실)",
+        "연결당기순이익",
+        "Net Income",
+      ]);
+      if (netIncome !== null) {
+        byYear.set(y, netIncome);
+      }
+    }
+  }
+
+  return Array.from(byYear.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([, v]) => v);
+}
+
+/**
+ * N년 배당 시계열 (오래된→최근).
+ *
+ * DART alotMatter.json (배당에 관한 사항) 사용.
+ * extractRoeSeries 패턴 그대로 — 3년 간격 base year로 API 호출 절약.
+ *
+ * total: 현금배당금총액 (원). 배당 없는 연도는 0. 전 응답 빈 시 빈 배열.
+ *   se 후보: ["현금배당금총액(백만원)", "현금배당총액(백만원)"] — 단위 ×1,000,000
+ * yield_market: 시가배당률 (분수). 해당 필드 있는 연도만. 없으면 빈 배열.
+ *   se 후보: ["시가배당률(%)", "현금배당수익률(%)"] — 단위 ÷100
+ *
+ * alotMatter 응답 필드 가정 (field-test 확정 영역 — 묶음 2에서 검증 예정):
+ *   행 구분: se 필드. 기간: thstrm/frmtrm/bfefrmtrm (_amount suffix 없음).
+ *
+ * CFS/OFS 구분 없음 — 배당 결정 자체 (별도/연결 구분 무의미).
+ *
+ * Ref: spec §10.6 dividend_check, philosophy 7부 E
+ */
+export async function extractDividendSeries(
+  corp_code: string,
+  years: number,
+  ctx: ToolCtx,
+): Promise<{
+  total: number[];
+  yield_market: number[];
+}> {
+  const endYear = new Date().getFullYear() - 1;
+  const startYear = endYear - years + 1;
+
+  const baseYears: number[] = [];
+  for (let y = endYear; y >= startYear; y -= 3) baseYears.push(y);
+
+  const responses = await Promise.all(
+    baseYears.map(async (baseYear) => {
+      try {
+        const raw = await ctx.client.getJson<AlotResp>("alotMatter.json", {
+          corp_code,
+          bsns_year: String(baseYear),
+          reprt_code: "11011",
+        });
+        return { baseYear, rows: raw.status === "000" ? (raw.list ?? []) : [] };
+      } catch {
+        return { baseYear, rows: [] as AlotRow[] };
+      }
+    }),
+  );
+
+  // 전 응답 항목 0 → 배당 이력 데이터 자체 없음 — total 빈 배열 반환
+  const anyRows = responses.some((r) => r.rows.length > 0);
+
+  // field-test 확정 (묶음 2): 실측 se 값 검증 예정
+  const DIVIDEND_TOTAL_CANDIDATES = [
+    "현금배당금총액(백만원)",
+    "현금배당총액(백만원)",
+  ];
+  const DIVIDEND_YIELD_CANDIDATES = [
+    "시가배당률(%)",
+    "현금배당수익률(%)",
+  ];
+
+  const totalByYear = new Map<number, number>();
+  const yieldByYear = new Map<number, number>();
+
+  for (const { baseYear, rows } of responses) {
+    if (!rows.length) continue;
+    // field-test 확정: alotMatter는 3번째 기간에 bfefrmtrm 아닌 lwfr 사용 (2026-05-02)
+    const periods = [
+      ["thstrm", baseYear],
+      ["frmtrm", baseYear - 1],
+      ["lwfr", baseYear - 2],
+    ] as const;
+    for (const [period, y] of periods) {
+      if (y < startYear || y > endYear) continue;
+
+      if (!totalByYear.has(y)) {
+        const raw = pickAlotValue(rows, DIVIDEND_TOTAL_CANDIDATES, period);
+        // null = 응답 있으나 해당 연도 배당 행 미존재 → 무배당 연도 (0)
+        totalByYear.set(y, raw !== null ? raw * 1_000_000 : 0);
+      }
+
+      if (!yieldByYear.has(y)) {
+        const raw = pickAlotValue(rows, DIVIDEND_YIELD_CANDIDATES, period);
+        if (raw !== null) yieldByYear.set(y, raw / 100);
+      }
+    }
+  }
+
+  const sortedTotal = Array.from(totalByYear.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([, v]) => v);
+
+  const sortedYield = Array.from(yieldByYear.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([, v]) => v);
+
+  return {
+    total: anyRows ? sortedTotal : [],
+    yield_market: sortedYield,
+  };
 }

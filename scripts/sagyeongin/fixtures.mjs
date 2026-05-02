@@ -2,7 +2,7 @@
 // PASS 케이스(안정적 대형주) + EXCLUDE 케이스(구현 중 발견) 누적.
 // 신선도 점검: 분기 watchlist_check 시 fixture 종목도 함께 검증 (ADR-0003 79~85줄).
 //
-// === EXCLUDE 의미 layer (단계별 구분) ===
+// === EXCLUDE / SIGNAL / GRADE 의미 layer (단계별 구분) ===
 // 4단계 EXCLUDE = killer_check 회피 대상 (verdict EXCLUDE → 분석 영역 차단).
 //   - 키: expected_triggered_rule (단일 룰 검증)
 //   - 7부 A 본질 — 상장폐지/관리종목 회피 결정 자체
@@ -10,7 +10,13 @@
 //   investigation_hints 따라 주석/맥락 확인).
 //   - 키: expected_flag + expected_severity (다층 검증)
 //   - 7부 B 본질 — 도구는 raw 트리거 + severity만, 분식/보수/사업 건강성 판정은 사람
-// 두 단계 모두 *_SAMPLE 명명 통일 — field-test가 키 분기로 자연 분리.
+// 6단계 SIGNAL = capex_signal 기회 포착 (SIGNAL_DETECTED).
+//   - 키: expected_verdict + expected_lookback_months
+//   - 7부 C 본질 — 긍정 발굴 layer (4·5단계 회피/검토와 의미 분리)
+// 7단계 GRADE = dividend_check 지속 가능성 분류 (A/B/C/D/N/A).
+//   - 키: expected_grade (단일 등급 검증)
+//   - 7부 E 본질 — 배당주 지속성 (연속 스펙트럼, binary verdict 아님)
+// 모두 *_SAMPLE 명명 통일 — field-test가 키 분기로 자연 분리.
 //
 // Ref: ADR-0003
 
@@ -168,4 +174,62 @@ export const CAPEX_NO_SIGNAL_SAMPLE = {
   expected_corp_name: "헬릭스미스",
   expected_verdict: "NO_SIGNAL",
   expected_lookback_months: 12,
+};
+
+// === 7단계 GRADE 케이스 (dividend_check 지속 가능성 분류) ===
+// 7부 E 본질 — 배당 지속 가능성 5등급 (A/B/C/D/N/A).
+// 키 패턴: expected_grade (단일 등급 검증)
+// 5등급 모두 발견 시도 — 실측 불일치 시 등급 조정 + 주석 보완 (6단계 패턴 정합)
+// 발견 경로: 7단계 묶음 2 field-test (2026-05-02)
+
+// KB금융지주 (코스피 금융지주). 안정 배당주 — 5년+ 연속 + 성향 20~40% + 변동성 낮음.
+// 초기 후보는 케이티앤지였으나 실측 성향 57.7% → C 등급 — KB금융으로 교체 (2026-05-02)
+// KB금융 실측: avg_payout=0.256, stddev=0.013, years_div=5, cut=false → A 등급 확인
+// dividend_check 기대: A 등급
+export const DIVIDEND_GRADE_A_SAMPLE = {
+  corp_code: "00688996",
+  expected_corp_name: "KB금융",
+  expected_grade: "A",
+};
+
+// 삼성전자 (코스피 시가총액 1위). 기존 SAMSUNG fixture 재활용.
+// 실측: avg_payout=0.317, stddev=0.162, years_div=5, cut=false → B 등급 확인 (2026-05-02)
+// stddev 0.162 > PAYOUT_STDDEV_LOW(0.10) → A 진입 불가, 성향 20~50% 내 B 분기
+// killer_check PASS + cashflow_check CLEAN + dividend B 등급
+// dividend_check 기대: B 등급
+export const DIVIDEND_GRADE_B_SAMPLE = {
+  corp_code: "00126380",
+  expected_corp_name: "삼성전자",
+  expected_grade: "B",
+};
+
+// 케이티앤지 (코스피 담배/인삼). 성향 높은 안정 배당주.
+// 초기 A 등급 가설이었으나 실측 avg_payout=0.577 (50~70% 범위) → C 등급 확인 (2026-05-02)
+// years_div=5, stddev=0.044 (낮음), recent_cut=false — C 분기(성향 50~70%)
+// dividend_check 기대: C 등급
+export const DIVIDEND_GRADE_C_SAMPLE = {
+  corp_code: "00244455",
+  expected_corp_name: "케이티앤지",
+  expected_grade: "C",
+};
+
+// POSCO홀딩스 (코스피 철강). 순환주 — recent_cut=true 발견 (2026-05-02).
+// 초기 C 등급 가설이었으나 recent_cut 트리거 → D 등급 확인 (D 우선 판정)
+// 실측: avg_payout=0.629, stddev=0.485, years_div=5, cut=true → D
+// 7부 E "이익 소폭 감소에도 배당 급감" 전형 케이스 (순환주 실증)
+// dividend_check 기대: D 등급
+export const DIVIDEND_GRADE_D_SAMPLE = {
+  corp_code: "00155319",
+  expected_corp_name: "POSCO홀딩스",
+  expected_grade: "D",
+};
+
+// 카카오 (코스피 IT/플랫폼). 성장주 — 배당 이력 극소.
+// 실측: avg_payout=0.034, years_div=5, 적자 연도 2개 → N/A 등급 확인 (2026-05-02)
+// 적자 연도 비중 높아 payoutRatios 누적 극소 + A/B/C/D 어느 등급도 미충족
+// dividend_check 기대: N/A 등급
+export const DIVIDEND_GRADE_NA_SAMPLE = {
+  corp_code: "00258801",
+  expected_corp_name: "카카오",
+  expected_grade: "N/A",
 };
