@@ -1,13 +1,14 @@
 # 사경인식 DART 에이전트 — 기능 명세 문서
 
-**버전**: v0.5 (§10.7 stage1_company_resolution + estimated_universe 정밀화 + ADR-0010 도입)
-**작성일**: 2026-04-24 (v0.1), 마지막 갱신 2026-05-02 (v0.5)
+**버전**: v0.6 (§10.12 재작성 — chg_rsn_filter 폐기 → majorstock 부호 + ADR-0011 도입)
+**작성일**: 2026-04-24 (v0.1), 마지막 갱신 2026-05-03 (v0.6)
 **수정 이력**:
 - v0.1 (2026-04-24): 초안
 - v0.2 (2026-04-24): K값 처리 방식 수정 — 하드코딩 제거, `sagyeongin_required_return` 도구 신설 (wikidocs.net/94787 근거)
 - v0.3 (2026-04-25): 구현 전략 합의 결과 반영. ADR-0001~0006 도입. §10.12 insider PR 절차 강화 (Issue 필수). 메타 결정의 단일 출처가 ADR로 이동. spec은 도구 명세 reference 역할에 집중.
 - v0.4 (2026-04-28): §10.10/§10.11 action별 동작 명세 추가. config-store 설계 ADR-0007 도입 (B1 corp_code → name 자동 조회 / D1 add 중복 throw / E1 update_tags 부분 갱신 / F2 remove 멱등 / G1 preset update 부분 patch / H1 active preset 삭제 throw).
 - v0.5 (2026-05-02): §10.7 estimated_universe 의미 over-estimate 분기 명시 + estimated_api_calls.stage1_company_resolution 항목 추가 + 본문 "기업개황 캐시" 표현 정정. ADR-0010 도입 (옵션 D — 8단계 자체 0 호출 + corp_cls + induty_code 분기 비용 노출 영역).
+- v0.6 (2026-05-03): 9단계 사전 검증 (1차 elestock + 2차 majorstock) 결과 chg_rsn 계열 필드 부재 실측. §10.12 전면 재작성 — chg_rsn_filter 폐기, 신규 도구 `sagyeongin_insider_signal` (majorstock stkqy_irds 부호 기반) 도입. §5.1 사경인 도구 9→10, §5.3 `insider_signal` 수정 0 (재사용만), §4 line 109 매핑 표 정정. ADR-0011 도입, ADR-0001 β-iii Superseded.
 
 **참조 문서**: 
 - `sakyeongin_philosophy.md` — 사상 토대
@@ -106,7 +107,7 @@ MVP는 MCP 서버로만 제공한다. CLI는 korean-dart-mcp가 이미 `bin` 엔
 | B: 고객 집중도 | 자동 불가 (주석 파싱) | **명시적 비목표** (§11) |
 | B: 무관 분야 신규 투자 | 반자동 | `sagyeongin_capex_signal` |
 | C: 신규 시설투자 공시 (자기자본 10%+) | 완전 자동 | `sagyeongin_capex_signal` |
-| C: 내부자 장내매수 | 반자동 (chg_rsn 필터) | `insider_signal` (재사용 + 래퍼) |
+| C: 내부자 매수 시그널 | 완전 자동 (majorstock 5%+ stkqy_irds 부호) | `sagyeongin_insider_signal` (신규) |
 | D-1: ROE/ROA | 완전 자동 | `buffett_quality_snapshot` (재사용, 참고용) |
 | D-2: RIM 적정가 | 완전 자동 | `sagyeongin_srim` |
 | D-3: 애널리스트 컨센서스 | 자동 불가 (FnGuide) | **명시적 비목표** (§11) |
@@ -119,9 +120,9 @@ MVP는 MCP 서버로만 제공한다. CLI는 korean-dart-mcp가 이미 `bin` 엔
 
 ---
 
-## 5. 도구 목록 전체 (총 14개)
+## 5. 도구 목록 전체 (총 15개)
 
-### 5.1 사경인 신규 도구 (9개)
+### 5.1 사경인 신규 도구 (10개)
 
 `tools/sagyeongin/` 하위에 구현:
 
@@ -133,6 +134,7 @@ MVP는 MCP 서버로만 제공한다. CLI는 korean-dart-mcp가 이미 `bin` 엔
 | `sagyeongin_required_return` | 7부 D-2 선행 | 한국신용평가 BBB- 5년 채권 수익률 조회 (K값) |
 | `sagyeongin_srim` | 7부 D-2 | S-RIM Buy/Fair/Sell 트리플 가격 |
 | `sagyeongin_dividend_check` | 7부 E 배당 | 배당성향 추이 + 지속 가능성 평가 |
+| `sagyeongin_insider_signal` | 7부 C 내부자 | majorstock 5%+ 보고자 매수/매도 부호 기반 시그널 |
 | `sagyeongin_scan_preview` | 배치 Phase 1 | 스캔 범위 확정 (API 거의 0) |
 | `sagyeongin_scan_execute` | 배치 Phase 2 | 시장 스캔 실제 실행 |
 | `sagyeongin_watchlist_check` | 배치 | 관심 종목 분기 점검 |
@@ -154,7 +156,7 @@ MVP는 MCP 서버로만 제공한다. CLI는 korean-dart-mcp가 이미 `bin` 엔
 |---|---|
 | `resolve_corp_code`, `get_company`, `get_financials` | 없음 (인프라) |
 | `search_disclosures`, `get_corporate_event` | 없음 (인프라) |
-| `insider_signal` | **옵션 추가**: `chg_rsn_filter` 파라미터로 "장내매수"만 필터링 가능 |
+| `insider_signal` | 없음 (재사용만 — ADR-0011로 chg_rsn_filter 폐기, 신규 `sagyeongin_insider_signal` 분리) |
 
 ### 5.4 korean-dart-mcp 재사용 (사경인 파이프라인과 분리, 참고용)
 
@@ -894,21 +896,80 @@ ADR-0010 영역 정합 — corp_code 덤프 5 컬럼에 `corp_cls` + `induty_cod
 
 ---
 
-### 10.12 `insider_signal` (재사용 + 직접 수정)
+### 10.12 `sagyeongin_insider_signal` (신규)
 
-기존 korean-dart-mcp 도구를 그대로 사용하되, **`chg_rsn` 필드 기반 필터링 옵션**을 추가한다. 이는 사경인 원문 "상속/증여 시점의 매수는 의도적 주가 하락 가능성 있어 노이즈"에 대응.
+**목적**: 사경인 7부 C "내부자 매수 시그널" 자동화. DART `majorstock.json` (DS003 대량보유 5%+ 보고)의 `stkqy_irds` 부호 기반으로 5%+ 보고자의 매수/매도 분기 + 분기 클러스터 집계.
 
-**수정**: 원본 도구의 `handler` 내부에 `chg_rsn_filter?: "onmarket_only" | "all"` 파라미터 추가. `"onmarket_only"`면 `chg_rsn` 필드가 "장내매수"/"시장매수" 등인 항목만 집계. 기본값 `"all"` (원본 동작 유지).
+**ADR-0011 배경**: 본 도구의 본질은 v0.5 시점 "원본 `insider_signal`에 `chg_rsn_filter` 파라미터 추가" (β-iii 직접 수정)였으나, 9단계 사전 검증 (2026-05-03) 결과 `elestock.json` + `majorstock.json` 양쪽 모두 raw response에 `chg_rsn` 계열 변동사유 필드 부재 실측 (삼성전자 2,615건 + 40건 전수). 사경인 원문 "장내매수 vs 상속/증여 노이즈" 분기 자동 식별 영역 0이 확정. (B) 옵션 채택 — majorstock 단독 + 부호 기반.
 
-**적용**: `sagyeongin_scan_execute`와 `sagyeongin_watchlist_check`는 내부에서 `chg_rsn_filter: "onmarket_only"`로 호출.
+**Input**:
 
-**구현 절차** (ADR-0001 β-iii 결정):
-- **14a**: 포크 로컬에서 `chg_rsn_filter` 구현 + field test
-- **14b**: GitHub Issue 생성 (필수). 원작자에게 이 로직을 업스트림에 추가할 의향이 있는지 문의. 레퍼런스 PR 형태로 구현 첨부.
-- **14c**: 원작자 긍정 응답 후에만 PR 제출
-- **14d**: 거부되거나 응답 없으면 포크에만 유지
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `corp` | string | Y | 회사명/종목코드/corp_code |
+| `start` | string | N | 기간 시작 (YYYY-MM-DD / YYYYMMDD) |
+| `end` | string | N | 기간 종료 |
+| `cluster_threshold` | int | N | cluster 인정 최소 인원 (기본 2 — 사경인 원문 "2명 이상 동시 매수는 강한 신호") |
+| `reporters_topn` | int | N | 분기별 reporters 명단 상위 N (기본 5) |
 
-원본 handler가 거래 항목의 `chg_rsn` 필드를 결과에 보존하지 않아 wrapper 사후 필터링 불가능. 직접 수정이 유일한 경로.
+**처리**:
+1. `majorstock.json` 호출 (`corp_code`)
+2. 기간 필터 (`rcept_dt` 정규화 후 `start`/`end` 사이)
+3. 각 항목 `stkqy_irds` 정수 변환 (`","` /공백 제거, 부호 보존)
+4. 부호 양수 → 매수, 음수 → 매도, 0 → 무시
+5. 분기 단위 클러스터 집계 — 분기 내 동일 방향 보고자 수 ≥ `cluster_threshold` 시 `buy_cluster`/`sell_cluster`, 아니면 `mixed_or_thin`
+6. 전체 기간 시그널 — `unique_buyers ≥ cluster_threshold && unique_buyers > unique_sellers * 2` → `strong_buy_cluster` (사경인 "최대주주 매수 영역 강한 신호")
+
+**Output**:
+
+```ts
+{
+  resolved: { corp_code, corp_name, stock_code },
+  period: { start, end },
+  cluster_threshold: number,
+  summary_text: string,
+  summary: {
+    reports_total: number,
+    buy_events: number,
+    sell_events: number,
+    unique_buyers: number,
+    unique_sellers: number,
+    net_change_shares: number,
+    signal: "strong_buy_cluster" | "strong_sell_cluster" | "neutral_or_mixed",
+    strongest_quarter: string | null,
+  },
+  quarterly_clusters: Array<{
+    quarter: string,
+    buyers: number,
+    sellers: number,
+    net_change: number,
+    cluster: "buy_cluster" | "sell_cluster" | "mixed_or_thin",
+    reporters_total: number,
+    reporters_truncated: boolean,
+    reporters: Array<{ name: string, change: number, report_resn: string }>,  // report_resn raw 보존 (LLM 후속 조사 영역)
+  }>,
+  source: "majorstock",  // 데이터 소스 명시 (미래 다른 source 분기 영역 대비)
+}
+```
+
+**verdict 영역 0**: 본 도구는 시그널 데이터 영역 단독 (8단계 `scan_preview`와 동일 본질 — 5부 "사람 결정 영역 사전 분리" 정합). 사용자/`scan_execute`가 결정.
+
+**적용**:
+- `sagyeongin_scan_execute` (11단계)와 `sagyeongin_watchlist_check` (10단계)가 옵션 0으로 호출 — 5%+ 보고자 영역 단독이라 사경인 원문 "임원 변동 의무공시는 노이즈" 영역 자연 회피
+- 기존 upstream `insider_signal` (DS004 elestock 영역, 임원 + 5%+ 통합)는 LLM 후속 조사 영역 단독 (재사용만, 사경인 파이프라인 호출 0)
+
+**원본 도구와의 분기**:
+
+| 영역 | upstream `insider_signal` | 신규 `sagyeongin_insider_signal` |
+|---|---|---|
+| 데이터 소스 | `elestock.json` (DS004) | `majorstock.json` (DS003) |
+| 주체 | 임원 + 주요주주 통합 | 5%+ 대량보유자 단독 |
+| 변동량 필드 | `sp_stock_lmp_irds_cnt` | `stkqy_irds` |
+| 변동사유 영역 | 부재 (raw response 검증 완료) | 부재 (`report_resn` 자유 텍스트만) |
+| chg_rsn 필터 | 영역 0 (ADR-0011) | 영역 0 |
+| 사경인 본문 정합 | "임원 변동 의무공시는 노이즈" 영역 — 노이즈 포함 | "최대주주 매수 > 임원 매수" 정합 — 노이즈 자동 회피 |
+
+**제약 — 노이즈 제거 영역 자동화 0**: 사경인 원문 "장내매수 vs 상속/증여 분기"는 DART API 영역에서 자동 식별 0 (raw response에 변동사유 영역 부재). `report_resn` 자유 텍스트 영역은 §11.1 비목표 정합 — LLM 후속 조사 영역으로 분리. 본 도구 출력의 `reporters[].report_resn` 영역에 raw 보존 → LLM이 자체 파싱 가능.
 
 ---
 
