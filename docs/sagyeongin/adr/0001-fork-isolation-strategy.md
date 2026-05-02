@@ -44,14 +44,13 @@ export const TOOL_REGISTRY: ToolDef[] = [
 
 ## 결정
 
-**B2 채택.** 사경인 코드는 `src/tools/sagyeongin/` 디렉토리에 격리한다. 원본 코드 수정은 다음 두 곳으로 한정한다.
+**B2 채택.** 사경인 코드는 `src/tools/sagyeongin/` 디렉토리에 격리한다. 원본 코드 수정은 `src/tools/index.ts` 한 곳으로 한정한다 (β-iii 폐기 — ADR-0011 참조).
 
 ### 디렉토리 구조
 
 ```
 src/tools/
 ├── index.ts                       # import 1줄 + ...sagyeonginTools 1줄 추가
-├── insider-signal.ts              # chg_rsn_filter 추가 수정
 ├── sagyeongin/                    # 신설 디렉토리
 │   ├── index.ts                   # sagyeonginTools 배열 export
 │   ├── _lib/                      # 사경인 공유 로직
@@ -82,7 +81,11 @@ src/tools/
 
 공유 로직은 `src/tools/sagyeongin/_lib/` 하위에 둔다. `src/lib/sagyeongin/`에 두지 않는다. 사경인 코드 100%가 한 디렉토리(`src/tools/sagyeongin/`)에 모이도록 한다.
 
-### insider_signal 수정 (β-iii)
+### insider_signal 수정 (β-iii) — Superseded by ADR-0011
+
+> **이 영역은 ADR-0011에 의해 폐기됨 (2026-05-03)**. 9단계 사전 검증 결과 DART elestock.json + majorstock.json 양쪽 모두 chg_rsn 계열 변동사유 필드 부재 실측 (삼성전자 2,615건 + 40건 전수). β-iii 정당성 본문이 raw response 영역 가정에서 무효. 9단계는 신규 도구 `sagyeongin_insider_signal` (β-i 격리) + majorstock stkqy_irds 부호 기반으로 재정의. upstream `insider-signal.ts` 직접 수정 0.
+
+(아래 본문은 역사적 기록.)
 
 원본 `src/tools/insider-signal.ts`에 `chg_rsn_filter?: "onmarket_only" | "all"` 파라미터를 추가한다. 기본값 `"all"` (원본 동작 유지). 두 군데 수정 — Input zod 스키마, filter 로직.
 
@@ -110,7 +113,7 @@ src/tools/
 
 **도구당 1파일 평면**: 원본 컨벤션 일치 (15개 도구 모두 `src/tools/*.ts` 평면). 미래의 자신과 다른 Claude 세션이 같은 멘탈 모델로 읽는다. 11개는 서브디렉토리 분할이 과한 구조화.
 
-**β-iii가 β1(직접 수정)이고 β2(wrapper)가 아닌 이유**: 원본 handler가 거래 항목의 `chg_rsn` 필드를 결과에 보존하지 않는다 (원본 코드 211~228줄 검증). 따라서 wrapper로 호출 후 사후 필터링이 구조적으로 불가능. 별도 구현(β2-broad)은 ~200줄 코드 중복 + 업스트림 개선 추적 불가로 부담이 크다. 직접 수정 + Issue-first PR이 spec §10.12 결정과도 정합.
+**β-iii가 β1(직접 수정)이고 β2(wrapper)가 아닌 이유** (Superseded by ADR-0011): 원본 handler가 거래 항목의 `chg_rsn` 필드를 결과에 보존하지 않는다 (원본 코드 211~228줄 검증). 따라서 wrapper로 호출 후 사후 필터링이 구조적으로 불가능 — 단 이 검증은 코드 영역만 검증하고 raw response 영역 미검증이 본질 hole. 9단계 사전 검증으로 elestock + majorstock 양쪽 모두 raw response에 chg_rsn 부재 실측. β-iii 자체가 무효. ADR-0011 (B) 채택.
 
 ## 결과
 
@@ -119,22 +122,21 @@ src/tools/
 - **머지 충돌 면 정량적으로 최소** (2줄 + 2군데). upstream sync 비용 거의 0.
 - **사경인 코드 100%가 단일 디렉토리** (`src/tools/sagyeongin/`). 통째로 보기/이동/제거 가능.
 - **원본 컨벤션과 정합** (도구당 1파일, underscore prefix 헬퍼). 멘탈 모델 일관.
-- **β-iii 직접 수정으로 코드 중복 0**, 업스트림 개선 자동 추적 가능 (PR 머지 시).
 
 ### 트레이드오프
 
 - **`src/lib/` 일반 컨벤션과 미세하게 어긋남**. 원본은 `src/lib/`에 공용 라이브러리를 두지만 우리는 `src/tools/sagyeongin/_lib/`. 격리 우선 결정이라 정당화됨.
-- **`src/tools/index.ts`와 `insider-signal.ts`는 충돌 가능 영역**. 원작자가 이 두 파일을 크게 리팩토링하면 (예: `TOOL_REGISTRY`를 다른 자료구조로 변경) 머지 시점에 수동 처리 필요. 현재 컨벤션으로는 그런 리팩토링 가능성 낮음.
+- **`src/tools/index.ts`는 충돌 가능 영역**. 원작자가 이 파일을 크게 리팩토링하면 (예: `TOOL_REGISTRY`를 다른 자료구조로 변경) 머지 시점에 수동 처리 필요. 현재 컨벤션으로는 그런 리팩토링 가능성 낮음. (`insider-signal.ts` 영역은 ADR-0011 β-iii 폐기로 충돌 면 0)
 
 ### 미래 변경 시 영향
 
 - **이 결정 변경은 거의 모든 작업 영향**. 디렉토리를 옮기면 import 경로, 빌드 설정, ADR-0003 (테스트 위치), ADR-0004 (개발 순서)가 영향받는다.
-- **β-iii 14c (PR 머지) 시점**: insider-signal.ts의 우리 수정이 업스트림에 흡수되어 우리 fork에서 해당 수정 제거 가능. 단 사경인 도구가 `chg_rsn_filter: "onmarket_only"`로 호출하는 패턴은 그대로 유지.
 - **새 도구 추가 시**: `src/tools/sagyeongin/` 안에 파일 추가 + `src/tools/sagyeongin/index.ts`의 `sagyeonginTools` 배열에 추가. 원본 파일 추가 수정 없음.
 
 ## 참조
 
 - spec §3.1 (도구 격리 원칙)
-- spec §10.12 (insider_signal chg_rsn_filter 결정)
+- spec §10.12 (재작성됨 — ADR-0011 반영)
+- ADR-0011 (β-iii Superseded — 9단계 본질 재정의)
 - spec §11.3 (외부 의존 표)
 - 원본 컨벤션 검증: `src/tools/index.ts`, `src/tools/_helpers.ts`, `src/tools/insider-signal.ts`
