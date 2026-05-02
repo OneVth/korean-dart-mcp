@@ -390,6 +390,66 @@ spec §10.6 데이터 소스 "alotMatter.json" — 응답 row 3기간 필드명 
 
 ---
 
+## 8단계 pending 항목 (spec §10.7)
+
+### [§10.7] estimated_api_calls default 가정값 명시 누락
+
+spec §10.7 본문 stage2~4_5_6 호출 영역의 분기 가정 미명시. 8단계 채택 default:
+
+- KILLER_PASS_RATE_DEFAULT = 0.8 (spec §7.1 1200/1500 정합)
+- SRIM_PASS_RATE_DEFAULT = 0.33 (spec §7.1 "200~400 추정" high end — MVP 보수적 over-estimate 본질)
+- STAGE1_CALLS_PER_COMPANY = 1 (company.json 단일 호출)
+- STAGE2_CALLS_PER_COMPANY = 3 (killer-check 호출 영역)
+- STAGE3_CALLS_PER_COMPANY = 4 (srim 호출 영역 — 3 financial-extractor + naver-price)
+- STAGE4_5_6_CALLS_PER_COMPANY = 7 (cashflow 3 + capex 2 + dividend 2)
+
+근거: spec §7.1 파이프라인 본문 + 4·5·6·7단계 도구 호출 영역 정합. MVP 한정 보수적 over-estimate 본질 — daily limit 도달 사전 회피 영역 자연.
+
+발견: 8단계 묶음 (2026-05-02)
+처리 영역: 다음 마일스톤 spec 본문 표 직접 명시 검토. 또는 ADR-0010에 누적 (default 가정값 본질 영역).
+
+### [§10.7] sample_companies "앞 10개" 정렬 기준 명시 누락
+
+spec §10.7 본문 "앞 10개"만 명시 — 정렬 기준 영역 0. 8단계 채택: stock_code ASC.
+
+근거: corp-code.ts line 120 휴리스틱 정합 (낮은 종목코드 = 오래된 대형사). 사용자 검증 영역 익숙한 종목 우선 자연.
+
+실측: sample_companies[0] = 신한은행 (stock_code 000000 대 — 대형 금융사가 낮은 코드 점유). stock_code ASC 정렬 자체는 정합.
+
+발견: 8단계 묶음 (2026-05-02)
+처리 영역: 다음 마일스톤 spec 본문 정렬 기준 명시.
+
+### [§10.7] estimated_universe 예상치 + daily_limit_usage_pct 예상치 실측과 다름
+
+[응답 형태 정정 영역 — 8단계 field-test 실측값 기반]
+
+spec §10.7 workflow 예시 "default preset 적용 시 universe ≈ 1,500~2,000, daily limit ≈ 60~80%" 가정.
+
+실측 (2026-05-02 corp_code 덤프 기준):
+- 전체 상장사 (stock_code 부재 제외): 3963개
+- default preset (excluded_name_patterns 6개 + 27개 excluded_industries 정보 없음) 적용 후: 3607개
+- estimated_api_calls.total: 32636 → daily_limit_usage_pct: 163.2%
+
+원인 분석:
+- spec 예상치 1500~2200은 corp_cls + induty_code 분기(11단계 영역) 적용 후 기준 가능성
+- 8단계는 name pattern 제외만 적용 → over-estimate 본질 (ADR-0010 옵션 D 정합)
+- daily_limit_usage_pct 163.2%는 단일 배치 실행 시 daily limit 초과 → scan_execute(11단계)에서 분할 실행 전략 필요
+
+발견: 8단계 field-test (2026-05-02)
+처리 영역: spec §10.7 workflow 예시 표현 정정 + 11단계 scan_execute 분할 실행 전략 ADR 검토.
+
+### [§10.7] tech_focus 프리셋 spec 예시 vs 실제 config 부재
+
+spec §10.7 workflow 예시에서 "tech_focus 프리셋 적용 시 universe 약 200~400" 언급.
+실제 default config (`config-store.ts`)에는 `default` 프리셋만 존재 — `tech_focus` 프리셋 부재.
+
+field-test 분기 3에서 `preset: "tech_focus"` 호출 → "존재하지 않는 프리셋" 에러 정합 확인.
+
+발견: 8단계 field-test (2026-05-02)
+처리 영역: spec §10.7 workflow 예시 표현 정정 (tech_focus 예시 → 직접 지정 분기로 대체). 또는 config-store.ts default config에 tech_focus 프리셋 추가 검토 (2단계 영역).
+
+---
+
 ## Applied 항목
 
 (아직 없음. v0.3에서 일괄 반영 시 채워짐.)
