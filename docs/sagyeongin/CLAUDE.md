@@ -69,7 +69,7 @@
 - [x] 4단계: `feat/killer-check` — killer_check + financial-extractor 확장 + audit-extractor (2026-04-29)
 - [x] 5단계: `feat/cashflow-check` — cashflow_check + financial-extractor 확장 (2026-04-30)
 - [x] 6단계: `feat/capex-signal` — capex_signal + induty-extractor + DS005 tgastInhDecsn (2026-05-02)
-- [ ] 7단계: `feat/dividend-check`
+- [x] 7단계: `feat/dividend-check` — dividend_check + financial-extractor 확장 + alotMatter.json (2026-05-02)
 - [ ] 8단계: `feat/scan-preview`
 - [ ] 9단계: `feat/insider-chg-rsn` (14a — 포크 로컬 + field test)
 - [ ] 10단계: `feat/watchlist-check`
@@ -78,7 +78,7 @@
 
 ### 현재 작업 단계
 
-6단계 완료 (2026-05-02). 다음 작업은 7단계 `feat/dividend-check`.
+7단계 완료 (2026-05-02). 다음 작업은 8단계 `feat/scan-preview`.
 
 ## 자주 막히는 곳
 
@@ -404,6 +404,79 @@ field-test 실행 중 어긋남 발견:
   결정" 명시 가능
 - 묶음 2 명세 단계에 "묶음 1 산출 직접 호출 영역 0 분기 발생 가능 — 미래 정밀화
   영역으로 보존" 명시 (6단계 묶음 2 패턴 정합)
+
+### DART endpoint별 응답 row 필드명 가정 영역 검증 필수
+
+발견: 7단계 묶음 2 (2026-05-02). 묶음 1 `extractDividendSeries`가 alotMatter.json
+응답 row 3기간 필드명을 `bfefrmtrm` (전전기) 가정. 실제 응답:
+`{"se":"현금배당금총액(백만원)","thstrm":"588,448","frmtrm":"590,777","lwfr":"581,400",...}`
+
+`bfefrmtrm`는 `fnlttSinglAcntAll.json` BS/IS 응답 필드 — endpoint 혼용 오류.
+정정 전 증상: years_of_dividend=2 (전전기 데이터 0 → 2년치만 추출).
+
+본질: DART API endpoint별 응답 row 필드명 분기 영역. 5단계 endpoint 분기
+(fnlttSinglAcnt vs fnlttSinglAcntAll) 정합 본질 + 7단계는 응답 row 안 필드명
+영역으로 본질 분기 한 단계 더 깊어짐.
+
+향후 단계 적용:
+- 8단계+ 신규 endpoint 진입 시 응답 row 실측 sample 확인 후 필드명 결정
+  (fnlttSinglAcnt 응답 필드명 가정 그대로 끌어오기 영역 0)
+- 응답 형태 정정 4회 누적 정착 (4단계 묶음 3 + 5단계 묶음 2 + 6단계 묶음 2 +
+  7단계 묶음 2)
+
+대응:
+- field-test 단계 raw 응답 sample 1~2 종목 보고 영역 강제 (위임 명세 명시)
+- 응답 형태 어긋남 발견 시 같은 묶음 안 정정 + spec-pending-edits 누적 그대로
+
+### 5등급 verdict의 fixture 등급 가정 어긋남 빈발 영역
+
+발견: 7단계 묶음 2 (2026-05-02). 명세 단계 5등급 fixture 가정 5개 중 3개 어긋남:
+- KT&G A 가정 → C 실측 (성향 57.7%) → KB금융 신규 A 추가
+- POSCO홀딩스 C 가정 → D 실측 (recent_cut=true 트리거)
+- 카카오 N/A 가정 → N/A 실측 (정합)
+
+본질: binary verdict (4·5·6단계)는 가정 정확도 비교적 높음 (룰 트리거 사전 발견 가능).
+5등급 verdict (연속 스펙트럼)는 실측값 기준 등급 분기라 명세 단계 가정 정확도 낮음 —
+field-test 단계까지 등급 가정 보류 영역 자연.
+
+향후 단계 적용:
+- 8단계+ 도구가 binary verdict 분기일 시 가정 정확도 회복 가능
+- 5등급 + 다단계 verdict 분기 시 명세 단계 가정은 발견 시도용만, 실측값 정정 영역 자연
+
+대응:
+- 5등급 + 다단계 verdict fixture 가정은 "발견 시도" 명시 (확정 가정 영역 아님)
+- field-test 결과 정정 시 fixture 주석에 "초기 가정 → 실측 정정" 명시
+  (6단계 패턴 정합)
+
+### series sparse limitation — 시계열 dense 가정 영역 분기
+
+발견: 7단계 묶음 2 (2026-05-02). `dividend_yield: dividend.yield_market[i] ?? 0`
+영역 — yield_market 배열은 데이터 있는 연도만 dense 누적, dividend.total 시계열과
+1:1 정합 영역 0 가능.
+
+본질: extractDividendSeries 안 total은 sparse (무배당 연도 0), yield_market은 dense
+(데이터 있는 연도만) — 두 분기 혼재. 도구 안 series 구성 시 길이 + 연도 정합 영역 0 가능.
+
+향후 단계 적용:
+- 8단계+ 시계열 추출 함수 doc comment에 "sparse / dense" 분기 명시 영역 검토
+- 다음 마일스톤 시점 yield_market sparse 변환(연도 매칭) 정밀화 검토
+
+대응:
+- MVP 한계 영역 코드 코멘트 명시 (dividend-check.ts `series.dividend_yield` 정합)
+- spec-pending-edits §10.6 누적 영역 0 (micro 영역, 8·9·10단계 정밀화 영역 후보 보존)
+
+### 위임 분기 명명 보고 텍스트 vs commit 본문 정합 영역
+
+발견: 7단계 묶음 2 (2026-05-02). 위임 명세 응답 형태 정정 commit 위치 분기 3개 (A/B/C)
+명명. 보고 chat 텍스트 "분기 A" 명시 vs 실제 commit 본문 정합은 분기 B (별도 정정
+commit, history 보존). chat 보고 텍스트만 오류 — commit 본문이 진실.
+
+본질: 위임 보고 텍스트는 약식 가능, commit 본문이 진실. 보고 검증 시 commit
+본문 직 확인 영역 자연.
+
+대응:
+- 위임 명세 "분기 보고" 영역에 "commit 본문에 채택 분기 명시 강제"
+- 검증 시 `git show <hash> --format=%B` 직접 확인 (chat 보고 텍스트만 의존 0)
 
 ## 의사결정 시 주의
 
