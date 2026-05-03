@@ -69,9 +69,9 @@ export type VerdictResult = {
  *
  * Ref: spec §12.1
  */
-export function calculateWeightedAvgRoe(roeSeries: number[]): WeightedAvgRoeResult {
+export function calculateWeightedAvgRoe(roeSeries: number[]): WeightedAvgRoeResult | null {
   if (roeSeries.length === 0) {
-    throw new Error("calculateWeightedAvgRoe: roeSeries cannot be empty");
+    return null; // ADR-0013: 빈 배열 → null
   }
 
   if (roeSeries.length === 1) {
@@ -102,17 +102,17 @@ export function calculateWeightedAvgRoe(roeSeries: number[]): WeightedAvgRoeResu
  *
  * Ref: spec §10.4 582~587줄
  */
-export function calculateSrim(input: SrimInput): SrimResult {
+export function calculateSrim(input: SrimInput): SrimResult | null {
   const { equity, avgRoe, K, shares } = input;
 
   if (shares <= 0) {
-    throw new Error("calculateSrim: shares must be positive");
+    return null; // ADR-0013: shares ≤ 0 → null
   }
 
   const Ws = [0.8, 0.9, 1.0] as const;
   for (const W of Ws) {
     if (Math.abs(1 + K - W) < 0.001) {
-      throw new Error(`calculateSrim: denominator (1+K-W) too small for W=${W}`);
+      return null; // ADR-0013: 분모 (1+K-W) ≈ 0 → null
     }
   }
 
@@ -141,11 +141,11 @@ export function calculateSrim(input: SrimInput): SrimResult {
  *
  * Ref: spec §10.4 589~598줄
  */
-export function judgeSrimVerdict(input: VerdictInput): VerdictResult {
+export function judgeSrimVerdict(input: VerdictInput): VerdictResult | null {
   const { currentPrice, prices, basis } = input;
 
   if (prices.buy <= 0 || prices.fair <= 0 || prices.sell <= 0) {
-    throw new Error("judgeSrimVerdict: prices must be positive");
+    return null; // ADR-0013: prices ≤ 0 → null
   }
 
   let verdict: SrimVerdict;
