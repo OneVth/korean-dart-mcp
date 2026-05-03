@@ -71,14 +71,14 @@
 - [x] 6단계: `feat/capex-signal` — capex_signal + induty-extractor + DS005 tgastInhDecsn (2026-05-02)
 - [x] 7단계: `feat/dividend-check` — dividend_check + financial-extractor 확장 + alotMatter.json (2026-05-02)
 - [x] 8단계: `feat/scan-preview` — scan_preview + scan-helpers _lib + corp_code 덤프 단독 활용 (TOOL_REGISTRY 24, 2026-05-02)
-- [ ] 9단계: `feat/insider-majorstock-signal` (사경인 신규 도구 — ADR-0011 반영)
+- [x] 9단계: `feat/insider-majorstock-signal` — sagyeongin_insider_signal 도구 + majorstock 5%+ stkqy_irds 부호 기반 시그널 (TOOL_REGISTRY 25, 2026-05-03)
 - [ ] 10단계: `feat/watchlist-check`
 - [ ] 11단계: `feat/scan-execute`
 - ~~[ ] 12단계 (백그라운드): insider 14b/c/d — Issue → 원작자 의향 확인 → PR~~ — 폐기 (ADR-0011, β-iii 폐기로 PR 영역 0)
 
 ### 현재 작업 단계
 
-8단계 완료 (2026-05-02). ADR-0011 반영 완료 (2026-05-03). 다음 작업은 9단계 `feat/insider-majorstock-signal` — 신규 도구 `sagyeongin_insider_signal` 신설 (β-i 디렉토리 격리, majorstock stkqy_irds 부호 기반).
+9단계 완료 (2026-05-03). TOOL_REGISTRY 25 (사경인 10). 다음 작업은 10단계 `feat/watchlist-check` — 관심 종목 분기 점검 도구 (사경인 도구 다수 호출 + 종합 보고).
 
 ## 자주 막히는 곳
 
