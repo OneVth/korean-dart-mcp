@@ -86,14 +86,14 @@ async function handleSrim(
     extractSharesOutstanding(args.corp_code, ctx),
   ]);
 
-  if (roeSeries.length === 0) {
-    throw new Error(
-      `srim: insufficient ROE history for ${args.corp_code} (no usable years)`,
-    );
+  // 4. 가중평균 ROE — null 처리 (빈 시리즈 포함, ADR-0013)
+  const roeResult = calculateWeightedAvgRoe(roeSeries);
+  let avg_roe_fraction: number | null = null;
+  let roe_method: "weighted" | "recent_only" | null = null;
+  if (roeResult != null) {
+    avg_roe_fraction = roeResult.value;
+    roe_method = roeResult.method;
   }
-
-  // 4. 가중평균 ROE
-  const { value: avg_roe_fraction, method: roe_method } = calculateWeightedAvgRoe(roeSeries);
 
   // 5. 네이버 현재가 — try-catch 분리, stock_code 부재 케이스 포함
   let current_price: number | null = null;
@@ -111,28 +111,33 @@ async function handleSrim(
     price_source = `null (stock_code unavailable for corp_code ${args.corp_code})`;
   }
 
-  // 6. S-RIM 계산
-  const srim = calculateSrim({
-    equity: equity_current_won,
-    avgRoe: avg_roe_fraction,
-    K,
-    shares: shares_outstanding,
-  });
+  // 6. S-RIM 계산 — null 처리 (ADR-0013)
+  let srim = null;
+  if (avg_roe_fraction != null) {
+    srim = calculateSrim({
+      equity: equity_current_won,
+      avgRoe: avg_roe_fraction,
+      K,
+      shares: shares_outstanding,
+    });
+  }
 
-  // 7. verdict — current_price null이면 null
+  // 7. verdict — current_price + srim 모두 있어야 산출 (ADR-0013)
   let verdict: SrimVerdict | null = null;
   let gap_to_buy: number | null = null;
   let gap_to_fair: number | null = null;
   let gap_to_sell: number | null = null;
 
-  if (current_price != null) {
+  if (current_price != null && srim != null) {
     const config = await loadConfig();
     const basis: SrimBuyPriceBasis = config.parameters.srim_buy_price_basis;
     const v = judgeSrimVerdict({ currentPrice: current_price, prices: srim.prices, basis });
-    verdict = v.verdict;
-    gap_to_buy = roundPercent(v.gapToBuy);
-    gap_to_fair = roundPercent(v.gapToFair);
-    gap_to_sell = roundPercent(v.gapToSell);
+    if (v != null) {
+      verdict = v.verdict;
+      gap_to_buy = roundPercent(v.gapToBuy);
+      gap_to_fair = roundPercent(v.gapToFair);
+      gap_to_sell = roundPercent(v.gapToSell);
+    }
   }
 
   // 8. 단위 변환 + 결과 조립
@@ -140,22 +145,29 @@ async function handleSrim(
   if (K_cache_age_hours != null) {
     noteParts.push(`K_cache_age_hours=${K_cache_age_hours}`);
   }
-  noteParts.push(`roe_method=${roe_method}`);
+  noteParts.push(`roe_method=${roe_method ?? "null (empty roe series)"}`);
   noteParts.push(`price_source=${price_source}`);
+  if (avg_roe_fraction == null) {
+    noteParts.push("srim_status=null (ROE series empty, ADR-0013)");
+  } else if (srim == null) {
+    noteParts.push("srim_status=null (calculation invalid: shares≤0 or denominator≈0, ADR-0013)");
+  } else if (current_price != null && verdict == null) {
+    noteParts.push("srim_status=verdict_null (computed prices invalid: ≤0, ADR-0013)");
+  }
 
   return {
     corp_code: args.corp_code,
     corp_name: corp.corp_name,
     inputs: {
       equity_current: equity_current_won / 100_000_000,   // 억원
-      avg_roe: avg_roe_fraction * 100,                     // %
-      required_return_K: K,                                // 분수
+      avg_roe: avg_roe_fraction != null ? avg_roe_fraction * 100 : null,  // %
+      required_return_K: K,                                               // 분수
       shares_outstanding,
     },
     prices: {
-      buy_price: Math.round(srim.prices.buy),              // 원/주 정수
-      fair_price: Math.round(srim.prices.fair),
-      sell_price: Math.round(srim.prices.sell),
+      buy_price: srim != null ? Math.round(srim.prices.buy) : null,   // 원/주 정수
+      fair_price: srim != null ? Math.round(srim.prices.fair) : null,
+      sell_price: srim != null ? Math.round(srim.prices.sell) : null,
       current_price,
     },
     verdict,
