@@ -65,6 +65,7 @@
 | [0009](./0009-opendart-rate-limit-policy.md) | OpenDART Rate Limit + Backoff 정책 | Accepted | 2026-05-03 | 옵션 B + wrapper (ii) — 단순 retry 1회 + DartRateLimitError throw, 사경인 디렉토리 wrapper 신설 |
 | [0010](./0010-scan-preview-static-filter-cost.md) | scan_preview Static Filter 비용 노출 전략 | Accepted | 2026-05-02 | 옵션 D — 8단계 0 호출 + estimated_api_calls.stage1_company_resolution 비용 노출 |
 | [0011](./0011-stage9-insider-signal-redefinition.md) | 9단계 insider 시그널 본질 재정의 | Accepted | 2026-05-03 | majorstock stkqy_irds 부호, β-iii 폐기 |
+| [0012](./0012-scan-execute-split-and-resume.md) | scan_execute 분할 실행 + 사용자 명시 재개 | Accepted | 2026-05-03 | 옵션 A — corp 단위 + daily limit 80% checkpoint + 사용자 명시 resume_from |
 
 ## 상태 정의
 

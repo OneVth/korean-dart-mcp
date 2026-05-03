@@ -797,7 +797,7 @@ ADR-0010 영역 정합 — corp_code 덤프 5 컬럼에 `corp_cls` + `induty_cod
 }
 ```
 
-**체크포인트/리줌**: Stage 2~6 중 API 제한 도달 시 현재 진행 상태를 SQLite에 저장. `resume_from` 파라미터로 다음 호출에서 이어서 진행. 이전 dart-agent `watchlist/batch.py`의 패턴 참조.
+**체크포인트/리줌**: Stage 2~6 중 API 제한 도달 시 현재 진행 상태를 SQLite에 저장. `resume_from` 파라미터로 다음 호출에서 이어서 진행. 이전 dart-agent `watchlist/batch.py`의 패턴 참조. 분할 단위·재개 정책은 ADR-0012 (corp 단위 분할 + 사용자 명시 재개) 참조.
 
 ---
 
