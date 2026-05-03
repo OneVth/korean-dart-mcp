@@ -588,6 +588,29 @@ watchlist_check 동작은 정상:
 - 11단계 진입 전 ADR 결정 시 srim 음수 처리 함께 검토
 - 다른 사경인 도구도 음수/0/null 입력 케이스에서 throw vs null+note 처리 방식 검토 필요
 
+후속 처리 완료 (2026-05-04, ADR-0013 채택 + feat/srim-null-on-invalid 머지):
+
+- ADR-0013 옵션 B 채택 — verdict null + prices null + note (srim Output 스키마 nullable 확장)
+- srim-calc.ts throw 4건 → null 반환 (line 74·109·115·148)
+- srim.ts handler 3 분기 null 처리 + note에 ADR-0013 trailer 명시 (srim_status=null / verdict_null)
+- watchlist-check.ts srim 호출 위치에서 verdict null 감지 시 stageNotes 노출 (외부 K 실패용 try/catch는 유지)
+- 외부 K 실패 (resolveK 내부) + corp_code 미존재 (srim.ts:76)는 throw 유지 (ADR-0013 적용 범위 밖)
+
+**명세 가정 vs 실측 어긋남 (8회 누적, 본 단계가 8회차)**:
+
+- 명세 가정: "음수 ROE corp → calculateSrim null → prices 모두 null"
+- 실측: ROE는 양수 (K보다 낮을 뿐) → calculateSrim 정상 산출 → sell price 음수 (-132322 / -2864) → judgeSrimVerdict가 prices.sell ≤ 0 감지 → null 반환 → verdict null + note `srim_status=verdict_null (ADR-0013)`
+- ADR-0013 옵션 B는 두 분기 (calculateSrim null vs judgeSrimVerdict null) 모두 흡수하는 설계라 결과적으로 정상 동작. 위임자가 실측 후 field-test 케이스 이름을 "음수 ROE 케이스"에서 "이상 계산 케이스"로 자체 정정 (commit 3eb3534).
+
+**학습 — 사전 검증 차단 패턴의 hole**:
+
+- 9단계 verifications/ 패턴은 **raw API 응답** 가정 어긋남에는 통하지만 **수학 공식 분기**에는 안 통함 (본 단계 발견)
+- 명세 작성 시 raw 응답 사전 검증 + 공식 분기 자체를 fork 코드 직접 추적 둘 다 필요
+- 본 단계의 경우: srim-calc.ts의 `calculateSrim` (S-RIM 공식) → `judgeSrimVerdict` (가격 비교) 두 단계가 각각 null 분기를 가짐. 명세 단계에서 두 분기 모두 추적했어야 함
+- 미래 명세 작성 시: 도구가 여러 함수를 거치는 파이프라인일 때 각 함수의 null/throw 분기를 모두 사전 검증 단계에 포함
+
+**결과적 정상 동작**: ADR-0013 옵션 B의 설계 자체가 두 분기 모두 흡수하니 코드는 정확히 동작. 학습은 명세 작성 측의 사전 검증 hole — 미래 단계에서 같은 hole 회피.
+
 ## 의사결정 시 주의
 
 새 결정이 필요한 상황을 마주하면 다음을 따른다.
