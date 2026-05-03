@@ -149,6 +149,39 @@ const tests = [
       }
     },
   },
+  // ADR-0013 검증 — 음수 ROE corp (10단계 watchlist_check field-test 발견 케이스)
+  {
+    label: "[srim] 이상 계산 corp (LG화학 00356361, ADR-0013 verdict null 검증)",
+    run: async () => {
+      const r = await srimTool.handler({ corp_code: "00356361" }, ctx);
+      if (r.verdict !== null) {
+        throw new Error(`expected verdict null (ADR-0013), got ${r.verdict}`);
+      }
+      if (!r.note.includes("ADR-0013")) {
+        throw new Error(`expected note with ADR-0013 trailer, got: ${r.note}`);
+      }
+      console.log("\n  [LG화학 raw]");
+      console.log(`    verdict=${r.verdict}, prices=${JSON.stringify(r.prices)}`);
+      console.log(`    note: ${r.note}`);
+      return `verdict=null, note에 ADR-0013 명시 정합`;
+    },
+  },
+  {
+    label: "[srim] 음수 ROE corp (카카오 00258801, ADR-0013 verdict null 검증)",
+    run: async () => {
+      const r = await srimTool.handler({ corp_code: "00258801" }, ctx);
+      if (r.verdict !== null) {
+        throw new Error(`expected verdict null (ADR-0013), got ${r.verdict}`);
+      }
+      if (!r.note.includes("ADR-0013")) {
+        throw new Error(`expected note with ADR-0013 trailer, got: ${r.note}`);
+      }
+      console.log("\n  [카카오 raw]");
+      console.log(`    verdict=${r.verdict}, prices=${JSON.stringify(r.prices)}`);
+      console.log(`    note: ${r.note}`);
+      return `verdict=null, note에 ADR-0013 명시 정합`;
+    },
+  },
 ];
 
 // --- 실행 루프 ---

@@ -129,6 +129,7 @@ async function runStages(
   }
 
   // 2. srim
+  // ADR-0013 채택 후 srim은 비정상 케이스를 verdict null로 노출 — try/catch는 외부 K 실패 등만 잡음
   try {
     const r = await srimTool.handler(
       { corp_code: corp.corp_code },
@@ -137,12 +138,16 @@ async function runStages(
       prices: unknown;
       verdict: string | null;
       gap_to_fair: number | null;
+      note: string;
     };
     stages.srim = {
       verdict: r.verdict,
       prices: r.prices,
       gap_to_fair: r.gap_to_fair,
     };
+    if (r.verdict == null && r.note.includes("ADR-0013")) {
+      stageNotes.push(`srim: verdict null (note: ${r.note})`);
+    }
   } catch (e) {
     stageNotes.push(`srim 호출 실패: ${(e as Error).message}`);
   }
