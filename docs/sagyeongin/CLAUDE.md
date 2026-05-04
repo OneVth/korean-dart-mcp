@@ -78,7 +78,7 @@
 
 ### 현재 작업 단계
 
-10단계 완료 (2026-05-03). TOOL_REGISTRY 26 (사경인 11). 다음 작업은 11단계 `feat/scan-execute` — 시장 스캔 실제 실행 (배치 Phase 2). 11단계 진입 전 ADR 결정 항목: ADR-0009 (외부 스크래핑 rate limit/캐시) + ADR-0012 (분할 실행 전략) + srim 음수 prices 처리 (10단계 발견, 아래 "자주 막히는 곳" 참조).
+10단계 완료 (2026-05-03). TOOL_REGISTRY 26 (사경인 11). 다음 작업은 11단계 `feat/scan-execute` — 시장 스캔 실제 실행 (배치 Phase 2). 11단계 진입 전 ADR 결정 항목 모두 채택 완료: ADR-0009 (rate limit + wrapper) + ADR-0012 (분할 실행 + 사용자 명시 재개) + ADR-0013 (srim verdict null + note, 후속 머지 완료) + ADR-0014 (checkpoint 저장 위치 — settings vs transient state 분리). 11단계 본격 진입 가능.
 
 ## 자주 막히는 곳
 
