@@ -60,13 +60,14 @@
 | [0004](./0004-development-order.md) | Development Order | Accepted | 2026-04-25 | 11 코드 단계 + 1 커뮤니케이션 |
 | [0005](./0005-commit-conventions.md) | Commit Conventions | Accepted | 2026-04-25 | Conventional Commits + 한국어 + Ref |
 | [0006](./0006-documentation-strategy.md) | Documentation Strategy | Accepted | 2026-04-25 | `docs/sagyeongin/` + ADR + 별도 README/CHANGELOG |
-| [0007](./0007-config-store-design.md) | config-store Design | Accepted | 2026-04-28 | loadConfig/saveConfig 2개, atomic write, 기본값 머지, H2 read-only 부작용 없음 |
+| [0007](./0007-config-store-design.md) | config-store Design | Accepted (settings에 한정 — transient state는 0014로 분리) | 2026-04-28 | loadConfig/saveConfig 2개, atomic write, 기본값 머지, H2 read-only 부작용 없음 |
 | [0008](./0008-html-parser-cheerio.md) | HTML Parser (cheerio) | Accepted | 2026-04-28 | cheerio ^1.0.0, dependencies, kis-rating-scraper + naver-price 사용 |
 | [0009](./0009-opendart-rate-limit-policy.md) | OpenDART Rate Limit + Backoff 정책 | Accepted | 2026-05-03 | 옵션 B + wrapper (ii) — 단순 retry 1회 + DartRateLimitError throw, 사경인 디렉토리 wrapper 신설 |
 | [0010](./0010-scan-preview-static-filter-cost.md) | scan_preview Static Filter 비용 노출 전략 | Accepted | 2026-05-02 | 옵션 D — 8단계 0 호출 + estimated_api_calls.stage1_company_resolution 비용 노출 |
 | [0011](./0011-stage9-insider-signal-redefinition.md) | 9단계 insider 시그널 본질 재정의 | Accepted | 2026-05-03 | majorstock stkqy_irds 부호, β-iii 폐기 |
 | [0012](./0012-scan-execute-split-and-resume.md) | scan_execute 분할 실행 + 사용자 명시 재개 | Accepted | 2026-05-03 | 옵션 A — corp 단위 + daily limit 80% checkpoint + 사용자 명시 resume_from |
 | [0013](./0013-srim-null-on-invalid.md) | srim 비정상 입력/계산 케이스 처리 | Accepted | 2026-05-03 | 옵션 B — verdict null + prices null + note (srim-calc.ts 4건). 외부 K 실패는 throw 유지 |
+| [0014](./0014-scan-execute-checkpoint-storage.md) | scan_execute checkpoint 저장 위치 — settings vs transient state 분리 | Accepted | 2026-05-04 | 옵션 Y — scan_checkpoints.sqlite 별도 신설. ADR-0007은 settings에 한정으로 분기 갱신 |
 
 ## 상태 정의
 
