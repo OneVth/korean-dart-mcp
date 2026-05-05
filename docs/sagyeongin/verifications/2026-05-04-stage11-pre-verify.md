@@ -86,6 +86,7 @@ rate limit(status "020") 시 OpenDART는 **HTTP 200 + body `{"status":"020","mes
   - DartClient.getJson은 HTTP 200 + status "020" 응답을 에러 없이 반환
   - 정정 방향: `RateLimitedDartClient.getJson`에서 반환값 body의 `status === "020"` 검사 추가, 또는 DartClient.getJson에 body status 검증 추가(β-i 격리 위반 — 불가)
   - **β-i 격리 원칙상 DartClient 변경 0 → wrapper 내부에서 반환값 체크 필요**
+  - 정정 commit: 묶음 1.5 — `feat(sagyeongin): wrapper 정정 — body status "020" 감지` (본 사전 검증 결과 반영)
 
 ---
 

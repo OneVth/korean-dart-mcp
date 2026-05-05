@@ -2,12 +2,11 @@
  * dart-rate-limit 단위 테스트.
  *
  * Node built-in test runner (node --test). 빌드 후 실행.
- * mock 기반 — 실 DART 호출 0 (ADR-0003 정합).
+ * mock 기반 — 실 DART 호출 0 (ADR-0003).
  *
- * sleep(1000) 호출이 retry 케이스에 들어가므로 각 retry 케이스는 약 1초 대기.
- * 전체 테스트 약 2~4초 소요 자연.
+ * retry 케이스는 sleep(1000)이 포함되므로 약 1초씩 대기한다.
  *
- * Ref: ADR-0009, ADR-0003
+ * Ref: ADR-0009, ADR-0003, verifications/2026-05-04-stage11-pre-verify.md 1번
  */
 
 import { describe, test } from "node:test";
@@ -21,8 +20,8 @@ import {
 /**
  * mock DartClient — getJson/getZip 호출 횟수와 응답 시퀀스를 제어.
  *
- * jsonResponses: getJson 호출마다 차례로 꺼내 반환 (Error면 throw).
- * zipResponses: getZip 동일.
+ * jsonResponses: getJson 호출마다 차례로 꺼내 반환 (Error면 throw, 아니면 반환).
+ * zipResponses: getZip 동일 (Buffer 반환 또는 Error throw).
  */
 interface MockClient extends DartClientLike {
   readonly getJsonCallCount: number;
@@ -67,37 +66,56 @@ function makeMock(opts: {
 }
 
 describe("RateLimitedDartClient", () => {
-  describe("정상 호출", () => {
-    test("getJson 1회 → callCount 1 + 정상 반환", async () => {
-      const mock = makeMock({ jsonResponses: [{ data: "ok" }] });
+  describe("JSON 분기 — 정상 응답", () => {
+    test("getJson status '000' (정상) → callCount 1 + 정상 반환", async () => {
+      const mock = makeMock({
+        jsonResponses: [{ status: "000", list: [{ a: 1 }] }],
+      });
       const limited = new RateLimitedDartClient(mock);
-      const r = await limited.getJson("path");
-      assert.deepEqual(r, { data: "ok" });
+      const r = await limited.getJson<{ status: string; list: unknown[] }>(
+        "path",
+      );
+      assert.equal(r.status, "000");
+      assert.deepEqual(r.list, [{ a: 1 }]);
       assert.equal(limited.callCount, 1);
       assert.equal(mock.getJsonCallCount, 1);
     });
+
+    test("getJson 비-020 응답 (status '013' — 데이터 없음) → 정상 반환 + callCount 1", async () => {
+      const mock = makeMock({
+        jsonResponses: [{ status: "013", message: "조회된 데이터가 없습니다" }],
+      });
+      const limited = new RateLimitedDartClient(mock);
+      const r = await limited.getJson<{ status: string; message: string }>(
+        "path",
+      );
+      assert.equal(r.status, "013");
+      assert.equal(limited.callCount, 1);
+    });
   });
 
-  describe("429 retry 정책", () => {
-    test("getJson 첫 429 → retry 후 성공 → callCount 2 + 정상 반환", async () => {
+  describe("JSON 분기 — status '020' retry 정책", () => {
+    test("getJson 첫 020 → retry 후 정상('000') → callCount 2 + 정상 반환", async () => {
       const mock = makeMock({
         jsonResponses: [
-          new Error("DART path → HTTP 429"),
-          { data: "ok-after-retry" },
+          { status: "020", message: "요청 건수 초과" },
+          { status: "000", list: [{ ok: true }] },
         ],
       });
       const limited = new RateLimitedDartClient(mock);
-      const r = await limited.getJson("path");
-      assert.deepEqual(r, { data: "ok-after-retry" });
+      const r = await limited.getJson<{ status: string; list?: unknown[] }>(
+        "path",
+      );
+      assert.equal(r.status, "000");
       assert.equal(limited.callCount, 2);
       assert.equal(mock.getJsonCallCount, 2);
     });
 
-    test("getJson 2회 연속 429 → DartRateLimitError throw + callCount 2", async () => {
+    test("getJson 2회 연속 020 → DartRateLimitError throw + 메시지 검증 + callCount 2", async () => {
       const mock = makeMock({
         jsonResponses: [
-          new Error("DART path → HTTP 429"),
-          new Error("DART path → HTTP 429"),
+          { status: "020", message: "초과" },
+          { status: "020", message: "초과" },
         ],
       });
       const limited = new RateLimitedDartClient(mock);
@@ -106,6 +124,7 @@ describe("RateLimitedDartClient", () => {
         (err: unknown) => {
           assert.ok(err instanceof DartRateLimitError);
           assert.match((err as Error).message, /rate limit reached after retry/);
+          assert.match((err as Error).message, /status=020/);
           assert.match((err as Error).message, /callCount=2/);
           return true;
         },
@@ -115,8 +134,8 @@ describe("RateLimitedDartClient", () => {
     });
   });
 
-  describe("비-429 에러 propagation", () => {
-    test("getJson 500 에러 → retry 0회 + 원본 에러 propagation + callCount 1", async () => {
+  describe("JSON 분기 — 비-020 에러 propagation", () => {
+    test("getJson HTTP 500 throw → retry 0회 + 원본 에러 propagation + callCount 1", async () => {
       const mock = makeMock({
         jsonResponses: [new Error("DART path → HTTP 500")],
       });
@@ -135,11 +154,23 @@ describe("RateLimitedDartClient", () => {
     });
   });
 
-  describe("getZip 동일 정책", () => {
-    test("getZip 첫 429 → retry 후 성공 → callCount 2", async () => {
+  describe("ZIP 분기 — '[020]' retry 정책", () => {
+    test("getZip 정상 ZIP → callCount 1 + Buffer 반환", async () => {
+      const buf = Buffer.from("PK\x03\x04mock-zip");
+      const mock = makeMock({ zipResponses: [buf] });
+      const limited = new RateLimitedDartClient(mock);
+      const r = await limited.getZip("path");
+      assert.equal(r, buf);
+      assert.equal(limited.callCount, 1);
+    });
+
+    test("getZip 첫 [020] throw → retry 후 정상 → callCount 2", async () => {
       const buf = Buffer.from("PK\x03\x04mock-zip");
       const mock = makeMock({
-        zipResponses: [new Error("DART path → HTTP 429"), buf],
+        zipResponses: [
+          new Error("DART path → [020] 요청 건수 초과"),
+          buf,
+        ],
       });
       const limited = new RateLimitedDartClient(mock);
       const r = await limited.getZip("path");
@@ -148,23 +179,50 @@ describe("RateLimitedDartClient", () => {
       assert.equal(mock.getZipCallCount, 2);
     });
 
-    test("getZip 2회 연속 429 → DartRateLimitError throw", async () => {
+    test("getZip 2회 연속 [020] throw → DartRateLimitError throw + callCount 2", async () => {
       const mock = makeMock({
         zipResponses: [
-          new Error("DART path → HTTP 429"),
-          new Error("DART path → HTTP 429"),
+          new Error("DART path → [020] 요청 건수 초과"),
+          new Error("DART path → [020] 요청 건수 초과"),
         ],
       });
       const limited = new RateLimitedDartClient(mock);
-      await assert.rejects(() => limited.getZip("path"), DartRateLimitError);
+      await assert.rejects(
+        () => limited.getZip("path"),
+        (err: unknown) => {
+          assert.ok(err instanceof DartRateLimitError);
+          assert.match((err as Error).message, /status=020/);
+          return true;
+        },
+      );
       assert.equal(limited.callCount, 2);
+    });
+
+    test("getZip 비-[020] throw (HTTP 500) → retry 0회 + 원본 에러 propagation", async () => {
+      const mock = makeMock({
+        zipResponses: [new Error("DART path → HTTP 500")],
+      });
+      const limited = new RateLimitedDartClient(mock);
+      await assert.rejects(
+        () => limited.getZip("path"),
+        (err: unknown) => {
+          assert.ok(err instanceof Error);
+          assert.ok(!(err instanceof DartRateLimitError));
+          assert.match((err as Error).message, /HTTP 500/);
+          return true;
+        },
+      );
+      assert.equal(limited.callCount, 1);
     });
   });
 
   describe("callCount getter — 누적", () => {
     test("getJson + getZip 여러 호출 후 callCount 누적", async () => {
       const mock = makeMock({
-        jsonResponses: [{ a: 1 }, { b: 2 }],
+        jsonResponses: [
+          { status: "000", a: 1 },
+          { status: "000", b: 2 },
+        ],
         zipResponses: [Buffer.from("zip1"), Buffer.from("zip2")],
       });
       const limited = new RateLimitedDartClient(mock);
