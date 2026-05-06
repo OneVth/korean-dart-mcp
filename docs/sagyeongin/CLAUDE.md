@@ -73,12 +73,14 @@
 - [x] 8단계: `feat/scan-preview` — scan_preview + scan-helpers _lib + corp_code 덤프 단독 활용 (TOOL_REGISTRY 24, 2026-05-02)
 - [x] 9단계: `feat/insider-majorstock-signal` — sagyeongin_insider_signal 도구 + majorstock 5%+ stkqy_irds 부호 기반 시그널 (TOOL_REGISTRY 25, 2026-05-03)
 - [x] 10단계: `feat/watchlist-check` — sagyeongin_watchlist_check 도구 + 6 사경인 도구 통합 분기 점검 (TOOL_REGISTRY 26, 2026-05-03)
-- [ ] 11단계: `feat/scan-execute`
+- [x] 11단계: `feat/scan-execute` — sagyeongin_scan_execute (TOOL_REGISTRY 27, 사경인 12, 2026-05-06)
 - ~~[ ] 12단계 (백그라운드): insider 14b/c/d — Issue → 원작자 의향 확인 → PR~~ — 폐기 (ADR-0011, β-iii 폐기로 PR 영역 0)
 
 ### 현재 작업 단계
 
-10단계 완료 (2026-05-03). TOOL_REGISTRY 26 (사경인 11). 다음 작업은 11단계 `feat/scan-execute` — 시장 스캔 실제 실행 (배치 Phase 2). 11단계 진입 전 ADR 결정 항목 모두 채택 완료: ADR-0009 (rate limit + wrapper) + ADR-0012 (분할 실행 + 사용자 명시 재개) + ADR-0013 (srim verdict null + note, 후속 머지 완료) + ADR-0014 (checkpoint 저장 위치 — settings vs transient state 분리). 11단계 본격 진입 가능.
+11단계 완료 (2026-05-06). TOOL_REGISTRY 27 (사경인 12). `sagyeongin_scan_execute` 추가 — Stage 1~6 통합 시장 스캔 (배치 Phase 2). 8 commit 묶음으로 진행: 묶음 1 (RateLimitedDartClient 7 단테) → 1.5 (HTTP 200 + body status "020" 정정) → 사전 검증 5건 → 2A (scan-checkpoint SQLite 12 단테) → 2B (scan-execute Stage 1~3 + 단순화 1·2·3) → 3A (단순화 1·2·3 정정) → 3B (Stage 4~6 + composite_score + 도구 등록) → 3C (enrichCandidates 21 단테 + buildQuickSummary 8부 본문 정정). 단테 누적 43 (10 dart-rate-limit + 12 scan-checkpoint + 21 scan-enrich). β-i 격리 유지: `src/lib/dart-client.ts` 0 변경.
+
+12단계는 폐기 (ADR-0011). 향후 후속 작업 후보: corp_code 덤프 갱신 (Stage 1 company.json 실패율 65.8% 확인됨), spec §10.8 표현 정정 (spec-pending-edits 누적 영역), 추가 도구.
 
 ## 자주 막히는 곳
 
@@ -610,6 +612,22 @@ watchlist_check 동작은 정상:
 - 미래 명세 작성 시: 도구가 여러 함수를 거치는 파이프라인일 때 각 함수의 null/throw 분기를 모두 사전 검증 단계에 포함
 
 **결과적 정상 동작**: ADR-0013 옵션 B의 설계 자체가 두 분기 모두 흡수하니 코드는 정확히 동작. 학습은 명세 작성 측의 사전 검증 hole — 미래 단계에서 같은 hole 회피.
+
+### 11단계 scan-execute 누적 학습 — 6건
+
+11단계는 8 commit 묶음으로 진행돼 단계 내 학습 누적이 깊다. 본 영역은 후속 단계 명세 작성 시 참조.
+
+**1) 인프라 wrapper 묶음은 사전 검증을 첫 commit 전에 (1단계 → 1.5 정정)**: 묶음 1에서 RateLimitedDartClient를 HTTP 429 감지로 작성 → 실측은 HTTP 200 + body `{"status":"020",...}`. 1.5단계로 정정 commit 별도 추가. 학습: 인프라 wrapper는 verifications/ 사전 검증을 첫 commit 전에 끼워 넣음.
+
+**2) 인터페이스 절약 단순화 → 후속 묶음 정정 패턴 (2B → 3A)**: 묶음 2B에서 universe_meta 미보존, killer_passed_cumulative 미사용, partial_candidates underscore-prefix 키로 단순화 1·2·3 도입 → resume 흐름에서 모두 어긋남 → 묶음 3A에서 정정 (4개 optional 필드 추가, backward-compat 유지). 학습: 인터페이스 절약 단순화는 resume 흐름까지 추적 후 결정. backward-compat optional 필드 패턴으로 정정 가능.
+
+**3) 단테 빈 구멍 사후 보강 패턴 — DI 패턴 처음부터 (3B → 3C 정정)**: 묶음 3B field-test가 KSIC "26" KOSDAQ universe 14개 + srim 통과 0건이라 enrichCandidates 런타임 검증 0건. 묶음 3C로 mock 기반 단테 추가 → buildQuickSummary 8부 본문 어긋남 발견 (NORMAL/N/A 노이즈 항상 표시 + gap_to_fair 미포함) → 본문 정정. 학습: field-test 분포 의존(srim 통과 corp 분포)으로 런타임 미검증된 함수는 mock 기반 단테로 사후 보강. 처음부터 DI 패턴 (EnrichDeps export + deps 인자) 설계가 mock 가능성 좌우.
+
+**4) Stage 1 company.json 65.8% 실패율 — corp_code 덤프 갱신 후보**: 묶음 2B field-test에서 company.json 호출 3963회 중 2607회 실패 (skipped stage1, 65.8%). 가능 원인은 corp_code 덤프 stale (delisting/management 사례 잔존) 또는 DART API 응답 변경. 후속 단계 후보: corp_code 덤프 갱신 도구.
+
+**5) wc -l 보고 줄 수 어긋남 4 cumulative → 3B/3C에서 0**: 묶음 1, 2A, 2B, 3A에서 보고 분량 vs 실제 분량 어긋남 누적. 묶음 3B/3C에서 명세에 "wc -l 출력 한 줄씩 그대로" 명시 → 어긋남 0. 학습: 줄 수는 직접 명령 출력 첨부 본질이 효과적 (Onev 환경 상황별 변동 가능).
+
+**6) β-i 격리 본질 유지 — composition wrapper + DI 패턴**: 11단계 전 묶음에서 `src/lib/dart-client.ts` 92줄 0 변경. RateLimitedDartClient (composition wrapper) + EnrichDeps (DI 패턴) 두 패턴이 격리 본질 보존. 학습: 후속 단계에서도 같은 패턴 유지.
 
 ## 의사결정 시 주의
 
