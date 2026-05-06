@@ -69,7 +69,7 @@ const InputSchema = z.object({
   resume_from: z.string().optional(),
 });
 
-interface ResolvedInput {
+export interface ResolvedInput {
   markets?: Array<"KOSPI" | "KOSDAQ">;
   included_industries?: string[];
   excluded_industries?: string[];
@@ -89,7 +89,7 @@ interface ListedWithMeta extends ListedCompany {
 }
 
 /** Stage 3까지 통과한 corp의 부분 결과 — Stage 4~6은 enrichCandidates에서 추가. */
-interface PartialCandidate {
+export interface PartialCandidate {
   corp_code: string;
   corp_name: string;
   corp_cls: string;
@@ -103,7 +103,7 @@ interface PartialCandidate {
 }
 
 /** Stage 1~6 완료 + composite_score + rank 부여된 최종 후보. */
-interface EnrichedCandidate {
+export interface EnrichedCandidate {
   rank: number;
   corp_code: string;
   corp_name: string;
@@ -304,10 +304,29 @@ async function stage1StaticFilter(
  * 도중 limit 도달 시 limitReachedDuringEnrich=true 반환 (호출자가 checkpoint 저장).
  * 5부 사람 결정 영역 분리 — 도구 호출 실패 시 stages.X = null + stage_notes 누적, 탈락 X.
  */
-async function enrichCandidates(
+/**
+ * Stage 4~6 enrichment 의존성 — 4 도구 핸들러를 인자로 받음 (단테 mock 가능).
+ * default는 module-level 4 도구.
+ */
+export interface EnrichDeps {
+  cashflow: { handler: (input: unknown, ctx: ToolCtx) => Promise<unknown> };
+  capex: { handler: (input: unknown, ctx: ToolCtx) => Promise<unknown> };
+  insider: { handler: (input: unknown, ctx: ToolCtx) => Promise<unknown> };
+  dividend: { handler: (input: unknown, ctx: ToolCtx) => Promise<unknown> };
+}
+
+const DEFAULT_ENRICH_DEPS: EnrichDeps = {
+  cashflow: cashflowCheckTool as EnrichDeps["cashflow"],
+  capex: capexSignalTool as EnrichDeps["capex"],
+  insider: sagyeonginInsiderSignalTool as EnrichDeps["insider"],
+  dividend: dividendCheckTool as EnrichDeps["dividend"],
+};
+
+export async function enrichCandidates(
   partial: PartialCandidate[],
   ctx: ToolCtx,
   limited: RateLimitedDartClient,
+  deps: EnrichDeps = DEFAULT_ENRICH_DEPS,
 ): Promise<{
   enriched: EnrichedCandidate[];
   limitReachedDuringEnrich: boolean;
@@ -325,7 +344,7 @@ async function enrichCandidates(
 
     // cashflow
     try {
-      const r = (await cashflowCheckTool.handler(
+      const r = (await deps.cashflow.handler(
         { corp_code: p.corp_code },
         ctx,
       )) as {
@@ -347,7 +366,7 @@ async function enrichCandidates(
 
     // capex
     try {
-      const r = (await capexSignalTool.handler(
+      const r = (await deps.capex.handler(
         { corp_code: p.corp_code },
         ctx,
       )) as {
@@ -369,7 +388,7 @@ async function enrichCandidates(
 
     // insider — 입력 필드명 corp (다른 5개와 다름)
     try {
-      const r = (await sagyeonginInsiderSignalTool.handler(
+      const r = (await deps.insider.handler(
         { corp: p.corp_code },
         ctx,
       )) as {
@@ -388,7 +407,7 @@ async function enrichCandidates(
 
     // dividend
     try {
-      const r = (await dividendCheckTool.handler(
+      const r = (await deps.dividend.handler(
         { corp_code: p.corp_code },
         ctx,
       )) as {
@@ -425,7 +444,7 @@ async function enrichCandidates(
 /**
  * composite_score 산출 + min_opportunity_score 필터 + DESC 정렬 + limit + rank 부여.
  */
-function finalizeCandidates(
+export function finalizeCandidates(
   enriched: EnrichedCandidate[],
   resolved: ResolvedInput,
 ): EnrichedCandidate[] {
@@ -447,24 +466,32 @@ function finalizeCandidates(
   return trimmed;
 }
 
-function buildQuickSummary(c: EnrichedCandidate): string {
-  const parts: string[] = [];
-  parts.push(`srim=${c.srim.verdict}`);
+export function buildQuickSummary(c: EnrichedCandidate): string {
+  const parts: string[] = [`srim ${c.srim.verdict}`];
+  if (c.srim.gap_to_fair != null) {
+    parts.push(`gap ${c.srim.gap_to_fair.toFixed(1)}`);
+  }
   if (c.cashflow) {
-    parts.push(
-      `cashflow=${c.cashflow.verdict}(concern=${c.cashflow.concern_score})`,
-    );
+    if (c.cashflow.verdict === "REVIEW_REQUIRED") {
+      parts.push(`cashflow REVIEW(${c.cashflow.concern_score})`);
+    }
+  } else {
+    parts.push("cashflow N/A");
   }
-  if (c.capex) {
-    parts.push(`capex_opp=${c.capex.opportunity_score}`);
+  if (c.capex && c.capex.opportunity_score > 0) {
+    parts.push(`capex ${c.capex.opportunity_score}`);
   }
-  if (c.insider) {
-    parts.push(`insider=${c.insider.signal}`);
+  if (
+    c.insider &&
+    c.insider.signal !== "NORMAL" &&
+    c.insider.signal !== "NONE"
+  ) {
+    parts.push(`insider ${c.insider.signal}`);
   }
-  if (c.dividend) {
-    parts.push(`div=${c.dividend.grade}`);
+  if (c.dividend && c.dividend.grade !== "N/A") {
+    parts.push(`dividend ${c.dividend.grade}`);
   }
-  return parts.join(" | ");
+  return parts.join(", ");
 }
 
 interface BuildResponseArgs {
