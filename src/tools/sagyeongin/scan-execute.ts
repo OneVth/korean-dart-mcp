@@ -1,25 +1,32 @@
 /**
  * sagyeongin_scan_execute — 사경인 7부 시장 스캔 (배치 Phase 2).
  *
- * 묶음 3A: 단순화 1·2·3 정정 — universe_meta 보존 + 정식 필드 + killer 누적.
+ * 묶음 3B: Stage 4~6 (cashflow/capex/insider/dividend) 추가 + composite_score 정렬 + 도구 등록.
  *
  * 파이프라인 (사경인 7부 + spec §7):
  * - Stage 1 정적 필터 — corp_code 덤프 + name pattern + company.json (corp_cls + induty_code)
  *   + markets/industries 매칭. 결과 메타는 state.universe_meta에 보존(resume 활용).
  * - Stage 2 killer (4단계) — EXCLUDE 자동 탈락. 통과 누적은 state.killer_passed_cumulative.
  * - Stage 3 srim (3단계) — BUY/BUY_FAIR만 통과 (ADR-0013 verdict null = 자동 탈락).
- * - Stage 4~6: 묶음 3B에서 추가.
+ * - Stage 4 cashflow (5단계) — concern_score + top_flags 태그 (탈락 X).
+ * - Stage 5 capex (6단계) — opportunity_score + top_signals 태그 (탈락 X).
+ *   insider (9단계) — signal + cluster_quarter 태그.
+ * - Stage 6 dividend (7단계) — sustainability_grade 태그.
+ *
+ * Stage 4~6은 5부 사람 결정 영역 분리 — 탈락 X, 태그만. 사용자가 candidates 보고 직접 결정.
+ *
+ * composite_score = capex.opportunity_score - cashflow.concern_score (MVP 단순, spec §7.1).
+ *  - 호출 실패(stages.X = null) 시 0 가정
+ *  - min_opportunity_score 필터 + composite DESC 정렬 + limit 적용 + rank 1부터 부여
  *
  * 분할 실행 (ADR-0012):
  * - daily limit 80% (16,000 호출) 도달 또는 DartRateLimitError → checkpoint 저장 + 정상 종료
- * - resume_from: state.universe_meta에서 corp_cls/induty_code 복원 → Stage 1 다시 호출 0
- *   (묶음 2B 단순화 1 정정)
- *
- * 묶음 2B 호환성: universe_meta 미보존 checkpoint는 묶음 3A에서 throw (사용자 정리 안내).
+ * - resume_from: state.universe_meta로 Stage 1 호출 0. partial_candidates 그대로 보존되며
+ *   resume 시 Stage 4~6 다시 호출(enriched 미보존, 단순화 4 — 묶음 3B에서 합의).
  *
  * β-i 격리: src/lib/dart-client.ts 변경 0. ctx.client을 RateLimitedDartClient로 교체.
  *
- * Ref: spec §10.8, §7, philosophy 5부 + 4부 + 8부, ADR-0009/0012/0013/0014
+ * Ref: spec §10.8, §7, philosophy 5부 + 4부 + 7부 F + 8부, ADR-0009/0012/0013/0014
  */
 
 import { z } from "zod";
@@ -42,6 +49,10 @@ import {
 } from "./_lib/scan-checkpoint.js";
 import { killerCheckTool } from "./killer-check.js";
 import { srimTool } from "./srim.js";
+import { cashflowCheckTool } from "./cashflow-check.js";
+import { capexSignalTool } from "./capex-signal.js";
+import { sagyeonginInsiderSignalTool } from "./insider-signal.js";
+import { dividendCheckTool } from "./dividend-check.js";
 import { loadConfig } from "./_lib/config-store.js";
 
 /** daily limit 80% — ADR-0012 checkpoint 저장 임계. */
@@ -77,6 +88,7 @@ interface ListedWithMeta extends ListedCompany {
   induty_code: string;
 }
 
+/** Stage 3까지 통과한 corp의 부분 결과 — Stage 4~6은 enrichCandidates에서 추가. */
 interface PartialCandidate {
   corp_code: string;
   corp_name: string;
@@ -88,6 +100,41 @@ interface PartialCandidate {
     prices: unknown;
     gap_to_fair: number | null;
   };
+}
+
+/** Stage 1~6 완료 + composite_score + rank 부여된 최종 후보. */
+interface EnrichedCandidate {
+  rank: number;
+  corp_code: string;
+  corp_name: string;
+  corp_cls: string;
+  induty_code: string;
+  composite_score: number;
+  killer: { verdict: "PASS"; triggered_rules: unknown[] };
+  srim: {
+    verdict: "BUY" | "BUY_FAIR";
+    prices: unknown;
+    gap_to_fair: number | null;
+  };
+  cashflow: {
+    verdict: string;
+    concern_score: number;
+    top_flags: string[];
+  } | null;
+  capex: {
+    verdict: string;
+    opportunity_score: number;
+    top_signals: string[];
+  } | null;
+  insider: {
+    signal: string;
+    cluster_quarter: string | null;
+  } | null;
+  dividend: {
+    grade: string;
+  } | null;
+  stage_notes: string[];
+  quick_summary: string;
 }
 
 interface SkippedCorp {
@@ -162,10 +209,6 @@ async function resolveInput(
   };
 }
 
-/**
- * Stage 1 정적 필터.
- * 결과의 universe + universeMeta(corp_code → meta) 둘 다 반환 — state.universe_meta에 그대로 저장.
- */
 async function stage1StaticFilter(
   ctx: ToolCtx,
   resolved: ResolvedInput,
@@ -249,15 +292,208 @@ async function stage1StaticFilter(
   };
 }
 
+/**
+ * Stage 4~6 enrichment — partial_candidates에 대해 cashflow/capex/insider/dividend handler 호출.
+ *
+ * 매핑은 watchlist-check.ts 패턴 일치:
+ *  - cashflow.flags → top_flags (slice 3)
+ *  - capex.signals → top_signals (slice 3)
+ *  - insider.summary → signal + cluster_quarter
+ *  - dividend.sustainability_grade → grade
+ *
+ * 도중 limit 도달 시 limitReachedDuringEnrich=true 반환 (호출자가 checkpoint 저장).
+ * 5부 사람 결정 영역 분리 — 도구 호출 실패 시 stages.X = null + stage_notes 누적, 탈락 X.
+ */
+async function enrichCandidates(
+  partial: PartialCandidate[],
+  ctx: ToolCtx,
+  limited: RateLimitedDartClient,
+): Promise<{
+  enriched: EnrichedCandidate[];
+  limitReachedDuringEnrich: boolean;
+}> {
+  const enriched: EnrichedCandidate[] = [];
+  for (const p of partial) {
+    if (limited.callCount >= CHECKPOINT_THRESHOLD) {
+      return { enriched, limitReachedDuringEnrich: true };
+    }
+    const stageNotes: string[] = [];
+    let cashflowStage: EnrichedCandidate["cashflow"] = null;
+    let capexStage: EnrichedCandidate["capex"] = null;
+    let insiderStage: EnrichedCandidate["insider"] = null;
+    let dividendStage: EnrichedCandidate["dividend"] = null;
+
+    // cashflow
+    try {
+      const r = (await cashflowCheckTool.handler(
+        { corp_code: p.corp_code },
+        ctx,
+      )) as {
+        verdict: string;
+        concern_score: number;
+        flags: Array<{ flag: string }>;
+      };
+      cashflowStage = {
+        verdict: r.verdict,
+        concern_score: r.concern_score,
+        top_flags: r.flags.slice(0, 3).map((f) => f.flag),
+      };
+    } catch (e) {
+      if (e instanceof DartRateLimitError) {
+        return { enriched, limitReachedDuringEnrich: true };
+      }
+      stageNotes.push(`cashflow 호출 실패: ${(e as Error).message}`);
+    }
+
+    // capex
+    try {
+      const r = (await capexSignalTool.handler(
+        { corp_code: p.corp_code },
+        ctx,
+      )) as {
+        verdict: string;
+        opportunity_score: number;
+        signals: Array<{ signal: string }>;
+      };
+      capexStage = {
+        verdict: r.verdict,
+        opportunity_score: r.opportunity_score,
+        top_signals: r.signals.slice(0, 3).map((s) => s.signal),
+      };
+    } catch (e) {
+      if (e instanceof DartRateLimitError) {
+        return { enriched, limitReachedDuringEnrich: true };
+      }
+      stageNotes.push(`capex 호출 실패: ${(e as Error).message}`);
+    }
+
+    // insider — 입력 필드명 corp (다른 5개와 다름)
+    try {
+      const r = (await sagyeonginInsiderSignalTool.handler(
+        { corp: p.corp_code },
+        ctx,
+      )) as {
+        summary: { signal: string; strongest_quarter: string | null };
+      };
+      insiderStage = {
+        signal: r.summary.signal,
+        cluster_quarter: r.summary.strongest_quarter,
+      };
+    } catch (e) {
+      if (e instanceof DartRateLimitError) {
+        return { enriched, limitReachedDuringEnrich: true };
+      }
+      stageNotes.push(`insider 호출 실패: ${(e as Error).message}`);
+    }
+
+    // dividend
+    try {
+      const r = (await dividendCheckTool.handler(
+        { corp_code: p.corp_code },
+        ctx,
+      )) as {
+        sustainability_grade: string;
+      };
+      dividendStage = { grade: r.sustainability_grade };
+    } catch (e) {
+      if (e instanceof DartRateLimitError) {
+        return { enriched, limitReachedDuringEnrich: true };
+      }
+      stageNotes.push(`dividend 호출 실패: ${(e as Error).message}`);
+    }
+
+    enriched.push({
+      rank: 0, // finalize에서 부여
+      corp_code: p.corp_code,
+      corp_name: p.corp_name,
+      corp_cls: p.corp_cls,
+      induty_code: p.induty_code,
+      composite_score: 0, // finalize에서 계산
+      killer: p.killer,
+      srim: p.srim,
+      cashflow: cashflowStage,
+      capex: capexStage,
+      insider: insiderStage,
+      dividend: dividendStage,
+      stage_notes: stageNotes,
+      quick_summary: "", // finalize에서 부여
+    });
+  }
+  return { enriched, limitReachedDuringEnrich: false };
+}
+
+/**
+ * composite_score 산출 + min_opportunity_score 필터 + DESC 정렬 + limit + rank 부여.
+ */
+function finalizeCandidates(
+  enriched: EnrichedCandidate[],
+  resolved: ResolvedInput,
+): EnrichedCandidate[] {
+  for (const c of enriched) {
+    const opp = c.capex?.opportunity_score ?? 0;
+    const con = c.cashflow?.concern_score ?? 0;
+    c.composite_score = opp - con;
+    c.quick_summary = buildQuickSummary(c);
+  }
+  const filtered = enriched.filter(
+    (c) =>
+      (c.capex?.opportunity_score ?? 0) >= resolved.min_opportunity_score,
+  );
+  filtered.sort((a, b) => b.composite_score - a.composite_score);
+  const trimmed = filtered.slice(0, resolved.limit);
+  trimmed.forEach((c, i) => {
+    c.rank = i + 1;
+  });
+  return trimmed;
+}
+
+function buildQuickSummary(c: EnrichedCandidate): string {
+  const parts: string[] = [];
+  parts.push(`srim=${c.srim.verdict}`);
+  if (c.cashflow) {
+    parts.push(
+      `cashflow=${c.cashflow.verdict}(concern=${c.cashflow.concern_score})`,
+    );
+  }
+  if (c.capex) {
+    parts.push(`capex_opp=${c.capex.opportunity_score}`);
+  }
+  if (c.insider) {
+    parts.push(`insider=${c.insider.signal}`);
+  }
+  if (c.dividend) {
+    parts.push(`div=${c.dividend.grade}`);
+  }
+  return parts.join(" | ");
+}
+
 interface BuildResponseArgs {
   state: ScanCheckpointState;
-  partial: PartialCandidate[];
+  candidates: EnrichedCandidate[];
   skipped: SkippedCorp[];
   srimPassedCount: number;
+  returnedCount: number | null;
   hasCheckpoint: boolean;
 }
 
 function buildResponse(args: BuildResponseArgs) {
+  const candCount = args.candidates.length;
+  let nextActions: string[];
+  if (args.hasCheckpoint) {
+    nextActions = [
+      `daily limit 80% 도달. 24시간 후 \`resume_from: "${args.state.scan_id}"\`로 재개.`,
+    ];
+  } else if (candCount === 0) {
+    nextActions = [
+      "candidates 0개 — universe가 좁거나 srim BUY/BUY_FAIR 통과 corp 없음. " +
+        "universe 확장(included_industries 또는 markets) 또는 min_opportunity_score 낮춤 검토.",
+    ];
+  } else {
+    nextActions = [
+      `${candCount}개 후보 발견. 사용자 검토 후 sagyeongin_update_watchlist로 watchlist 추가 권장.`,
+      "이후 분기마다 sagyeongin_watchlist_check로 점검 (7부 F).",
+    ];
+  }
   return {
     scan_id: args.state.scan_id,
     pipeline_stats: {
@@ -265,23 +501,16 @@ function buildResponse(args: BuildResponseArgs) {
       after_static_filter: args.state.after_static_filter ?? null,
       after_killer_check: args.state.killer_passed_cumulative ?? 0,
       after_srim_filter: args.srimPassedCount,
-      returned_candidates: null,
+      returned_candidates: args.returnedCount,
     },
-    partial_candidates: args.partial,
+    candidates: args.candidates,
     skipped_corps: args.skipped,
     checkpoint: args.hasCheckpoint ? args.state.scan_id : null,
-    next_actions_suggested: args.hasCheckpoint
-      ? [
-          `daily limit 80% 도달. 24시간 후 \`resume_from: "${args.state.scan_id}"\`로 재개.`,
-          "묶음 3A는 Stage 1~3까지만 — Stage 4~6 + composite_score는 묶음 3B에서 추가.",
-        ]
-      : [
-          "묶음 3A 완료 (Stage 1~3까지). 묶음 3B에서 Stage 4~6 + composite_score 정렬 추가 예정.",
-        ],
+    next_actions_suggested: nextActions,
   };
 }
 
-function saveAndReturn(
+function saveAndReturnPartial(
   state: ScanCheckpointState,
   universe: ListedWithMeta[],
   i: number,
@@ -300,9 +529,10 @@ function saveAndReturn(
   saveCheckpoint(state);
   return buildResponse({
     state,
-    partial,
+    candidates: [],
     skipped,
     srimPassedCount: partial.length,
+    returnedCount: null,
     hasCheckpoint: true,
   });
 }
@@ -310,7 +540,7 @@ function saveAndReturn(
 export const scanExecuteTool = defineTool({
   name: "sagyeongin_scan_execute",
   description:
-    "사경인 7부 시장 스캔 (배치 Phase 2). Stage 1~6 파이프라인 — 묶음 3A는 Stage 1~3까지.",
+    "사경인 7부 시장 스캔 (배치 Phase 2). Stage 1~6 통합 — composite_score 정렬 candidates 반환.",
   input: InputSchema,
   handler: async (ctx, args) => {
     const limited = new RateLimitedDartClient(ctx.client);
@@ -322,9 +552,10 @@ export const scanExecuteTool = defineTool({
     let state: ScanCheckpointState;
     let universe: ListedWithMeta[];
     let stage1Skipped: SkippedCorp[] = [];
+    let resolved: ResolvedInput;
 
     if (args.resume_from) {
-      // resume — universe_meta 활용 (단순화 1 정정)
+      // resume — universe_meta 활용 + resolved를 input_args에서 복원
       const loaded = loadCheckpoint(args.resume_from);
       if (!loaded) {
         throw new Error(
@@ -340,6 +571,7 @@ export const scanExecuteTool = defineTool({
             `deleteCheckpoint로 정리 후 새로 시작하세요.`,
         );
       }
+      resolved = state.input_args as unknown as ResolvedInput;
       const allListed = loadListedCompanies();
       const codeMap = new Map(allListed.map((c) => [c.corp_code, c]));
       universe = state.pending_corp_codes
@@ -356,7 +588,7 @@ export const scanExecuteTool = defineTool({
         .filter((c): c is ListedWithMeta => c !== null);
     } else {
       // 신규 scan
-      const resolved = await resolveInput(args);
+      resolved = await resolveInput(args);
       const stage1 = await stage1StaticFilter(limitedCtx, resolved, limited);
       universe = stage1.universe;
       stage1Skipped = stage1.skipped;
@@ -370,7 +602,6 @@ export const scanExecuteTool = defineTool({
         pending_corp_codes: universe.map((c) => c.corp_code),
         partial_candidates: [],
         call_count: limited.callCount,
-        // 묶음 3A 정정 — 정식 필드 사용
         universe_meta: stage1.universeMeta,
         initial_universe: stage1.initialUniverse,
         after_static_filter: stage1.afterStaticFilter,
@@ -382,9 +613,10 @@ export const scanExecuteTool = defineTool({
         saveCheckpoint(state);
         return buildResponse({
           state,
-          partial: [],
+          candidates: [],
           skipped: stage1Skipped,
           srimPassedCount: 0,
+          returnedCount: null,
           hasCheckpoint: true,
         });
       }
@@ -400,7 +632,7 @@ export const scanExecuteTool = defineTool({
       const corp = universe[i];
 
       if (limited.callCount >= CHECKPOINT_THRESHOLD) {
-        return saveAndReturn(
+        return saveAndReturnPartial(
           state,
           universe,
           i,
@@ -431,12 +663,11 @@ export const scanExecuteTool = defineTool({
           continue;
         }
         killerPass = true;
-        // 묶음 3A — 누적 카운트 정정 (단순화 3)
         state.killer_passed_cumulative =
           (state.killer_passed_cumulative ?? 0) + 1;
       } catch (e) {
         if (e instanceof DartRateLimitError) {
-          return saveAndReturn(
+          return saveAndReturnPartial(
             state,
             universe,
             i,
@@ -489,7 +720,7 @@ export const scanExecuteTool = defineTool({
         });
       } catch (e) {
         if (e instanceof DartRateLimitError) {
-          return saveAndReturn(
+          return saveAndReturnPartial(
             state,
             universe,
             i,
@@ -508,7 +739,7 @@ export const scanExecuteTool = defineTool({
       }
     }
 
-    // 정상 종료
+    // Stage 1~3 완료 — partial 보존 + Stage 4~6 진입
     state.processed_corp_codes = [
       ...state.processed_corp_codes,
       ...universe.map((c) => c.corp_code),
@@ -517,11 +748,32 @@ export const scanExecuteTool = defineTool({
     state.partial_candidates = partial;
     state.call_count = limited.callCount;
     state.updated_at = new Date().toISOString();
+
+    // Stage 4~6 enrichment (resume 시에도 다시 호출 — 단순화 4)
+    const enrichResult = await enrichCandidates(partial, limitedCtx, limited);
+
+    if (enrichResult.limitReachedDuringEnrich) {
+      // partial 그대로 보존, candidates 미완성
+      saveCheckpoint(state);
+      return buildResponse({
+        state,
+        candidates: [],
+        skipped: [...stage1Skipped, ...stage23Skipped],
+        srimPassedCount: partial.length,
+        returnedCount: null,
+        hasCheckpoint: true,
+      });
+    }
+
+    // composite_score + 정렬 + limit + rank
+    const finalCandidates = finalizeCandidates(enrichResult.enriched, resolved);
+
     return buildResponse({
       state,
-      partial,
+      candidates: finalCandidates,
       skipped: [...stage1Skipped, ...stage23Skipped],
       srimPassedCount: partial.length,
+      returnedCount: finalCandidates.length,
       hasCheckpoint: false,
     });
   },

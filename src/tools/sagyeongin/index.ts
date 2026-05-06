@@ -19,6 +19,7 @@ import { dividendCheckTool } from "./dividend-check.js";
 import { scanPreviewTool } from "./scan-preview.js";
 import { sagyeonginInsiderSignalTool } from "./insider-signal.js";
 import { watchlistCheckTool } from "./watchlist-check.js";
+import { scanExecuteTool } from "./scan-execute.js";
 
 export const sagyeonginTools: ToolDef[] = [
   updateWatchlistTool,
@@ -32,4 +33,5 @@ export const sagyeonginTools: ToolDef[] = [
   scanPreviewTool,
   sagyeonginInsiderSignalTool,
   watchlistCheckTool,
+  scanExecuteTool,
 ];

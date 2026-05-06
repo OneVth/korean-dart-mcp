@@ -1,21 +1,19 @@
 #!/usr/bin/env node
 /**
- * 11단계 묶음 2B sagyeongin_scan_execute Stage 1~3 — field-test.
+ * 11단계 묶음 3B sagyeongin_scan_execute Stage 1~6 — field-test.
  *
  * 2 케이스:
- * 1: 신규 scan — KOSDAQ + included_industries=["264"] (영상·음향·통신장비) → universe 자연 제한
+ * 1: 신규 scan — KOSDAQ + included_industries=["26"] (전자부품) → universe 약 100~150
+ *    candidates에 Stage 4~6 stages + composite_score + 정렬 검증
  * 2: resume_from 미존재 scan_id → throw 검증
  *
  * 임시 SAGYEONGIN_CONFIG_DIR (사용자 환경 + checkpoint 격리).
- * 묶음 2B 도구 등록 0 → 빌드 산물의 named export 직접 import.
+ * 도구 등록 완료 — TOOL_REGISTRY에서 조회 (묶음 2B와 다른 점).
  *
- * 실 호출 추정: KSIC 264 KOSDAQ universe 약 50~80 corp.
- *   - Stage 1: company.json N회
- *   - Stage 2: killer × 3 호출 × N
- *   - Stage 3: srim × 4 호출 × (killer 통과 corp)
- * 합산 약 300~700 호출 (daily limit 1.5~3.5%).
+ * 호출 비용 추정: universe 전체 3963 (Stage 1) + Stage 2~3 + Stage 4~6
+ *   ≈ 4,500~5,000 호출 (daily limit 22~25%). 시간 약 200~250초.
  *
- * Ref: spec §10.8, ADR-0009/0012/0013/0014, verifications/2026-05-04-stage11-pre-verify.md
+ * Ref: spec §10.8, ADR-0009/0012/0013/0014, philosophy 5부 + 4부 + 7부 F + 8부
  */
 
 import "dotenv/config";
@@ -30,11 +28,14 @@ if (existsSync(TEST_CONFIG_DIR)) {
 mkdirSync(TEST_CONFIG_DIR, { recursive: true });
 process.env.SAGYEONGIN_CONFIG_DIR = TEST_CONFIG_DIR;
 
-const { scanExecuteTool } = await import(
-  "../../build/tools/sagyeongin/scan-execute.js"
-);
+const { TOOL_REGISTRY } = await import("../../build/tools/index.js");
 const { CorpCodeResolver } = await import("../../build/lib/corp-code.js");
 const { DartClient } = await import("../../build/lib/dart-client.js");
+
+const tool = TOOL_REGISTRY.find((t) => t.name === "sagyeongin_scan_execute");
+if (!tool) {
+  throw new Error("Tool registration failed: sagyeongin_scan_execute missing");
+}
 
 const apiKey = process.env.DART_API_KEY;
 if (!apiKey) {
@@ -51,7 +52,7 @@ function assertSchema(r) {
   const required = [
     "scan_id",
     "pipeline_stats",
-    "partial_candidates",
+    "candidates",
     "skipped_corps",
     "checkpoint",
     "next_actions_suggested",
@@ -74,6 +75,46 @@ function assertSchema(r) {
   if (!/^scan_\d{4}-\d{2}-\d{2}_[a-z0-9]{1,6}$/.test(r.scan_id)) {
     throw new Error(`scan_id format invalid: ${r.scan_id}`);
   }
+  for (const c of r.candidates) {
+    const candKeys = [
+      "rank",
+      "corp_code",
+      "corp_name",
+      "corp_cls",
+      "induty_code",
+      "composite_score",
+      "killer",
+      "srim",
+      "cashflow",
+      "capex",
+      "insider",
+      "dividend",
+      "stage_notes",
+      "quick_summary",
+    ];
+    for (const k of candKeys) {
+      if (!(k in c)) {
+        throw new Error(`candidate missing: ${k} (corp ${c.corp_code})`);
+      }
+    }
+  }
+}
+
+function assertSorted(candidates) {
+  for (let i = 1; i < candidates.length; i++) {
+    if (candidates[i - 1].composite_score < candidates[i].composite_score) {
+      throw new Error(
+        `composite_score DESC 정렬 위반: rank ${candidates[i - 1].rank} ` +
+          `(${candidates[i - 1].composite_score}) < rank ${candidates[i].rank} ` +
+          `(${candidates[i].composite_score})`,
+      );
+    }
+  }
+  for (let i = 0; i < candidates.length; i++) {
+    if (candidates[i].rank !== i + 1) {
+      throw new Error(`rank 부여 오류: index ${i} → rank ${candidates[i].rank}`);
+    }
+  }
 }
 
 const startMs = Date.now();
@@ -82,18 +123,19 @@ let fail = 0;
 
 // 케이스 1
 process.stdout.write(
-  '[scan_execute] 케이스 1 — 신규 scan, KOSDAQ + KSIC "264"...\n',
+  '[scan_execute] 케이스 1 — 신규 scan, KOSDAQ + KSIC "26" (전자부품)...\n',
 );
 try {
-  const r = await scanExecuteTool.handler(
+  const r = await tool.handler(
     {
       markets: ["KOSDAQ"],
-      included_industries: ["264"],
+      included_industries: ["26"],
       limit: 10,
     },
     ctx,
   );
   assertSchema(r);
+  assertSorted(r.candidates);
   console.log(`  scan_id: ${r.scan_id}`);
   console.log(
     `  pipeline_stats: initial=${r.pipeline_stats.initial_universe}, ` +
@@ -102,16 +144,19 @@ try {
       `after_srim=${r.pipeline_stats.after_srim_filter}, ` +
       `returned=${r.pipeline_stats.returned_candidates}`,
   );
-  console.log(`  partial_candidates: ${r.partial_candidates.length}개`);
+  console.log(`  candidates: ${r.candidates.length}개`);
   console.log(`  skipped_corps: ${r.skipped_corps.length}개`);
   console.log(`  checkpoint: ${r.checkpoint ?? "null"}`);
-  if (r.partial_candidates.length > 0) {
-    const first = r.partial_candidates[0];
+  // candidates sample (top 3)
+  for (const c of r.candidates.slice(0, 3)) {
     console.log(
-      `  첫 candidate: corp_code=${first.corp_code}, name=${first.corp_name}, ` +
-        `corp_cls=${first.corp_cls}, induty=${first.induty_code}, ` +
-        `srim_verdict=${first.srim.verdict}, gap_to_fair=${first.srim.gap_to_fair}`,
+      `    rank ${c.rank}: ${c.corp_code} ${c.corp_name} ` +
+        `composite=${c.composite_score}`,
     );
+    console.log(`      ${c.quick_summary}`);
+    if (c.stage_notes.length > 0) {
+      console.log(`      notes: ${JSON.stringify(c.stage_notes)}`);
+    }
   }
   if (r.skipped_corps.length > 0) {
     const stages = r.skipped_corps.reduce((acc, s) => {
@@ -119,10 +164,6 @@ try {
       return acc;
     }, {});
     console.log(`  skipped 분포: ${JSON.stringify(stages)}`);
-    const sample = r.skipped_corps.slice(0, 3);
-    for (const s of sample) {
-      console.log(`    ${s.corp_code} ${s.corp_name}: [${s.stage}] ${s.reason}`);
-    }
   }
   console.log(`  next_actions: ${JSON.stringify(r.next_actions_suggested)}`);
   console.log(`  PASS`);
@@ -132,7 +173,7 @@ try {
   fail++;
 }
 
-// 케이스 2: resume_from 미존재 → throw
+// 케이스 2: resume_from 미존재
 process.stdout.write(
   "\n[scan_execute] 케이스 2 — resume_from 미존재 scan_id → throw...\n",
 );
@@ -140,7 +181,7 @@ try {
   let threw = false;
   let errMsg = "";
   try {
-    await scanExecuteTool.handler(
+    await tool.handler(
       { resume_from: "scan_2026-05-04_nonexistent" },
       ctx,
     );
