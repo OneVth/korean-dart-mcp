@@ -26,7 +26,11 @@ import { mkdirSync } from "node:fs";
 /**
  * scan_execute 분할 실행 중간 상태.
  *
- * partial_candidates는 묶음 2B에서 구체 타입 정의 — 묶음 2A는 unknown[]로 직렬화/역직렬화만 책임.
+ * partial_candidates는 묶음 2B/3B에서 구체 타입 정의 — scan-checkpoint는 직렬화/역직렬화만 책임.
+ *
+ * universe_meta / initial_universe / after_static_filter / killer_passed_cumulative는 묶음 3A
+ * 추가 (단순화 1·2·3 정정 — 이전 상태와 backward-compatible). 묶음 2A scan-checkpoint.test.ts
+ * deepEqual 영향 없음 (optional + makeState helper 미설정).
  */
 export interface ScanCheckpointState {
   scan_id: string;
@@ -37,6 +41,24 @@ export interface ScanCheckpointState {
   pending_corp_codes: string[];
   partial_candidates: unknown[];
   call_count: number;
+
+  /**
+   * 묶음 3A — Stage 1 통과 corp의 corp_cls + induty_code 보존.
+   * resume 시 Stage 1 다시 호출 안 하기 위함 (단순화 1 정정).
+   */
+  universe_meta?: Record<string, { corp_cls: string; induty_code: string }>;
+
+  /**
+   * 묶음 3A — pipeline_stats 메타. input_args underscore prefix 키 대신 정식 필드 (단순화 2 정정).
+   */
+  initial_universe?: number;
+  after_static_filter?: number;
+
+  /**
+   * 묶음 3A — Stage 2 killer 통과 누적 카운트.
+   * resume 시 정확한 after_killer_check 산출 (단순화 3 정정).
+   */
+  killer_passed_cumulative?: number;
 }
 
 /** listCheckpoints 반환 — state_json은 제외하고 메타만 노출. */
