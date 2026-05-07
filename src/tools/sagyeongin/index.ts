@@ -20,6 +20,7 @@ import { scanPreviewTool } from "./scan-preview.js";
 import { sagyeonginInsiderSignalTool } from "./insider-signal.js";
 import { watchlistCheckTool } from "./watchlist-check.js";
 import { scanExecuteTool } from "./scan-execute.js";
+import { corpCodeStatusTool } from "./corp-code-status.js";
 
 export const sagyeonginTools: ToolDef[] = [
   updateWatchlistTool,
@@ -34,4 +35,5 @@ export const sagyeonginTools: ToolDef[] = [
   sagyeonginInsiderSignalTool,
   watchlistCheckTool,
   scanExecuteTool,
+  corpCodeStatusTool,
 ];

@@ -54,6 +54,7 @@ import { capexSignalTool } from "./capex-signal.js";
 import { sagyeonginInsiderSignalTool } from "./insider-signal.js";
 import { dividendCheckTool } from "./dividend-check.js";
 import { loadConfig } from "./_lib/config-store.js";
+import { classifySkipReason } from "./_lib/skip-reason.js";
 
 /** daily limit 80% — ADR-0012 checkpoint 저장 임계. */
 const CHECKPOINT_THRESHOLD = Math.floor(DAILY_LIMIT * 0.8); // 16,000
@@ -137,11 +138,13 @@ export interface EnrichedCandidate {
   quick_summary: string;
 }
 
-interface SkippedCorp {
+export interface SkippedCorp {
   corp_code: string;
   corp_name: string;
   stage: "stage1" | "stage2" | "stage3";
   reason: string;
+  /** 호출 실패 분류 키 (verdict-기반 skip은 부재). 분류 본문: `_lib/skip-reason.ts`. */
+  reason_code?: string;
 }
 
 async function extractCompanyMeta(
@@ -261,6 +264,7 @@ async function stage1StaticFilter(
         corp_name: corp.corp_name,
         stage: "stage1",
         reason: `company.json 실패: ${(e as Error).message}`,
+        reason_code: classifySkipReason(e as Error),
       });
       continue;
     }
@@ -708,6 +712,7 @@ export const scanExecuteTool = defineTool({
           corp_name: corp.corp_name,
           stage: "stage2",
           reason: `killer 호출 실패: ${(e as Error).message}`,
+          reason_code: classifySkipReason(e as Error),
         });
         continue;
       }
@@ -761,6 +766,7 @@ export const scanExecuteTool = defineTool({
           corp_name: corp.corp_name,
           stage: "stage3",
           reason: `srim 호출 실패: ${(e as Error).message}`,
+          reason_code: classifySkipReason(e as Error),
         });
         continue;
       }
