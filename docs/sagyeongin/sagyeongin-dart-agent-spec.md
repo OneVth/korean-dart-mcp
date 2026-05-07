@@ -758,21 +758,22 @@ ADR-0010 영역 정합 — corp_code 덤프 5 컬럼에 `corp_cls` + `induty_cod
   included_industries?: string[],
   excluded_industries?: string[],
   excluded_name_patterns?: string[],
-  
-  limit?: number = 30,           // 반환 후보 수
-  min_opportunity_score?: number,
-  sort_by?: "composite" | "opportunity" | "concern_asc",
-  resume_from?: string | null,   // checkpoint resume
+
+  limit?: number = 10,             // 반환 후보 수
+  min_opportunity_score?: number = 0,
+  resume_from?: string | null,     // checkpoint resume
 }
 ```
+
+**참고**: MVP는 `composite_score` DESC 단일 정렬만 지원. 향후 정밀화 영역에서 `sort_by` 옵션(`opportunity` / `concern_asc`) 추가 가능.
 
 **Output**:
 ```typescript
 {
   scan_id: string,
   pipeline_stats: {
-    initial_universe: number,
-    after_static_filter: number,
+    initial_universe: number | null,
+    after_static_filter: number | null,
     after_killer_check: number,
     after_srim_filter: number,
     returned_candidates: number,
@@ -781,23 +782,44 @@ ADR-0010 영역 정합 — corp_code 덤프 5 컬럼에 `corp_cls` + `induty_cod
     rank: number,
     corp_code: string,
     corp_name: string,
+    corp_cls: string,           // KOSPI=Y, KOSDAQ=K
+    induty_code: string,        // KSIC
     composite_score: number,
-    stages: {
-      killer: {verdict: "PASS"},
-      srim: {verdict: "BUY" | "BUY_FAIR", prices: {...}, gap_to_fair: number},
-      cashflow: {verdict: string, concern_score: number, top_flags: string[]},
-      capex: {verdict: string, opportunity_score: number, top_signals: string[]},
-      insider: {signal: string, cluster_quarter: string | null},
-      dividend: {grade: string},
-    },
-    quick_summary: string
+    killer: { verdict: "PASS", triggered_rules: unknown[] },
+    srim: { verdict: "BUY" | "BUY_FAIR", prices: unknown, gap_to_fair: number | null },
+    cashflow: { verdict: string, concern_score: number, top_flags: string[] } | null,
+    capex: { verdict: string, opportunity_score: number, top_signals: string[] } | null,
+    insider: { signal: string, cluster_quarter: string | null } | null,
+    dividend: { grade: string } | null,
+    stage_notes: string[],      // Stage 4~6 호출 실패 메모
+    quick_summary: string,
   }>,
-  checkpoint: string | null,  // 일일 제한 도달 시 resume 토큰
-  next_actions_suggested: string[]
+  skipped_corps: Array<{
+    corp_code: string,
+    corp_name: string,
+    stage: "stage1" | "stage2" | "stage3",
+    reason: string,
+  }>,
+  checkpoint: string | null,    // 일일 제한 도달 시 resume 토큰
+  next_actions_suggested: string[],
 }
 ```
 
-**체크포인트/리줌**: Stage 2~6 중 API 제한 도달 시 현재 진행 상태를 SQLite에 저장. `resume_from` 파라미터로 다음 호출에서 이어서 진행. 이전 dart-agent `watchlist/batch.py`의 패턴 참조. 분할 단위·재개 정책은 ADR-0012 (corp 단위 분할 + 사용자 명시 재개) 참조.
+**composite_score 산식 (MVP)**:
+```
+composite_score = (capex.opportunity_score ?? 0) - (cashflow.concern_score ?? 0)
+```
+범위 -100 ~ +110 (사전 검증 영역). 향후 정밀화 영역에서 가중치/normalize 추가 가능.
+
+**Stage 4~6 도구 호출 실패 처리**: cashflow/capex/insider/dividend 호출 시 비-rate-limit 실패는 해당 stage 필드 = `null` + `stage_notes`에 메모 누적 (corp는 candidates에 남음). rate-limit 에러는 호출자에 throw → checkpoint 저장.
+
+**체크포인트/리줌**: Stage 2~3 도중 daily limit 80% (16,000 호출) 도달 시 SQLite에 partial state 저장 → `resume_from`으로 재개. ADR-0014 (settings vs transient state 분리) 참조.
+
+- `universe_meta`는 보존 → resume 시 Stage 1 호출 0
+- `partial_candidates`는 Stage 1~3 통과 corp 보존
+- **단순화 4**: Stage 4~6 enriched 결과는 in-memory만 (resume 시 다시 호출). partial 통과 corp 수가 보통 작아 비용 영향 작음.
+
+분할 단위·재개 정책은 ADR-0012 (corp 단위 분할 + 사용자 명시 재개) 참조.
 
 ---
 

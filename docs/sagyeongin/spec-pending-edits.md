@@ -448,61 +448,23 @@ field-test 분기 3에서 `preset: "tech_focus"` 호출 → "존재하지 않는
 
 ---
 
-## 11단계 pending 항목 (spec §10.8 sagyeongin_scan_execute)
-
-### [§10.8] Input의 `sort_by` 필드 — MVP 미구현
-
-spec §10.8 762줄: `sort_by?: "composite" | "opportunity" | "concern_asc"` 정의.
-
-실제 묶음 3B 구현은 composite DESC 단일 정렬만 지원. `sort_by` 필드 없음.
-
-발견: 11단계 묶음 3B 구현 (2026-05-06)
-처리 영역: spec §10.8 Input에서 `sort_by` 필드 삭제 또는 "MVP composite DESC만 지원, opportunity/concern_asc 후속" 명시.
-
-### [§10.8] Output candidates에 `corp_cls`, `induty_code`, `stage_notes` 누락
-
-spec §10.8 780~794줄 candidates Output 정의에 누락된 필드:
-- `corp_cls: string` (KOSPI=Y, KOSDAQ=K)
-- `induty_code: string` (KSIC)
-- `stage_notes: string[]` (Stage 4~6 호출 실패 메모)
-
-실제 구현은 EnrichedCandidate에 모두 포함 (묶음 3B 구현, 묶음 3C에서 stage_notes 검증 추가).
-
-발견: 11단계 묶음 3B 구현 (2026-05-06)
-처리 영역: spec §10.8 candidates Output에 3 필드 추가.
-
-### [§10.8] Output stages 중첩 vs 직접 필드 어긋남
-
-spec §10.8 785~792줄: candidates 안 `stages: { killer, srim, cashflow, capex, insider, dividend }` 중첩 객체 정의.
-
-실제 구현은 candidate 직접 필드 (killer, srim, cashflow, capex, insider, dividend) — 중첩 객체 없음. 묶음 3C 단테 (`assertCandidate`)도 직접 필드 검증.
-
-발견: 11단계 묶음 3B 구현 (2026-05-06)
-처리 영역: spec §10.8 Output 정의를 직접 필드 형태로 정정 (또는 stages 중첩 형태로 코드 정정 — 영향 영역 큼, 표현 정정 권장).
-
-### [§10.8] composite_score 산식 명시 누락
-
-spec §10.8에 composite_score 산식 본문 없음. 묶음 3B에서 MVP 단순 채택:
-```
-composite_score = (capex.opportunity_score ?? 0) - (cashflow.concern_score ?? 0)
-```
-
-발견: 11단계 묶음 3B 결정 (2026-05-06)
-처리 영역: spec §10.8에 composite_score MVP 산식 명시 + 향후 정밀화 영역 (가중치, normalize) 명시.
-
-### [§10.8] 체크포인트 단순화 4 (resume 시 enriched 미보존) 명시 누락
-
-spec §10.8 800줄 "체크포인트/리줌" 본문에 단순화 4 미명시.
-
-실제 구현 (묶음 3B): resume 시 partial_candidates만 보존, Stage 4~6 enriched는 in-memory만. resume 시 Stage 4~6 다시 호출 (partial 통과 corp 수가 보통 작아 비용 영향 작음).
-
-발견: 11단계 묶음 3B 결정 (2026-05-06, ADR-0014 + 합의)
-처리 영역: spec §10.8 체크포인트 본문에 단순화 4 명시.
-
----
-
 ## Applied 항목
 
 (아직 없음. v0.3에서 일괄 반영 시 채워짐.)
 
 - ADR-0004 1단계 9번 ("로컬 운영 디렉토리 준비"): config-store가 자동 mkdir 처리하므로 사실상 불필요. 다음 마일스톤에서 단계 정리 검토.
+
+### 11단계 §10.8 정정 (적용일 2026-05-06)
+
+11단계 매듭 commit `b953571`로 누적된 5건 + 매듭 시점 누락된 `skipped_corps` 보강 1건 — 총 6건을 spec §10.8 본문에 일괄 적용.
+
+1. **[§10.8] Input의 `sort_by` 필드 삭제 + MVP 본문 추가**: composite DESC 단일 정렬 MVP. `sort_by` 옵션은 향후 정밀화 영역.
+2. **[§10.8] Input `limit` default `30` → `10` 정정**: 구현(묶음 3B)과 일치. `min_opportunity_score` default `0` 명시.
+3. **[§10.8] Output candidates에 `corp_cls` / `induty_code` / `stage_notes` 추가**: KOSPI/KOSDAQ 식별 + KSIC + Stage 4~6 실패 메모.
+4. **[§10.8] Output stages 중첩 → 직접 필드**: candidate 안 killer/srim/cashflow/capex/insider/dividend를 직접 필드로 표현. 중첩 객체 제거. cashflow/capex/insider/dividend는 `null` 가능 표시.
+5. **[§10.8] composite_score MVP 산식 명시**: `(capex.opportunity_score ?? 0) - (cashflow.concern_score ?? 0)`. 범위 -100 ~ +110 (사전 검증 영역).
+6. **[§10.8] 체크포인트 단순화 4 명시**: Stage 4~6 enriched 결과 in-memory만 → resume 시 다시 호출. universe_meta + partial_candidates는 보존.
+7. **[§10.8] Output에 `skipped_corps` 필드 추가** (매듭 시점 pending 누락 보강): Stage 1~3 탈락 corp의 corp_code/corp_name/stage/reason 누적 배열. field-test 검증 본문 일치.
+8. **[§10.8] Stage 4~6 도구 호출 실패 처리 본문 추가**: 비-rate-limit 실패 시 stage = null + stage_notes 누적, rate-limit 시 throw → checkpoint 저장.
+
+처리 commit: spec §10.8 일괄 정정 (2026-05-06).
