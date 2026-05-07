@@ -995,6 +995,77 @@ composite_score = (capex.opportunity_score ?? 0) - (cashflow.concern_score ?? 0)
 
 ---
 
+### 10.13 `sagyeongin_corp_code_status` (신규)
+
+**목적**: corp_code SQLite 덤프 메타정보 + modify_date 분포 + staleness 진단. 7부 A killer가 corp_code 덤프 stale 영향을 받는 본 영역 (폐지 회사 잔존 시 killer 우회 → "즉시 제외" 본 영역 무력화) 진단 본질.
+
+**배경**: 11단계 묶음 2B field-test (2026-05-02)에서 Stage 1 `company.json` 호출 3963회 중 2607회 (65.8%) 실패 발견. 가능 원인은 corp_code 덤프 stale (delisting/management 잔존) 또는 DART API 응답 변경. 13단계 묶음 1에서 `SkippedCorp.reason_code` 분류 추가 (status_013 등) — 본 도구 + 묶음 3 field-test에서 stale 가설 실측.
+
+**Input**: 빈 인자 (MVP).
+
+```ts
+{
+  // 빈 인자
+}
+```
+
+**처리**:
+1. SQLite 파일 경로 재구성: `join(homedir(), ".korean-dart-mcp", "corp_code.sqlite")` — `corp-code.ts`와 동일. 경로 두 영역 중복 (β-i 격리 영향 본질 — ADR-0001 명시).
+2. 파일 존재 검증 → 부재 시 verdict = `INSUFFICIENT_DATA` + notes
+3. better-sqlite3 readonly mode open (WAL 락 영향 0)
+4. meta 테이블 검증 → 부재 시 verdict = `INSUFFICIENT_DATA` + notes
+5. meta 추출: `updated_at` (Date.now() 문자열), `count`
+6. corps 테이블 modify_date 분포: 전체 SELECT modify_date → YYYYMMDD parse + 분류 (within_30_days / within_1_year / within_3_years / older_than_3_years / null_or_invalid)
+7. staleness_judgment verdict 산출
+
+**Output**:
+
+```ts
+{
+  cache_meta: {
+    db_path: string,                      // 디버그용 절대 경로
+    db_exists: boolean,
+    count: number | null,                 // meta count 부재 시 null
+    updated_at_iso: string | null,        // ISO 8601
+    updated_at_ms: number | null,
+    age_hours: number | null,
+    fresh_within_ttl: boolean | null,     // TTL 24h 정합 — null = INSUFFICIENT_DATA
+  },
+  modify_date_distribution: {
+    total_corps: number,
+    within_30_days: number,
+    within_1_year: number,
+    within_3_years: number,
+    older_than_3_years: number,
+    null_or_invalid: number,              // modify_date 부재 또는 YYYYMMDD parse 실패
+  },
+  staleness_judgment: {
+    verdict: "FRESH" | "POTENTIALLY_STALE" | "INSUFFICIENT_DATA",
+    notes: string[],
+  },
+}
+```
+
+**verdict 분기**:
+- `FRESH`: `fresh_within_ttl == true` (cache age < TTL 24h)
+- `POTENTIALLY_STALE`: `fresh_within_ttl == false` (cache age ≥ 24h, 갱신 권유)
+- `INSUFFICIENT_DATA`: DB 파일 부재 또는 meta 테이블 부재 (서버 init 미완)
+
+**modify_date 분포 본질**:
+- 폐지 회사 잔존 가설 검증: `older_than_3_years` 비율 (DART corpCode.xml에 폐지 회사가 modify_date 갱신 없이 잔존 시 누적)
+- field-test (묶음 3) 실측에서 분포 확인
+
+**β-i 격리**: `src/lib/corp-code.ts` 287줄 변경 0. 도구는 SQLite 파일 경로 (`~/.korean-dart-mcp/corp_code.sqlite`)를 재구성 — `corp-code.ts`와 동일 경로. 경로 중복은 ADR-0001 β-i 정합 (도구 격리 우선, 경로 상수 중복 비용 < `src/lib/` 변경 비용).
+
+**자동 조치 0**: 진단 도구 본질 (8단계 `scan_preview`와 동일 — 5부 "사람 결정 영역 사전 분리" 정합). verdict는 staleness_judgment에 노출 — 사용자 결정 영역.
+
+**적용**:
+- 사용자 직접 호출 — Stage 1 실패율 진단
+- `sagyeongin_scan_execute` 호출 내부 0 (자율 조치 0)
+- 향후 갱신 도구 신설 후보 (`sagyeongin_corp_code_refresh`) — 본 묶음 범위 밖
+
+---
+
 ## 11. 명시적 비목표
 
 이 도구가 **하지 않는 것**을 명시한다. 스코프 관리 실패(이전 dart-agent 중단의 근본 원인)를 방지한다.
