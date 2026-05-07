@@ -446,6 +446,26 @@ field-test 분기 3에서 `preset: "tech_focus"` 호출 → "존재하지 않는
 발견: 8단계 field-test (2026-05-02)
 처리 영역: spec §10.7 workflow 예시 표현 정정 (tech_focus 예시 → 직접 지정 분기로 대체). 또는 config-store.ts default config에 tech_focus 프리셋 추가 검토 (2단계 영역).
 
+### [§10.13] `unknown` reason_code 분류 정밀화 — `data_incomplete` 분류 키 추가 후보
+
+**현재**: §10.13 본문에 `classifySkipReason` 분류 키 7건 명시 (`status_013` / `status_014` / `status_other` / `network_error` / `parse_error` / `corp_not_found` / `unknown`). 묶음 1 `_lib/skip-reason.ts` 본문에서 `unknown`은 분류 미일치 fallback.
+
+**정정**: 묶음 3 field-test (2026-05-07)에서 `unknown` 8건 발견 — 모두 srim Stage 3 호출 실패 본문 (`shares_outstanding not found`, financial-extractor 영역). 분류 키 추가 후보 — `data_incomplete` 또는 `financial_data_missing`. `_lib/skip-reason.ts` regex 패턴 추가 + spec §10.13 분류 키 본문 정정.
+
+후보 regex 본문 (예시):
+```ts
+if (/shares_outstanding not found|financial-extractor:|series sparse/i.test(msg)) {
+  return "data_incomplete";
+}
+```
+
+**근거**: 묶음 3 verifications (2026-05-07) 영역 5 누적 학습 정합. `unknown`은 미분류 영역의 신호 — 발생 본문이 식별되면 분류 키 추가 본질. 본 영역은 후속 14단계 (b) `shares_outstanding not found` 정정 작업과 연계 — financial-extractor 보완 + 분류 키 추가가 한 본문에서 처리 가능. 단독 정정도 가능하나 후속 (b) 본문 변경 영향이 분류 메시지에 미칠 가능성 본 본문에서 통합 처리가 자연.
+
+발견: 13단계 묶음 3 field-test (2026-05-07).
+처리 영역: 14단계 후속 (b) 또는 단독 분류 키 추가 commit.
+
+**상태**: pending
+
 ---
 
 ## Applied 항목
