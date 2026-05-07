@@ -75,12 +75,19 @@
 - [x] 10단계: `feat/watchlist-check` — sagyeongin_watchlist_check 도구 + 6 사경인 도구 통합 분기 점검 (TOOL_REGISTRY 26, 2026-05-03)
 - [x] 11단계: `feat/scan-execute` — sagyeongin_scan_execute (TOOL_REGISTRY 27, 사경인 12, 2026-05-06)
 - ~~[ ] 12단계 (백그라운드): insider 14b/c/d — Issue → 원작자 의향 확인 → PR~~ — 폐기 (ADR-0011, β-iii 폐기로 PR 영역 0)
+- [x] 13단계: `feat/corp-code-status` — sagyeongin_corp_code_status + scan-execute reason_code 분류 (TOOL_REGISTRY 28, 사경인 13, 2026-05-07)
 
 ### 현재 작업 단계
 
-11단계 완료 (2026-05-06). TOOL_REGISTRY 27 (사경인 12). `sagyeongin_scan_execute` 추가 — Stage 1~6 통합 시장 스캔 (배치 Phase 2). 8 commit 묶음으로 진행: 묶음 1 (RateLimitedDartClient 7 단테) → 1.5 (HTTP 200 + body status "020" 정정) → 사전 검증 5건 → 2A (scan-checkpoint SQLite 12 단테) → 2B (scan-execute Stage 1~3 + 단순화 1·2·3) → 3A (단순화 1·2·3 정정) → 3B (Stage 4~6 + composite_score + 도구 등록) → 3C (enrichCandidates 21 단테 + buildQuickSummary 8부 본문 정정). 단테 누적 43 (10 dart-rate-limit + 12 scan-checkpoint + 21 scan-enrich). β-i 격리 유지: `src/lib/dart-client.ts` 0 변경.
+13단계 완료 (2026-05-07). TOOL_REGISTRY 28 (사경인 13). `sagyeongin_corp_code_status` 추가 + scan-execute `skipped_corps[].reason_code` 분류. 5 commit 묶음으로 진행: 묶음 1 (skip-reason 9 단테 + scan-execute reason_code 정정) → 묶음 2-spec (§10.13 신설) → 묶음 2-도구 (corp-code-status 22 단테 + index 등록 + package.json test:unit glob 정정) → 묶음 3-script (field-test-stage13.mjs) → 묶음 3-verifications (field-test 결과 저장). 단테 누적 31 (9 skip-reason + 22 corp-code-status). β-i 격리 유지: `src/lib/` 0 변경.
 
-12단계는 폐기 (ADR-0011). 향후 후속 작업 후보: corp_code 덤프 갱신 (Stage 1 company.json 실패율 65.8% 확인됨), spec §10.8 표현 정정 (spec-pending-edits 누적 영역), 추가 도구.
+11단계 65.8% 실패율 가설 검증 — KSIC 26 universe 294개 corp 전원 stage1 통과 (status_013 = 0). 가설 (α) corp_code stale은 KSIC 26 한정 미지지. 정황 증거: 전체 117,665개 corp 중 modify_date 3년 초과 86,026개 (73.1%) — 비활성 법인 잔존 정황이나 활성 상장사(KSIC 26)는 별개. 65.8% 실패율은 KSIC 26 외 섹터 편중 추정.
+
+12단계 폐기 (ADR-0011). 향후 후속 작업 후보:
+- (a) KSIC 26 외 섹터 field-test (가설 (α) 정밀 검증, 우선순위 중)
+- (b) `shares_outstanding not found` 정정 — financial-extractor 영역 (unknown 8건, 우선순위 중)
+- (c) corp_code 갱신 도구 신설 (정황 증거 기반, 우선순위 낮음 — 가설 미지지)
+- (d) `data_incomplete` reason_code 분류 추가 — `classifySkipReason` 정밀화 (spec-pending-edits 후보)
 
 ## 자주 막히는 곳
 
@@ -628,6 +635,20 @@ watchlist_check 동작은 정상:
 **5) wc -l 보고 줄 수 어긋남 4 cumulative → 3B/3C에서 0**: 묶음 1, 2A, 2B, 3A에서 보고 분량 vs 실제 분량 어긋남 누적. 묶음 3B/3C에서 명세에 "wc -l 출력 한 줄씩 그대로" 명시 → 어긋남 0. 학습: 줄 수는 직접 명령 출력 첨부 본질이 효과적 (Onev 환경 상황별 변동 가능).
 
 **6) β-i 격리 본질 유지 — composition wrapper + DI 패턴**: 11단계 전 묶음에서 `src/lib/dart-client.ts` 92줄 0 변경. RateLimitedDartClient (composition wrapper) + EnrichDeps (DI 패턴) 두 패턴이 격리 본질 보존. 학습: 후속 단계에서도 같은 패턴 유지.
+
+### 13단계 corp-code-status 누적 학습 — 5건
+
+13단계는 5 commit 묶음으로 진행 (묶음 1 → 묶음 2-spec → 묶음 2-도구 → 묶음 3-script → 묶음 3-verifications + 매듭 + 머지). 본 영역은 후속 단계 명세 작성 시 참조.
+
+**1) 사전 검증 + 코드 영역 직접 검증 효과 입증 — assumption mismatch 0**: 묶음 1 본문에서 명세 line 번호 + 분량 + 본문 모두 정합 (spec assumption mismatch 9 cumulative → 본 단계 0). 신규 작성 영역(`_lib/skip-reason.ts` 신설)은 raw API 응답 가정 본문이 부재라 가정 어긋남 영역 자체 부재. 학습: 사전 검증 단계에서 (i) 코드 본문 영역 직접 grep + (ii) 인접 패턴 파일 직접 view + (iii) 구조 일관성 검증 — 3건 모두 충족 시 어긋남 0 가능.
+
+**2) 단테 case 산수 어긋남 — Claude 명세 영역 누적**: 묶음 2 명세에서 "12 + 5 + 5 = 21" 산수 어긋남, 실제 22. Onev 정정. 학습: 미래 명세 작성 시 산수 직접 계산 + 검증. 단테 case 합계를 명세 안에서 계산해서 명시.
+
+**3) `package.json` `test:unit` glob 누락 사후 발견 — 11단계 묶음 3C 본문**: scan-enrich.test.ts 21건이 11단계 신설 시 `_lib/*.test.js` glob에 안 잡혔음. 본 묶음 시점에 발견 + Onev 정정 (`sagyeongin/*.test.js` glob 추가). 학습: 신규 단테 신설 시 `npm run test:unit` 실측 카운트가 신설 case 수와 일치하는지 사후 검증 본질. 단테 디렉토리(`_lib/` 직속 vs `sagyeongin/` 직속) 정합 확인 패턴 정착.
+
+**4) 가설 검증의 통제 변수 — KSIC 코드 필터의 stale 효과 격리**: 묶음 3 field-test에서 KSIC 26 universe 선택이 stale 효과 격리 (294개 corp 전원 stage1 통과 → status_013 = 0). 학습: 단일 universe 표본은 가설 검증의 일반화 영역 0. 향후 65.8% 실패율 정밀 검증은 비활성 섹터 또는 전체 universe 필요. 통제 변수가 측정 영역 자체를 격리할 수 있음 — 가설 검증 설계 시 분포 사전 검토 본질.
+
+**5) `unknown` reason_code 분류의 의미 — financial-extractor 영역 발견**: `shares_outstanding not found`은 srim Stage 3 호출 실패 본문 — `classifySkipReason` 패턴 7건 중 어디에도 매칭 안 됨 → unknown 분류 정합. 학습: `unknown` 분류는 미분류 영역의 신호 — 분류 키 추가 후보 (`data_incomplete`/`financial_data_missing`). 묶음 3 field-test 결과로 발견된 영역은 `classifySkipReason` 정밀화 후보로 spec-pending-edits 누적.
 
 ## 의사결정 시 주의
 
