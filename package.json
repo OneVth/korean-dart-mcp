@@ -15,7 +15,7 @@
     "start": "node build/index.js",
     "cli": "node build/cli.js",
     "prepublishOnly": "npm run build",
-    "test:unit": "npm run build && node --test build/tools/sagyeongin/_lib/*.test.js"
+    "test:unit": "npm run build && node --test build/tools/sagyeongin/_lib/*.test.js build/tools/sagyeongin/*.test.js"
   },
   "keywords": [
     "mcp",
