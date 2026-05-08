@@ -215,9 +215,27 @@ interface AlotResp {
   list?: AlotRow[];
 }
 
+/**
+ * stockTotqySttus 응답의 보통주 행 매치.
+ *
+ * DART 실측 se 값 변형:
+ *   - "보통주" (단순)
+ *   - "보통주식" (KOSDAQ 표준)
+ *   - "의결권이 있는주식(보통주)" (KOSPI 변형)
+ *   - "의결권 있는 주식" (보통주 키워드 부재 — 케이엠더블유 패턴)
+ *
+ * 우선주("우선주", "종류주식" 등)는 false 반환.
+ *
+ * Ref: spec §10.14, feat/stage14-pre-verify 67d5837 영역 3
+ */
+export function isCommonStockRow(se: string | undefined): boolean {
+  if (!se) return false;
+  return se.includes("보통주") || se.includes("의결권 있는");
+}
+
 // 발행주식수 추출 (주). 최근 사업보고서 기준.
 // stockTotqySttus (주식총수 현황) 사용 — fnlttSinglAcnt에 발행주식수 계정 미포함.
-// 보통주(se="보통주") istc_totqy 반환. 우선주 제외.
+// 보통주 매치는 isCommonStockRow 헬퍼 사용 — se 표기 변형 3종 흡수 (spec §10.14).
 export async function extractSharesOutstanding(corp_code: string, ctx: ToolCtx): Promise<number> {
   const year = new Date().getFullYear() - 1;
   const raw = await ctx.client.getJson<StockResp>("stockTotqySttus.json", {
@@ -226,7 +244,7 @@ export async function extractSharesOutstanding(corp_code: string, ctx: ToolCtx):
     reprt_code: "11011",
   });
   const rows = raw.status === "000" ? (raw.list ?? []) : [];
-  const common = rows.find((r) => r.se === "보통주");
+  const common = rows.find((r) => isCommonStockRow(r.se));
   if (!common?.istc_totqy) {
     throw new Error(`financial-extractor: shares_outstanding not found for ${corp_code}`);
   }
