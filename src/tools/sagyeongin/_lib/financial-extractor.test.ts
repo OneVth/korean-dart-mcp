@@ -10,7 +10,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { pickAccountValue, extractOperatingIncomeSeries, extractCashflowSeries, extractTotalAssets } from "./financial-extractor.js";
+import { pickAccountValue, extractOperatingIncomeSeries, extractCashflowSeries, extractTotalAssets, isCommonStockRow } from "./financial-extractor.js";
 
 // --- 그룹 1: 정상 케이스 ---
 
@@ -286,4 +286,30 @@ test("자산총계 괄호 음수 — parseAccountAmount 일관성", async () => 
   ];
   const v = await extractTotalAssets("000000", 2024, makeTaCtx(items));
   assert.equal(v, -100_000);
+});
+
+// --- 그룹 7: isCommonStockRow ---
+
+test("isCommonStockRow — 보통주 (회귀 호환)", () => {
+  assert.equal(isCommonStockRow("보통주"), true);
+});
+
+test("isCommonStockRow — 보통주식 (KOSDAQ 표준, 6/8건)", () => {
+  assert.equal(isCommonStockRow("보통주식"), true);
+});
+
+test("isCommonStockRow — 의결권이 있는주식(보통주) (KOSPI 변형, 삼성전기 패턴)", () => {
+  assert.equal(isCommonStockRow("의결권이 있는주식(보통주)"), true);
+});
+
+test("isCommonStockRow — 의결권 있는 주식 (보통주 키워드 부재, 케이엠더블유 패턴)", () => {
+  assert.equal(isCommonStockRow("의결권 있는 주식"), true);
+});
+
+test("isCommonStockRow — 우선주 (회귀 차단)", () => {
+  assert.equal(isCommonStockRow("우선주"), false);
+});
+
+test("isCommonStockRow — undefined (방어)", () => {
+  assert.equal(isCommonStockRow(undefined), false);
 });
