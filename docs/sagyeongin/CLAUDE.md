@@ -76,18 +76,18 @@
 - [x] 11단계: `feat/scan-execute` — sagyeongin_scan_execute (TOOL_REGISTRY 27, 사경인 12, 2026-05-06)
 - ~~[ ] 12단계 (백그라운드): insider 14b/c/d — Issue → 원작자 의향 확인 → PR~~ — 폐기 (ADR-0011, β-iii 폐기로 PR 영역 0)
 - [x] 13단계: `feat/corp-code-status` — sagyeongin_corp_code_status + scan-execute reason_code 분류 (TOOL_REGISTRY 28, 사경인 13, 2026-05-07)
+- [x] 14단계 (b): `feat/stage14-bundle1-se-fix` + `feat/stage14-bundle2-data-incomplete` — extractSharesOutstanding se 매치 정정 + skip-reason data_incomplete 분류 키 (TOOL_REGISTRY 28, 사경인 13, 2026-05-08)
 
 ### 현재 작업 단계
 
-13단계 완료 (2026-05-07). TOOL_REGISTRY 28 (사경인 13). `sagyeongin_corp_code_status` 추가 + scan-execute `skipped_corps[].reason_code` 분류. 5 commit 묶음으로 진행: 묶음 1 (skip-reason 9 단테 + scan-execute reason_code 정정) → 묶음 2-spec (§10.13 신설) → 묶음 2-도구 (corp-code-status 22 단테 + index 등록 + package.json test:unit glob 정정) → 묶음 3-script (field-test-stage13.mjs) → 묶음 3-verifications (field-test 결과 저장). 단테 누적 31 (9 skip-reason + 22 corp-code-status). β-i 격리 유지: `src/lib/` 0 변경.
+14단계 (b) 완료 (2026-05-08). TOOL_REGISTRY 28 (사경인 13, 도구 신설 0). `extractSharesOutstanding` `se` 매치 어긋남 정정 (`isCommonStockRow` 헬퍼 분리, includes 매치) + `_lib/skip-reason.ts` `data_incomplete` 분류 키 추가 (financial-extractor 5종 throw 망라). 2 묶음 + main 직커밋 2건: 사전 검증 (`feat/stage14-pre-verify`) → 묶음 1 (se 정정 + spec §10.14 신설, 단테 +6) → 묶음 2 (data_incomplete 분류 + ADR-0013 §추가, 단테 +4) → 매듭 (field-test 결과 + 마일스톤 + 누적 학습). 단테 누적 169 (+10 본 단계). β-i 격리 유지: `src/lib/` 0 변경.
 
-11단계 65.8% 실패율 가설 검증 — KSIC 26 universe 294개 corp 전원 stage1 통과 (status_013 = 0). 가설 (α) corp_code stale은 KSIC 26 한정 미지지. 정황 증거: 전체 117,665개 corp 중 modify_date 3년 초과 86,026개 (73.1%) — 비활성 법인 잔존 정황이나 활성 상장사(KSIC 26)는 별개. 65.8% 실패율은 KSIC 26 외 섹터 편중 추정.
+watchlist field-test 결과 (8건 표본 — 13단계 unknown 8건이었던 corp 재실행): srim verdict 복구 6/8 (SELL 5 / BUY 1), skip 분류 unknown 8 → 0 (verdict null 2건 ADR-0013 정상 경로 포함 — prices ≤0, skip 아님). data_incomplete 0건 (묶음 2 패일세이프 미발동).
 
-12단계 폐기 (ADR-0011). 향후 후속 작업 후보:
-- (a) KSIC 26 외 섹터 field-test (가설 (α) 정밀 검증, 우선순위 중)
-- (b) `shares_outstanding not found` 정정 — financial-extractor 영역 (unknown 8건, 우선순위 중)
+13단계 후속 후보 (a)/(c) 잔존 + 14단계 신규:
+- (a) KSIC 26 외 섹터 field-test (가설 (α) 정밀 검증, 우선순위 중 — 비활성 섹터 표적 universe)
 - (c) corp_code 갱신 도구 신설 (정황 증거 기반, 우선순위 낮음 — 가설 미지지)
-- (d) `data_incomplete` reason_code 분류 추가 — `classifySkipReason` 정밀화 (spec-pending-edits 후보)
+- (e) 응답 내 필드값 다양성 사전 검증 차원 정착 (14단계 (b) 학습 누적, 우선순위 높음 — 향후 사전 검증 명세 정착)
 
 ## 자주 막히는 곳
 
@@ -649,6 +649,26 @@ watchlist_check 동작은 정상:
 **4) 가설 검증의 통제 변수 — KSIC 코드 필터의 stale 효과 격리**: 묶음 3 field-test에서 KSIC 26 universe 선택이 stale 효과 격리 (294개 corp 전원 stage1 통과 → status_013 = 0). 학습: 단일 universe 표본은 가설 검증의 일반화 영역 0. 향후 65.8% 실패율 정밀 검증은 비활성 섹터 또는 전체 universe 필요. 통제 변수가 측정 영역 자체를 격리할 수 있음 — 가설 검증 설계 시 분포 사전 검토 본질.
 
 **5) `unknown` reason_code 분류의 의미 — financial-extractor 영역 발견**: `shares_outstanding not found`은 srim Stage 3 호출 실패 본문 — `classifySkipReason` 패턴 7건 중 어디에도 매칭 안 됨 → unknown 분류 정합. 학습: `unknown` 분류는 미분류 영역의 신호 — 분류 키 추가 후보 (`data_incomplete`/`financial_data_missing`). 묶음 3 field-test 결과로 발견된 영역은 `classifySkipReason` 정밀화 후보로 spec-pending-edits 누적.
+
+### 응답 내 필드값 다양성 — enum-like 문자열 표기 변형 사전 검증 차원 정착
+
+발견: 14단계 (b) 사전 검증 (2026-05-08). `extractSharesOutstanding` `r.se === "보통주"` 정확 매치 가정 vs 실제 DART 응답 3종 (`"보통주식"` 6건 + `"의결권이 있는주식(보통주)"` 1건 + `"의결권 있는 주식"` 1건). spec assumption vs field-test mismatch 누적 9 → 10.
+
+이전까지 사전 검증 차원: (1) raw API 응답 shape, (2) 함수 위치 vs 호출 endpoint 분기. 14단계 (b)에서 추가 차원 식별 — **응답 내 필드값 다양성** (enum-like 문자열 필드 표기 변형). 같은 의미 필드값이 다중 표기로 나오는 패턴 (보통주 = 보통주 / 보통주식 / 의결권이 있는주식(보통주) / 의결권 있는 주식).
+
+향후 사전 검증 명세 작성 시 enum-like 필드 (`se`, `account_nm`, `ord_clss` 등) 사용 코드는 실제 응답값 분포 확인 단계 추가. 정확 매치 (`===`) 코드보다 includes/regex 매치가 안전 — 표기 변형 흡수.
+
+### 정책 후보 redirect 패턴 — 사전 검증으로 정책 자체 재정의
+
+발견: 14단계 (b) 사전 검증 (2026-05-08). 사전 검증 진입 시 정책 후보 ① (skip-reason 단독) / ② (reprt_code fallback) / ③ (별도 verdict 키) 합의 후 진입. 사전 검증 결과 — 정책 ② 무의미 판정 (데이터가 11011에 이미 존재) + 정책 ① 부족 판정 (se 매치 어긋남 미해결) + 정책 ①-plus redirect (코드 정정 + skip-reason 통합).
+
+verifications/ 패턴의 최강 효과 — 단순 가설 검증/데이터 수집을 넘어 **정책 후보 자체 재정의** 가능. 향후 사전 검증 결과가 후보 외 결과를 가리키면 정책 redirect 자연 (정책 ①-plus, ②-restricted 같은 변형). 위임 명세 진입 전 정책 후보 합의는 가설 — 사전 검증으로 가설 자체 정정 가능.
+
+### 사상 (사전 spec) ↔ 코드 일관성 — 후보 패턴 코드 검증 사전 수반
+
+발견: 14단계 (b) 묶음 2 사전 검증 (2026-05-08). spec-pending-edits §10.13의 후보 regex (`/shares_outstanding not found|financial-extractor:|series sparse/i`) 중 `series sparse` 메시지가 `_lib/` 전체 코드에 부재. 사전 spec 작성 (13단계 묶음 3 시점) 시 코드 직접 검증 없이 후보 메시지 추정.
+
+향후 spec-pending-edits 후보 regex/문자열 패턴 작성 시 — 코드 직접 검증 단계 사전 수반. 묶음 진입 시점 또는 사전 검증 단계에서 grep 으로 실제 사용 패턴 확인 → spec 정정 commit 동반. spec-pending-edits는 가설 누적 영역, 코드 일치 검증은 묶음 진입 시 필수.
 
 ## 의사결정 시 주의
 

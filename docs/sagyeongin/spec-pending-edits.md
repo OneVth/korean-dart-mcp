@@ -468,7 +468,7 @@ if (/financial-extractor:/i.test(msg)) {
 발견: 13단계 묶음 3 field-test (2026-05-07).
 처리 영역: 14단계 후속 (b) 또는 단독 분류 키 추가 commit.
 
-**상태**: in-progress (14단계 (b) 묶음 2 — `feat/stage14-bundle2-data-incomplete`)
+**상태**: processed-in: feat/stage14-bundle2-data-incomplete (commit `792fbe8`, merged `aba11cf`, 2026-05-08)
 
 ---
 
@@ -508,7 +508,7 @@ reprt_code fallback (정책 ②) 불필요 — 데이터는 11011에 존재.
 발견: 14단계 (b) 사전 검증 (2026-05-08), `feat/stage14-pre-verify` HEAD `67d5837`.
 처리 영역: 14단계 (b) 묶음 1 (`feat/stage14-bundle1-se-fix`).
 
-**상태**: in-progress
+**상태**: processed-in: feat/stage14-bundle1-se-fix (commit `58260c8`, merged `93dd670`, 2026-05-08)
 
 ---
 
