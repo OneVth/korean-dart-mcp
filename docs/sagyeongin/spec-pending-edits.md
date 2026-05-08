@@ -468,6 +468,46 @@ if (/shares_outstanding not found|financial-extractor:|series sparse/i.test(msg)
 
 ---
 
+### [§10.14] `extractSharesOutstanding` `se` 매치 로직 정정 — 8건 표본 복구
+
+**현재**: `_lib/financial-extractor.ts:229`에서 `rows.find((r) => r.se === "보통주")` — 정확 매치. 13단계 묶음 3 field-test (2026-05-07)에서 unknown 8건 (`shares_outstanding not found`) 발생.
+
+**정정**: 14단계 (b) 사전 검증 (2026-05-08, `feat/stage14-pre-verify` HEAD `67d5837`) 영역 3에서 `se` 필드값 가정 어긋남 확인 — 실제 DART 응답 3종:
+
+| # | 실제 se 값 | 발생 | `=== "보통주"` |
+|---|---|---|---|
+| 1 | `"보통주식"` | 6건 (LX세미콘, 나무가, 제이앤티씨, PS일렉트로닉스, 디케이티, 티에프이) | ✗ |
+| 2 | `"의결권이 있는주식(보통주)"` | 1건 (삼성전기) | ✗ |
+| 3 | `"의결권 있는 주식"` | 1건 (케이엠더블유) | ✗ |
+
+분기 4 분류 결과: C=8/8 (보통주 행 부재) — 데이터는 11011 사업보고서에 전건 존재, 코드 매치 로직 문제.
+
+후보 코드 (헬퍼 분리):
+```ts
+export function isCommonStockRow(se: string | undefined): boolean {
+  if (!se) return false;
+  return se.includes("보통주") || se.includes("의결권 있는");
+}
+```
+
+`extractSharesOutstanding` line 229 사용:
+```ts
+const common = rows.find((r) => isCommonStockRow(r.se));
+```
+
+이 정정으로 8/8 모두 복구 — 케이엠더블유 (`"의결권 있는 주식"`)도 `includes("의결권 있는")` 분기로 흡수.
+
+**근거**: 14단계 (b) 사전 검증 영역 3 핵심 발견 — `se === "보통주"` 정확 매치 가정 vs 실제 응답값 3종. spec assumption vs field-test mismatch 누적 9 → 10. 사전 검증 효과 입증 사례 (정책 ② `reprt_code` fallback 무의미 판정 + 정책 ① redirect → ①-plus 채택).
+
+reprt_code fallback (정책 ②) 불필요 — 데이터는 11011에 존재.
+
+발견: 14단계 (b) 사전 검증 (2026-05-08), `feat/stage14-pre-verify` HEAD `67d5837`.
+처리 영역: 14단계 (b) 묶음 1 (`feat/stage14-bundle1-se-fix`).
+
+**상태**: in-progress
+
+---
+
 ## Applied 항목
 
 (아직 없음. v0.3에서 일괄 반영 시 채워짐.)
