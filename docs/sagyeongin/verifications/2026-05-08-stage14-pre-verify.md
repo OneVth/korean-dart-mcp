@@ -30,12 +30,12 @@
 
 | # | 결론 |
 |---|---|
-| 1 | (Onev 환경 빌드 결과 기록) |
-| 2 | 8건 corp_code resolve 결과 표 |
-| 3 | raw 응답 — status / list 구조 / 보통주 행 / istc_totqy 분포 |
-| 4 | throw 분기 분류 카운트 (분기 A/B/C/D 비율) |
-| 5 | 4 regex + 3 status 분기 + unknown fallback 정합 |
-| 6 | 묶음 분할 결정 (1/2/3 분량 또는 1/2 통합) |
+| 1 | tsc 0 error / test:unit 159 pass (0 fail) — 9 skip-reason + 22 corp-code-status 포함 확인 |
+| 2 | 8건 단독 row (다중 row 없음) — corp_code + stock_code + modify_date 기록 완료 |
+| 3 | 전건 status="000" + list 4건 존재 / se 필드값 불일치 → 보통주 행 X (코드 기준) / 핵심 발견: se 값 가정 어긋남 |
+| 4 | A=0, B=0, C=8, D=0, E=0 — 전건 분기 C (se 값 불일치) |
+| 5 | 4 regex + 3 status 분기 + 6 분류 키 + unknown fallback 정합 확인 / data_incomplete 후보 정합 |
+| 6 | 정책 ①-plus 채택 — financial-extractor se 정정 + skip-reason data_incomplete 추가 — 3묶음 분리 |
 
 ---
 
@@ -59,10 +59,10 @@ npm run test:unit
 
 | 항목 | 결과 |
 |---|---|
-| origin/main HEAD | (해시 + 제목 기록) |
-| `npm install` 결과 | (성공 / 경고 / 실패) |
-| `tsc --noEmit` | (0 error 기대) |
-| `npm run test:unit` | (현재 단테 카운트 31 일치 기대 — 9 skip-reason + 22 corp-code-status 외 기존) |
+| origin/main HEAD | `2a419e4 docs(sagyeongin): spec-pending-edits §10.13 unknown 분류 정밀화 누적` ✓ |
+| `npm install` 결과 | 성공 (audit 경고만, 빌드 무관) |
+| `tsc --noEmit` | 0 error ✓ |
+| `npm run test:unit` | **159 pass, 0 fail** — 9 skip-reason + 22 corp-code-status 포함 확인 ✓ |
 
 ---
 
@@ -104,14 +104,14 @@ db.close();
 
 | # | corp_name | corp_code | stock_code | modify_date |
 |---|---|---|---|---|
-| 1 | 삼성전기 | | | |
-| 2 | 케이엠더블유 | | | |
-| 3 | LX세미콘 | | | |
-| 4 | 나무가 | | | |
-| 5 | 제이앤티씨 | | | |
-| 6 | PS일렉트로닉스 | | | |
-| 7 | 디케이티 | | | |
-| 8 | 티에프이 | | | |
+| 1 | 삼성전기 | 00126371 | 009150 | 20230102 |
+| 2 | 케이엠더블유 | 00226352 | 032500 | 20260311 |
+| 3 | LX세미콘 | 00525934 | 108320 | 20240322 |
+| 4 | 나무가 | 00819374 | 190510 | 20240723 |
+| 5 | 제이앤티씨 | 00447575 | 204270 | 20250401 |
+| 6 | PS일렉트로닉스 | 01015160 | 332570 | 20250507 |
+| 7 | 디케이티 | 01137903 | 290550 | 20230403 |
+| 8 | 티에프이 | 01035368 | 425420 | 20221117 |
 
 corp_name 부분일치 다중 row 시 stock_code 일치하는 단독 row 선택 (상장사). modify_date도 함께 기록 — corp_code stale 가설 부보강.
 
@@ -147,14 +147,14 @@ curl -s "https://opendart.fss.or.kr/api/stockTotqySttus.json?crtfc_key=${API_KEY
 
 | # | corp_name | status | list 존재 | 보통주 행 | istc_totqy | 분기 (영역 4) |
 |---|---|---|---|---|---|---|
-| 1 | 삼성전기 | | | | | |
-| 2 | 케이엠더블유 | | | | | |
-| 3 | LX세미콘 | | | | | |
-| 4 | 나무가 | | | | | |
-| 5 | 제이앤티씨 | | | | | |
-| 6 | PS일렉트로닉스 | | | | | |
-| 7 | 디케이티 | | | | | |
-| 8 | 티에프이 | | | | | |
+| 1 | 삼성전기 | 000 | O (4건) | X (se 불일치) | - | C |
+| 2 | 케이엠더블유 | 000 | O (4건) | X (se 불일치) | - | C |
+| 3 | LX세미콘 | 000 | O (4건) | X (se 불일치) | - | C |
+| 4 | 나무가 | 000 | O (4건) | X (se 불일치) | - | C |
+| 5 | 제이앤티씨 | 000 | O (4건) | X (se 불일치) | - | C |
+| 6 | PS일렉트로닉스 | 000 | O (4건) | X (se 불일치) | - | C |
+| 7 | 디케이티 | 000 | O (4건) | X (se 불일치) | - | C |
+| 8 | 티에프이 | 000 | O (4건) | X (se 불일치) | - | C |
 
 기록 항목:
 - `status`: 응답 body의 status 코드 (예: "000", "013", "020")
@@ -163,6 +163,25 @@ curl -s "https://opendart.fss.or.kr/api/stockTotqySttus.json?crtfc_key=${API_KEY
 - `istc_totqy`: 보통주 행의 istc_totqy 값 (없으면 -, 0이면 0)
 
 표본 1~2건 우선 호출 후 분기 패턴 식별되면 잔여 일괄. daily limit (20,000건) 영향 0 — 8회 호출.
+
+### 핵심 발견: se 필드값 가정 어긋남
+
+코드 가정 `se === "보통주"` 가 실제 DART 응답과 불일치 — 보통주 해당 행의 실제 se 값:
+
+| # | corp_name | 실제 se 값 (보통주 해당 행) | includes("보통주") | istc_totqy (실제값) |
+|---|---|---|---|---|
+| 1 | 삼성전기 | `"의결권이 있는주식(보통주)"` | ✓ | 74,693,696 |
+| 2 | 케이엠더블유 | `"의결권 있는 주식"` | ✗ (보통주 키워드 없음) | — |
+| 3 | LX세미콘 | `"보통주식"` | ✓ | 16,264,300 |
+| 4 | 나무가 | `"보통주식"` | ✓ | 14,045,317 |
+| 5 | 제이앤티씨 | `"보통주식"` | ✓ | 57,848,466 |
+| 6 | PS일렉트로닉스 | `"보통주식"` | ✓ | 43,789,726 |
+| 7 | 디케이티 | `"보통주식"` | ✓ | 20,001,230 |
+| 8 | 티에프이 | `"보통주식"` | ✓ | 11,960,710 |
+
+- 7/8: `r.se.includes("보통주")`로 데이터 복구 가능
+- 케이엠더블유 1/8: `"의결권 있는 주식"` — includes("보통주") 불일치, 별도 패턴 필요 (`includes("의결권 있는")` 등)
+- reprt_code fallback 불필요 — 데이터 자체는 11011 사업보고서에 존재함
 
 ---
 
@@ -195,11 +214,13 @@ throw new Error(...);  // 분기 E
 
 | 분기 | 카운트 (8건 중) | 비율 |
 |---|---|---|
-| A (status≠"000") | | |
-| B (status="000", list 부재) | | |
-| C (보통주 행 부재) | | |
-| D (istc_totqy 부재/0) | | |
-| E (parse 실패) | | |
+| A (status≠"000") | 0 | 0% |
+| B (status="000", list 부재) | 0 | 0% |
+| C (보통주 행 부재) | **8** | **100%** |
+| D (istc_totqy 부재/0) | 0 | 0% |
+| E (parse 실패) | 0 | 0% |
+
+원인: 분기 C의 "보통주 행 부재"는 실제 데이터 부재가 아니라 **se 필드값 가정 어긋남**. 데이터는 11011 사업보고서에 존재.
 
 ### 정책 결정 입력
 
@@ -210,6 +231,14 @@ throw new Error(...);  // 분기 E
 | 분기 분산 (A/B/C/D 혼재) | 정책 ① 우선 + 정책 ② 별도 단계 후보 |
 
 정책 ③ (별도 verdict 키 신설)은 ADR 신설 비용 크고 ADR-0013 정합 부정 — 분기 분포 무관 우선순위 낮음.
+
+**실측 기반 정책 채택**: A 비율 0% → **정책 ① 자연** + 추가 발견 반영:
+
+- reprt_code fallback (정책 ②)은 불필요 — 데이터는 11011에 존재, 코드 se 매치 로직이 문제
+- 정책 ①-plus 채택: **financial-extractor se 정정** + **skip-reason data_incomplete 추가**
+  - se 정정: `r.se === "보통주"` → `r.se.includes("보통주") || r.se.includes("의결권 있는")`
+  - 이 정정으로 8/8 모두 데이터 복구 가능 (케이엠더블유 포함)
+  - data_incomplete는 정정 후에도 남는 패일세이프 분류 키
 
 ---
 
@@ -236,7 +265,15 @@ return "unknown";
 - **status regex 매치 후 3분기** (013 / 014 / other)
 - **합 6 분류 키** + `unknown` fallback
 
-→ spec §10.13 정정 시 본 정밀 표현 사용. 묶음 1에서 `data_incomplete` regex 추가 후:
+실측 확인 (2026-05-08): skip-reason.ts 46줄 직접 읽기로 구조 정합 확인 ✓
+
+regex 상세 (실제 코드):
+- regex 1: `/\[(\d{3})\]/` → 013/014/other
+- regex 2: `/회사를 찾을 수 없습니다/` → corp_not_found
+- regex 3: `/timeout|ETIMEDOUT|ECONNRESET|ENOTFOUND|ECONNREFUSED|fetch failed|network/i` → network_error
+- regex 4: `/JSON|Unexpected token|parse/i` → parse_error
+
+→ spec §10.13 정정 시 본 정밀 표현 사용. 묶음 2에서 `data_incomplete` regex 추가 후:
 - regex 5건 + status 3분기 + 7 분류 키 + `unknown` fallback
 
 ### `data_incomplete` 분류 후보
@@ -247,34 +284,48 @@ if (/shares_outstanding not found|financial-extractor:|series sparse/i.test(msg)
 }
 ```
 
-regex 정합 검증 — 묶음 1 단테에서 8건 표본 메시지 모두 `data_incomplete` 분류 + 기존 7 분류 영향 0 (regex 우선순위 정확히 분리).
+throw 메시지: `"financial-extractor: shares_outstanding not found for <corp_code>"`
+
+regex 정합 확인:
+- `/shares_outstanding not found/i` → ✓ 매칭
+- `/financial-extractor:/i` → ✓ 매칭 (양쪽 모두 커버)
+- 기존 6 분류 키 영향: 0 (status 코드/resolveCorp/네트워크/파싱과 겹침 0)
+
+se 정정 후에도 케이엠더블유 등 장기적 실패 케이스에서 data_incomplete 분류 정합 유지.
 
 ---
 
 ## 영역 6: 묶음 분할 분량 평가
 
-### 정책 ① 채택 시 (영역 4 결과 분기 A < 50%)
+### 실측 결과 기반 채택 정책: ①-plus (영역 4 결과 분기 A=0%, C=100%, se 가정 어긋남 발견)
+
+**신규 발견**: 분기 C의 원인이 데이터 부재가 아닌 **se 필드값 가정 어긋남**으로 확인.
+reprt_code fallback (정책 ②) 불필요 — 데이터는 11011에 존재, se 매치 로직이 문제.
 
 | 묶음 | 내용 | 변경 파일 | 단테 |
 |---|---|---|---|
-| **1** | `_lib/skip-reason.ts` `data_incomplete` 분류 키 추가 + spec §10.13 적용 | skip-reason.ts + skip-reason.test.ts | 신규 1~2건 (8건 표본 메시지 분류 검증) |
-| **2** | watchlist 통합 검증 (재실행 + `unknown` 0 / `data_incomplete` 8 일치) + 매듭 | verifications/ + spec/ADR 누적 | 0 (field-test) |
+| **1** | `_lib/financial-extractor.ts` `extractSharesOutstanding` se 매치 정정 (`=== "보통주"` → `includes("보통주") \|\| includes("의결권 있는")`) + spec §10.13·se발견 누적 | financial-extractor.ts + financial-extractor.test.ts | 신규 3~4건 (se 변형 2종 + 매치 성공 + 케이엠더블유 패턴) |
+| **2** | `_lib/skip-reason.ts` `data_incomplete` 분류 키 추가 (패일세이프 — se 정정 후에도 남는 미분류 케이스용) | skip-reason.ts + skip-reason.test.ts | 신규 1~2건 (shares_outstanding not found 메시지 분류) |
+| **3** | watchlist 통합 검증 (se 정정 후 unknown → 복구 또는 data_incomplete 분포 실측) + 매듭 | verifications/ + spec/ADR 누적 | 0 (field-test) |
 
-→ **묶음 2건 자연**. financial-extractor 변경 0 → 묶음 2/3 통합.
+→ **묶음 3건 분리 자연**. financial-extractor 변경 분량 + 단테 분량으로 묶음 1 단독.
 
-### 정책 ② 채택 시 (영역 4 결과 분기 A ≥ 50%)
+### 정책 ① 원안 (미채택, 참고)
 
-| 묶음 | 내용 | 변경 파일 | 단테 |
-|---|---|---|---|
-| **1** | `_lib/skip-reason.ts` `data_incomplete` 분류 키 추가 | skip-reason.ts + skip-reason.test.ts | 신규 1~2건 |
-| **2** | `_lib/financial-extractor.ts` `extractSharesOutstanding` reprt_code fallback (11011 → 11012 → 11013/11014) | financial-extractor.ts + financial-extractor.test.ts | 신규 3~5건 (분기별 + fallback 성공/실패 + DART 호출 카운트) |
-| **3** | watchlist 통합 검증 (fallback 적용 후 unknown/data_incomplete 분포 변화 실측) + 매듭 | verifications/ + spec/ADR 누적 | 0 |
+| 묶음 | 내용 | 비고 |
+|---|---|---|
+| **1** | skip-reason.ts data_incomplete만 | se 가정 어긋남 방치 — 데이터 복구 0 |
+| **2** | 매듭 | |
 
-→ **묶음 3건 분리 자연**. financial-extractor 변경 + 단테 분량 + DART 호출 카운트 영향으로 묶음 2 단독.
+→ se 가정 어긋남 발견으로 원안 ① 부적합 판단. ①-plus 채택.
 
-### 정책 ③ 채택 시
+### 정책 ② (미채택, 참고)
 
-별도 verdict 키 신설 — ADR 신설 비용 + srim-calc + watchlist 변경 → 묶음 4건 이상 가능. 영역 4 분기 분포 무관 우선순위 낮음 (ADR-0013 정합 부정).
+reprt_code fallback — 데이터가 11011에 이미 존재하므로 불필요. DART 추가 호출 비용만 발생.
+
+### 정책 ③ (미채택)
+
+별도 verdict 키 신설 — ADR 신설 비용 + srim-calc + watchlist 변경. 분기 분포 무관 우선순위 낮음 (ADR-0013 정합 부정).
 
 ---
 
