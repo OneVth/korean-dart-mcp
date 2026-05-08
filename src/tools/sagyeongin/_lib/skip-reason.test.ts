@@ -48,3 +48,27 @@ test("classifySkipReason: unknown — 분류 미일치", () => {
   const e = new Error("어떤 분기에도 매칭 0인 메시지");
   assert.equal(classifySkipReason(e), "unknown");
 });
+
+test("classifySkipReason: data_incomplete — shares_outstanding not found", () => {
+  const e = new Error("financial-extractor: shares_outstanding not found for 00126380");
+  assert.equal(classifySkipReason(e), "data_incomplete");
+});
+
+test("classifySkipReason: data_incomplete — equity_current not found", () => {
+  const e = new Error("financial-extractor: equity_current not found for 00126380");
+  assert.equal(classifySkipReason(e), "data_incomplete");
+});
+
+test("classifySkipReason: data_incomplete — revenue not found (multi-line throw)", () => {
+  const e = new Error(
+    "financial-extractor: revenue not found for 00126380 (year=2024, OFS only)",
+  );
+  assert.equal(classifySkipReason(e), "data_incomplete");
+});
+
+test("classifySkipReason: data_incomplete — total_assets not found (multi-line throw)", () => {
+  const e = new Error(
+    "financial-extractor: total_assets not found for 00126380 (year=2024)",
+  );
+  assert.equal(classifySkipReason(e), "data_incomplete");
+});

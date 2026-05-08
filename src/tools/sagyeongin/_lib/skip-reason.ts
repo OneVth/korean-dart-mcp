@@ -7,13 +7,14 @@
  * 본 함수는 **호출 실패만** 분류. verdict-기반 skip(killer EXCLUDE, srim verdict null)은
  * reason 자체에 명확 — 호출 영역 0.
  *
- * 분류 키 (corp_code 덤프 stale 진단 본질):
+ * 분류 키 (corp_code 덤프 stale 진단 + 도구 처리 차원):
  *   - status_013: 조회 데이터 없음 — corp_code 덤프 stale 또는 폐지 회사 잔존 가설
  *   - status_014: 파일 없음 — 보고기간 부재
  *   - status_other: 기타 DART 응답 오류 (010/011/012/100/...)
+ *   - corp_not_found: corp_code SQLite 부재 (resolveCorp throw)
  *   - network_error: HTTP/네트워크/timeout
  *   - parse_error: JSON 파싱
- *   - corp_not_found: corp_code SQLite 부재 (resolveCorp throw)
+ *   - data_incomplete: financial-extractor 5종 throw — equity/shares/revenue/total_assets 부재
  *   - unknown: 분류 미일치
  *
  * Ref: spec §10.13 (예정), philosophy 7부 A
@@ -40,6 +41,9 @@ export function classifySkipReason(error: Error): string {
 
   // JSON 파싱 분류
   if (/JSON|Unexpected token|parse/i.test(msg)) return "parse_error";
+
+  // 도구 처리 차원 — financial-extractor 5종 throw (equity/shares/revenue/total_assets)
+  if (/financial-extractor:/i.test(msg)) return "data_incomplete";
 
   return "unknown";
 }
