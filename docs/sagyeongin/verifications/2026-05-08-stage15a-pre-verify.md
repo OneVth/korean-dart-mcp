@@ -79,23 +79,69 @@ run 2의 91% 실패는 run 1 직후 DART API rate-limit 누적으로 추정 (20,
 
 ## 영역 2: KSIC 70 corp 표본 DART 응답 형식 정합
 
-**상태**: DART API 일시 중단으로 미실행 (2026-05-08 기준 company.json "fetch failed")
+**상태**: DART API 불응으로 데이터 없음 — 영역 1의 bulk 스캔(3,963 × 2 = ~8,000 순차 호출) 이후 `fetch failed` 지속
 
-대상 corp: 인벤테라(01869710), 에임드바이오(01781999), 카나프테라퓨틱스(01782183)
+실행 시도: `scripts/sagyeongin/pre-verify-stage15a-area23.mjs` CORPS=01869710,01781999
 
-→ DART API 복구 후 `scripts/sagyeongin/pre-verify-stage15a-area23.mjs` 실행
+```
+Corp: 01869710 인벤테라  — company.json: fetch failed
+Corp: 01781999 에임드바이오 — company.json: fetch failed
+```
+
+**원인 추정**: DART API 일일 rate-limit 또는 burst-limit 발동. 20,000/일 한도 내(~8,000건)이나 단시간 집중 호출(~160초 × 2회) 후 일시 차단으로 추정.
+
+→ **다음 날 DART 한도 리셋 후 재실행 필요**.
 
 ---
 
 ## 영역 3: extractSharesOutstanding se 표기 cover 검증
 
-**상태**: 영역 2 미실행으로 대기
+**상태**: 영역 2 데이터 없음으로 미실행
+
+실행 시도 결과:
+```
+extractSharesOutstanding(01869710): throw: fetch failed — known_failsafe: false
+extractSharesOutstanding(01781999): throw: fetch failed — known_failsafe: false
+```
+
+"fetch failed"는 `data_incomplete` 분류 키와 무관한 네트워크 에러 — 14단계 (b) 패일세이프 미발동(정상). DART 복구 시 재실행 필요.
 
 ---
 
 ## 영역 4: 종합 결정
 
-**상태**: 영역 1~3 완료 후 작성 예정
+### 영역 1 결정
+
+| 항목 | 결과 |
+|---|---|
+| KSIC 70 모집단 | 3개 (불충분) |
+| KSIC 47 모집단 | 0개 (induty_code 개정 불일치) |
+| **분기** | **universe 재논의** |
+
+### 영역 2~3 결정
+
+| 항목 | 상태 |
+|---|---|
+| DART 응답 정합 확인 | **미완 (API 불응)** |
+| se 표기 신규 변형 발견 | 미확인 |
+| extractSharesOutstanding cover | 미확인 |
+
+### 본격 (a) field-test 명세 진입 가능 여부
+
+**미완 — 영역 1 분기 조건 미충족 (universe 재논의 필요) + 영역 2~3 API 불응으로 블로킹**
+
+### 권장 후속 조치
+
+1. **24시간 대기**: DART API 일일 한도 리셋 (2026-05-09 이후)
+2. **universe 재논의 (3가지 선택지)**:
+
+   | 안 | 방법 | 장단점 |
+   |---|---|---|
+   | **(iii-a) 무작위 표본** | `scan_execute` industry filter 없이 limit=200 | 제조/비제조 혼재, 가장 단순 |
+   | **(iv) induty_code 분포 조사** | company.json 샘플 100건 → prefix 분포 확인 후 코드 선정 | API 비용 ~100건, 정밀 |
+   | **(v) 제조업 제외 필터** | `excluded_industries: ["26"]` + limit=200 | KSIC 26 제외 비제조업 혼합 |
+
+3. **영역 2~3 재실행**: DART 복구 후 `CORPS=01869710,01781999 node pre-verify-stage15a-area23.mjs`
 
 ---
 
