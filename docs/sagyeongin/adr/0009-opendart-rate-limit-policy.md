@@ -56,6 +56,7 @@ spec §11.3 line 1012에 "Rate limit 도달 시 checkpoint/resume"이 추상 본
 - DART 외 다른 외부 의존 (네이버 가격, K값 캐시)은 wrapper 적용 범위 밖 — 각 도구가 별도 처리. 향후 통합 wrapper 검토 가능.
 - 단순 retry 1회는 일시적 네트워크 문제만 처리 — 영구적 limit 도달은 throw로 직접 처리
 - 정확한 daily limit 카운터 없음 — scan_execute가 호출 횟수 카운트 (ADR-0012 checkpoint 정책과 정합 필요)
+- **fetch failed (TCP 차단) 영역**: status "020" detection 범위 밖 — ADR-0015에서 분기 cover (2026-05-09)
 
 미래 변경 시 영향:
 - 다른 외부 의존 wrapper 통합 시 본 ADR 갱신
