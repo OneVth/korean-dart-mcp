@@ -22,7 +22,7 @@
 |---|---|
 | 1 | `err instanceof TypeError && err.message.includes("fetch failed")` — Node 18+ undici fetch 표준. RateLimitedDartClient는 raw fetch failed 수신 |
 | 2 | naver/KIS 둘 다 *재포장* — `network error: ${msg}` 형식 throw. wrapper detection은 메시지 매치 |
-| 3 | **옵션 α 확정** — scan-execute level 단일 카운터, stage1/2/3 + enrich 모두 propagate. 5부 침해 미미 (retry 후 throw만 카운터에 도달) |
+| 3 | **옵션 β 확정 (α→β 정정)** — stage1/2/3 한정 카운터. enrich는 첫 신호 즉시 종결 흐름 유지 (검증 작업 자체에서 결정 변경 — 14(b) ②-plus 패턴) |
 | 4 | dart-rate-limit.test.ts = **10**, scan-helpers.test.ts = **14** (직접 grep 카운트) |
 | 5 | composition 패턴 + 단일-method interface. `RateLimitedNaverPrice` / `RateLimitedKisRating` 클래스, `NaverPriceFetcher` / `KisRatingFetcher` interface |
 | 6 | scan-helpers.ts에 helper 추가. mulberry32 PRNG (외부 의존 0). 시그너처 `shuffleWithSeed<T>(arr: T[], seed?: number): T[]` |
