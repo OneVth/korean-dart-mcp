@@ -670,6 +670,37 @@ verifications/ 패턴의 최강 효과 — 단순 가설 검증/데이터 수집
 
 향후 spec-pending-edits 후보 regex/문자열 패턴 작성 시 — 코드 직접 검증 단계 사전 수반. 묶음 진입 시점 또는 사전 검증 단계에서 grep 으로 실제 사용 패턴 확인 → spec 정정 commit 동반. spec-pending-edits는 가설 누적 영역, 코드 일치 검증은 묶음 진입 시 필수.
 
+### API burst 차단 통합 학습 — 호출 누적 결정론 + 다중 차단 영역 + 순서 변수 가드
+
+발견: 15단계 (a) field-test (2026-05-09, `feat/stage15a-field-test` HEAD `3c0d24e`). 11단계 + 15(a) stage1 실패 = **2,607 정확 일치** — 우연 X. burst rate-limit이 호출 누적 단위 결정론으로 동작 (시간 단위 X). corp_code 순서대로 호출 시 ~1,356번째 영역에서 차단 발동 + 잔여 호출 영구 차단.
+
+추가 영역 — naver/KIS rating IP 차단: stage3 = 659 fetch failed (네이버 가격 + KIS rating 호출). DART burst와 *별개* 메커니즘. 659회 연속 호출 임계로 IP 차단. ADR-0009 트레이드오프 ("DART 외 다른 외부 의존은 wrapper 적용 범위 밖") 직접 발현.
+
+본 학습 ADR-0015에 흡수 (2026-05-09 신설). 정책 채택: A2 (RateLimitedDartClient에 fetch failed detection 추가) + B1 (corp_code 순서 무작위화) + C1 (naver/KIS rating 별도 wrapper) + D1 (연속 fetch failed N회 fail-fast).
+
+향후 사전 검증 차원 추가: 외부 API 호출 정책 (특히 burst 차단 양상) — 호출 누적 단위 vs 시간 단위 분기 사전 검토. 같은 corp_code 순서 호출 → 같은 영역 차단 가능성 검증. spec assumption vs field-test mismatch 누적 11 → 12 (이전 11번째 = §10.15 KSIC 9차/10차 혼재).
+
+### corp_code 순서 변수 가드 — modify_date 분포 분석 시 통제 필수
+
+발견: 15단계 (a) field-test (2026-05-09). Stage 1 실패 corp 2,607의 `older_than_3_years` 비율 32.9% — 모집단 73.1% 대비 −40.2%p. 표면적으로 "stale 무관" 결과지만, **corp_code 순서 = DART 등록 시점 순**이라 차단 임계 이후 corp = corp_code 뒤쪽 = 등록 시점 최근 = modify_date 비교적 최근 분포 편중 정황.
+
+따라서 modify_date 분포 분석 시 corp_code 순서 통제 변수 필수. 본 (a) 결과는 "차단 메커니즘이 modify_date 무관"이라는 본질 결과는 유지 (1,356 통과 corp + 2,607 차단 corp 모두 modify_date 무관 분기) — 가설 (α) corp_code stale 본격 기각.
+
+향후 modify_date 또는 corp_code 등록 시점 관련 분포 분석 시 — 순서 변수 통제 (Fisher-Yates shuffle 또는 시드 고정 무작위 표본) 사전 적용. ADR-0015 B1 (corp_code 순서 무작위화) 채택은 본 학습의 직접 흡수.
+
+### 13~15(a) 종합 — corp_code stale 격리 도구 후순위 결정 매듭
+
+13단계 KSIC 26 universe 294건 status_013 = 0 (가설 (α) 미지지) + 15(a) Stage 1 실패 corp older_than_3_years 32.9% (모집단 73.1% 대비 역방향) → **가설 (α) corp_code stale 본격 기각**. corp_code stale은 Stage 1 실패 *결정론적 시그널*이 아님.
+
+따라서 **corp_code stale 격리 도구** (universe 사전 정제 도구 또는 scan-execute 통합 옵션) 우선순위 *후순위 내림*. 본 도구는 (c) 후속 단계 후보였으나 본 결정으로 *제거*.
+
+대신 (β) burst rate-limit 본격 검증 + 정책 채택 → ADR-0015 신설 (2026-05-09). (c) 후속 우선순위:
+1. ADR-0015 구현 단계 (RateLimitedDartClient 강화 + naver/KIS throttle wrapper + scan-execute shuffle + fail-fast)
+2. ADR-0015 구현 후 (a) 재측정 — KSIC 26 비교 차원 본격 측정 (15(a)에서 candidates 0이었던 영역 회복)
+3. §10.15 KSIC 9차/10차 정책 결정 (induty_code 매칭 정밀화)
+
+corp_code stale 격리 도구는 본 우선순위에서 *제거*. 향후 새 정황 (예: 다른 universe에서 stale 결정론 정황 발견) 발생 시 재진입 가능.
+
 ## 의사결정 시 주의
 
 새 결정이 필요한 상황을 마주하면 다음을 따른다.
