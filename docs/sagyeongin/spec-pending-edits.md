@@ -512,6 +512,35 @@ reprt_code fallback (정책 ②) 불필요 — 데이터는 11011에 존재.
 
 ---
 
+### [§10.15] DART `induty_code` 필드 KSIC 9차/10차 개정 코드 혼재 — 산업 분류 필터 정책 후보 누적
+
+**현재**: `src/tools/sagyeongin/scan-execute.ts` line 187-190의 `included_industries` / `excluded_industries` 필터는 `induty_code.startsWith(prefix)` 패턴 매칭. 13단계 KSIC 26 universe 추출 (`included_industries: ["26"]`) 시 294건 매칭. 가정: `induty_code` = 현행 KSIC 10차 개정 코드.
+
+**정정**: 15단계 (a) 사전 검증 영역 1 (2026-05-08, `feat/stage15a-pre-verify` HEAD `0855c94`)에서 가정 어긋남 확인 — DART company.json `induty_code` 필드는 **현행 KSIC 10차 개정이 아닌 등록 시점 개정 기준** 저장.
+
+| 사례 | 매칭 결과 | 정황 |
+|---|---|---|
+| `included_industries: ["70"]` (KSIC 10차 사업서비스) | 3건만 매칭 | KSIC 9차 전문과학기술 코드 "70xx"로 등록된 biotech 3건 (인벤테라/에임드바이오/카나프테라퓨틱스). KSIC 10차 70 산업 corp 대부분은 다른 prefix로 등록 |
+| `included_industries: ["47"]` (KSIC 10차 소매업) | **0건** | KSIC 9차 소매업 코드 "52xx" 등록 다수 정황. startsWith("47") 매치 0 |
+| `excluded_industries: ["26"]` (15(a) 본격, 2026-05-09) | 659건 통과 (Stage 1 통과 후) | 13단계 KSIC 26 universe 294와 직접 비교 정합. *단 KSIC 9차 기준 전자부품 산업 corp이 다른 prefix로 등록되어 KSIC 26 모집단 자체가 불완전했을 가능성 — 13단계 결과 자체에도 해당 변수 존재* |
+
+### 정책 후보 (현 시점 결정 X)
+
+- **후보 X1** (현행 매칭 유지): startsWith 패턴 그대로. 9차/10차 변수는 측정 정확도 한계로 흡수.
+- **후보 X2** (KSIC 9차/10차 매핑 테이블 신설): 같은 산업의 9차/10차 코드 양쪽 매칭. 외부 매핑 source 필요 (통계청 KSIC 코드 매핑 자료 등). 인프라 부담.
+- **후보 X3** (DART corp_code DB의 induty_code 분포 사전 조사 후 universe 결정 도구 신설): `sagyeongin_industry_distribution_status` (가칭) 도구로 induty_code prefix 분포 + corp 카운트 노출. 사용자가 universe 결정 시 정황 입력.
+
+### 사용 시점
+
+본 §10.15 정책 결정은 (c) 후속 단계에서 진입 — 도구 차원 결정 필요한 시점. 현 시점은 *데이터 누적*만.
+
+발견: 15단계 (a) 사전 검증 영역 1 (2026-05-08), `feat/stage15a-pre-verify` HEAD `0855c94`.
+처리 영역: 미정 — (c) 후속 도구 결정 시점.
+
+**상태**: pending (정책 결정 X, 데이터 누적만)
+
+---
+
 ## Applied 항목
 
 (아직 없음. v0.3에서 일괄 반영 시 채워짐.)
