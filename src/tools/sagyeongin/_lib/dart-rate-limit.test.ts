@@ -216,6 +216,122 @@ describe("RateLimitedDartClient", () => {
     });
   });
 
+  describe("JSON 분기 — fetch failed retry 정책 (ADR-0015 A2)", () => {
+    test("getJson 첫 fetch failed → retry 후 정상('000') → callCount 2 + 정상 반환", async () => {
+      const mock = makeMock({
+        jsonResponses: [
+          new TypeError("fetch failed"),
+          { status: "000", list: [{ ok: true }] },
+        ],
+      });
+      const limited = new RateLimitedDartClient(mock);
+      const r = await limited.getJson<{ status: string; list?: unknown[] }>(
+        "path",
+      );
+      assert.equal(r.status, "000");
+      assert.equal(limited.callCount, 2);
+      assert.equal(mock.getJsonCallCount, 2);
+    });
+
+    test("getJson 2회 연속 fetch failed → DartRateLimitError throw + 메시지 [network_block] + callCount 2", async () => {
+      const mock = makeMock({
+        jsonResponses: [
+          new TypeError("fetch failed"),
+          new TypeError("fetch failed"),
+        ],
+      });
+      const limited = new RateLimitedDartClient(mock);
+      await assert.rejects(
+        () => limited.getJson("path"),
+        (err: unknown) => {
+          assert.ok(err instanceof DartRateLimitError);
+          assert.match((err as Error).message, /rate limit reached after retry/);
+          assert.match((err as Error).message, /status=\[network_block\]/);
+          assert.match((err as Error).message, /callCount=2/);
+          return true;
+        },
+      );
+      assert.equal(limited.callCount, 2);
+      assert.equal(mock.getJsonCallCount, 2);
+    });
+
+    test("getJson fetch failed → retry 후 HTTP 500 throw → 비-fetch-failed propagation + callCount 2", async () => {
+      const mock = makeMock({
+        jsonResponses: [
+          new TypeError("fetch failed"),
+          new Error("DART path → HTTP 500"),
+        ],
+      });
+      const limited = new RateLimitedDartClient(mock);
+      await assert.rejects(
+        () => limited.getJson("path"),
+        (err: unknown) => {
+          assert.ok(err instanceof Error);
+          assert.ok(!(err instanceof DartRateLimitError));
+          assert.match((err as Error).message, /HTTP 500/);
+          return true;
+        },
+      );
+      assert.equal(limited.callCount, 2);
+      assert.equal(mock.getJsonCallCount, 2);
+    });
+  });
+
+  describe("ZIP 분기 — fetch failed retry 정책 (ADR-0015 A2)", () => {
+    test("getZip 첫 fetch failed → retry 후 정상 → callCount 2", async () => {
+      const buf = Buffer.from("PK\x03\x04mock-zip");
+      const mock = makeMock({
+        zipResponses: [new TypeError("fetch failed"), buf],
+      });
+      const limited = new RateLimitedDartClient(mock);
+      const r = await limited.getZip("path");
+      assert.equal(r, buf);
+      assert.equal(limited.callCount, 2);
+      assert.equal(mock.getZipCallCount, 2);
+    });
+
+    test("getZip 2회 연속 fetch failed → DartRateLimitError throw + 메시지 [network_block] + callCount 2", async () => {
+      const mock = makeMock({
+        zipResponses: [
+          new TypeError("fetch failed"),
+          new TypeError("fetch failed"),
+        ],
+      });
+      const limited = new RateLimitedDartClient(mock);
+      await assert.rejects(
+        () => limited.getZip("path"),
+        (err: unknown) => {
+          assert.ok(err instanceof DartRateLimitError);
+          assert.match((err as Error).message, /status=\[network_block\]/);
+          assert.match((err as Error).message, /callCount=2/);
+          return true;
+        },
+      );
+      assert.equal(limited.callCount, 2);
+      assert.equal(mock.getZipCallCount, 2);
+    });
+
+    test("getZip fetch failed → retry 후 [020] throw → 020 prefix throw 통합 (1차 catch 통합 정책)", async () => {
+      const mock = makeMock({
+        zipResponses: [
+          new TypeError("fetch failed"),
+          new Error("DART path → [020] 요청 건수 초과"),
+        ],
+      });
+      const limited = new RateLimitedDartClient(mock);
+      await assert.rejects(
+        () => limited.getZip("path"),
+        (err: unknown) => {
+          assert.ok(err instanceof DartRateLimitError);
+          assert.match((err as Error).message, /status=020/);
+          return true;
+        },
+      );
+      assert.equal(limited.callCount, 2);
+      assert.equal(mock.getZipCallCount, 2);
+    });
+  });
+
   describe("callCount getter — 누적", () => {
     test("getJson + getZip 여러 호출 후 callCount 누적", async () => {
       const mock = makeMock({
