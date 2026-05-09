@@ -120,13 +120,19 @@ export class RateLimitedDartClient {
   }
 
   /**
-   * JSON — 반환값 body.status "020" 감지.
+   * JSON — 반환값 body.status "020" 감지 + throw된 fetch failed 감지 (ADR-0015 A2).
    *
-   * 1차: inner.getJson 호출 → 반환값 status "020" 검사
-   * 2차 (1차에서 020 감지 시): sleep + retry → 반환값 status "020" 검사
-   * 2차에서도 020 → DartRateLimitError throw
+   * 020 분기 (반환값 검사):
+   * - 1차: inner.getJson 호출 → 반환값 status "020" 검사
+   * - 2차 (1차에서 020 감지 시): sleep + retry → 반환값 status "020" 검사
+   * - 2차에서도 020 → DartRateLimitError throw with status=020
    *
-   * inner.getJson 자체가 throw할 때 (HTTP 4xx/5xx 등): 그대로 propagate
+   * fetch failed 분기 (throw 검사 — 020 분기와 독립 정책):
+   * - 1차 호출에서 TypeError "fetch failed" throw → sleep + retry
+   * - 2차 retry 결과 그대로 반환 (020 검사 미진입 — 두 분기 독립)
+   * - 2차에서도 fetch failed → DartRateLimitError throw with status=[network_block]
+   *
+   * 비-fetch-failed throw (HTTP 4xx/5xx 등): 그대로 propagate
    */
   async getJson<T = unknown>(
     path: string,
@@ -164,13 +170,15 @@ export class RateLimitedDartClient {
   }
 
   /**
-   * ZIP — throw된 에러 메시지에서 "[020]" 감지.
+   * ZIP — throw된 에러 메시지 "[020]" 감지 + "fetch failed" 감지 (ADR-0015 A2, 1차 catch 통합 정책).
    *
    * 1차: inner.getZip 호출 → 정상 반환 또는 throw
-   * 1차에서 020 메시지 throw 시: sleep + retry → 정상 반환 또는 throw
-   * 2차에서도 020 메시지 throw → DartRateLimitError throw
+   * 1차에서 020 메시지 또는 fetch failed throw 시: sleep + retry (분기 통합) → 정상 반환 또는 throw
+   * 2차 throw 시점에 분기 분리:
+   * - 020 메시지 → DartRateLimitError throw with status=020
+   * - fetch failed → DartRateLimitError throw with status=[network_block]
    *
-   * 비-020 throw (HTTP 에러 또는 다른 status code): 그대로 propagate
+   * 비-020 + 비-fetch-failed throw (HTTP 4xx/5xx 등): 그대로 propagate
    */
   async getZip(
     path: string,
