@@ -53,8 +53,8 @@ ADR-0009 트레이드오프 명시 영역도 직접 발현:
 
 ### 영역 D — 차단 detection 후 처리
 
-- **D1** (fail-fast): 차단 detection 발동 시 잔여 호출 즉시 종료. checkpoint 저장 (ADR-0014 정합) + DartRateLimitError/DartNetworkError throw.
-  - 임계: 연속 fetch failed N회 (예: 10회) → fail-fast 발동.
+- **D1** (retry-and-throw 즉시 종결): A2 retry 흡수 후 1번 throw → scan-execute의 모든 catch에서 즉시 종결. 별도 카운터 추가 X — 본 흐름이 본질적 fail-fast.
+  - 본질: A2의 1차 fetch failed → sleep + retry → 2차 fetch failed 시 `DartRateLimitError` throw. scan-execute가 catch 시 saveAndReturnPartial 또는 limitReached flag 즉시 반환. *N회 누적 임계*는 본 흐름에서 의미 X (1번 throw로 즉시 종결).
 - **D2** (현재 흐름 유지): 모든 호출 시도, 실패 누적. 15(a) 376.5s 중 stage1 차단 후 계속 진행한 비효율 그대로.
 
 ## 결정
@@ -83,15 +83,27 @@ ADR-0009 트레이드오프 명시 영역도 직접 발현:
 
 - naver-price.ts + kis-rating-scraper.ts를 composition으로 wrap
 - 정책: 호출 간 200ms delay 강제 (IP 차단 회피) + 차단 detection (fetch failed 또는 HTTP 4xx/5xx) → 1회 retry → 실패 시 `NaverRateLimitError` / `KisRateLimitError` throw
-- D1과 결합: 연속 차단 N회 → fail-fast
+- D1 정합: A2 retry 흡수 후 throw 시 scan-execute 즉시 종결 흐름과 통합 (별도 카운터 영역 X)
 
-### D1: fail-fast 정책
+### D1: retry-and-throw 즉시 종결 (코드 변경 X)
 
-`src/tools/sagyeongin/scan-execute.ts`에 연속 fetch failed 카운터 추가:
+A2 강화 후 흐름 분석 결과 D1 본질이 *현재 흐름이 이미 만족*하는 영역:
 
-- 카운터 임계: 연속 10회 fetch failed → fail-fast (조정 가능 파라미터)
-- fail-fast 발동 시: ADR-0014 checkpoint 저장 + `DartRateLimitError`/`DartNetworkError` throw → 호출자 (현재 없음, 향후 watchlist_check 등 통합 활용 가능)
-- 정책 사유: 15(a) stage1 차단 후 잔여 ~1,300 호출 계속 진행 (네트워크 호출 자체는 빠르나 누적 elapsed 영향) → 즉시 종료가 효율
+- A2: 1차 fetch failed → sleep 1초 + retry → 2차 fetch failed → `DartRateLimitError` throw (network_block)
+- scan-execute catch 흐름 (모든 영역에서 첫 throw로 즉시 종결):
+  - `stage1StaticFilter` (line 252-260): `DartRateLimitError` catch → `limitReached: true` 반환 → caller가 saveCheckpoint
+  - Stage 2 loop (line 700): `DartRateLimitError` catch → `saveAndReturnPartial` 즉시 종결
+  - Stage 3 loop (line 754): 동일
+  - enrich 4 영역 (line 365/387/406/422): `DartRateLimitError` catch → `limitReachedDuringEnrich: true` 즉시 반환
+- 본 흐름이 *retry-and-throw 1번으로 즉시 종결* = fail-fast 본질 영역 자체
+
+별도 카운터 추가 영역 X:
+- 1번 throw 후 즉시 종결 → *N회 누적 임계*가 발동 시점 전에 의미 X
+- ADR-0015 line 92의 *연속 N회 fetch failed 임계*는 *retry 흡수 영역* (1차 + retry = N=2)으로 재해석 — A2 정책의 retry 1회 = 본 임계 만족
+
+코드 변경: 0. ADR-0014 checkpoint 저장 흐름은 *현재 코드*에서 이미 활용 중 (saveCheckpoint 호출 영역 정합).
+
+정책 사유: 15(a) stage1 차단 후 1번 throw 시점에 즉시 종결되므로 잔여 호출 영역 발생 X. *현재 흐름이 본질 만족*.
 
 ### 위치 결정 — 옵션 X (분산) 채택
 
@@ -113,7 +125,7 @@ ADR-0009 트레이드오프 명시 영역도 직접 발현:
 - **A2 채택 (A1/A3 거부)**: 15(a) 직접 검증으로 A1 부족. A3 통합 wrapper는 영역별 분리 (DART vs naver/KIS) 명료성 손상. 기존 wrapper 강화가 최소 변경 + 효과 직접.
 - **B1 채택 (B2/B3 거부)**: B2는 시간 단위가 아닌 호출 누적 단위 차단에 효과 불확실. B3는 결정론적 차단 정황 무시. B1은 결정론 분산 — 매 실행마다 다른 corp 영역 차단으로 *부분 회복* 가능 (1,356 영역의 통과 corp이 매 실행마다 다름).
 - **C1 채택 (C2/C3 거부)**: C2 통합 wrapper는 DART vs naver/KIS의 별개 메커니즘을 같은 로직으로 처리하는 구조 비정합. C3는 ADR-0009 트레이드오프 영역 검증된 한계 무시.
-- **D1 채택 (D2 거부)**: 15(a) elapsed 비효율 직접 검증. fail-fast가 명료.
+- **D1 채택 (D2 거부)**: A2 강화 후 흐름이 *retry-and-throw 1번으로 즉시 종결* — 본질적 fail-fast. 별도 카운터 영역 X (코드 변경 0). D2의 1번 throw 후 잔여 호출 진행 영역은 A2 강화로 자동 회복.
 
 ## 결과
 
@@ -129,7 +141,7 @@ ADR-0009 트레이드오프 명시 영역도 직접 발현:
 
 - **재현성 손실 (B1)**: corp_code 순서 무작위화로 매 실행마다 차단 영역 다름. 디버깅 시 시드 고정 옵션 활용 필요.
 - **호출 누적 임계 자체는 변경 X (B1)**: shuffle은 차단 영역 *분산*만, *회피*는 X. 전체 차단 양은 동일 (~2,607).
-- **fail-fast 임계 파라미터 (D1)**: "연속 10회"는 첫 채택 임계 — 실측 후 조정 가능 (15(a) 차단 양상은 *지속적* network_error라 10회 임계 내에서 발동 정합).
+- **D1 본질 영역 (변경 X)**: A2 강화 후 흐름이 본질 만족 — 별도 카운터 추가 영역 X. input args 노출 (`consecutive_fetch_failed_threshold`)도 자동 회피.
 - **새 wrapper 추가로 인프라 확장**: naver-throttle.ts + kis-throttle.ts 신설. 단순 fetch에서 wrapper 한 단계 추가.
 
 ### 미래 변경 시 영향
@@ -137,7 +149,7 @@ ADR-0009 트레이드오프 명시 영역도 직접 발현:
 - **본격 (a) 재측정 영역 후속 단계**: ADR-0015 구현 후 (a) 재실행 → KSIC 26 비교 차원 본격 측정 가능 (15(a)에서 candidates 0이었던 영역).
 - **DART API 정책 변경 시**: 본 ADR 갱신 (예: status "020"에서 다른 status code로 변경 시 detection 분기 추가).
 - **새 외부 의존 추가 시**: 본 ADR cover 영역 확장 (예: 새 외부 가격 source 추가 시 wrapper 추가).
-- **ADR-0014 fail-fast 흐름 통합 검토**: 현재 fail-fast는 throw만, ADR-0014 checkpoint 저장은 호출자 (scan-execute) 책임. 통합 활용 패턴 명세 신설 가능.
+- **ADR-0014 fail-fast 흐름 정합**: A2 retry 후 throw는 scan-execute catch에서 ADR-0014 checkpoint 저장 흐름 (saveCheckpoint / saveAndReturnPartial)으로 즉시 통합. 추가 명세 신설 영역 X — 통합 자체가 정합.
 
 ## 참조
 
