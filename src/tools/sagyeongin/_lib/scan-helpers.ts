@@ -123,3 +123,41 @@ export function estimateApiCalls(
 export function calculateDailyLimitUsagePct(totalCalls: number): number {
   return Math.round((totalCalls / DAILY_LIMIT) * 1000) / 10;
 }
+
+/**
+ * Fisher-Yates shuffle — seed 기반 결정론 또는 무작위 (ADR-0015 B1).
+ *
+ * seed 미지정 (undefined): Math.random() 디폴트 — 무작위
+ * seed 지정 (number): mulberry32 PRNG 결정론 — 디버깅 + resume 시 동일 순서 복원
+ *
+ * 외부 의존 0. 입력 배열 변경 X (새 배열 반환).
+ *
+ * Ref: ADR-0015 B1, verifications/2026-05-09-stage16-pre-verify.md 영역 6
+ */
+export function shuffleWithSeed<T>(arr: T[], seed?: number): T[] {
+  const result = arr.slice();
+  const rand = seed === undefined ? Math.random : mulberry32(seed);
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+/**
+ * mulberry32 PRNG — 32-bit seed 기반 결정론 난수 생성기.
+ *
+ * 외부 의존 0. 동일 seed → 동일 시퀀스.
+ *
+ * Ref: https://github.com/bryc/code/blob/master/jshash/PRNGs.md#mulberry32 (public domain)
+ */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}

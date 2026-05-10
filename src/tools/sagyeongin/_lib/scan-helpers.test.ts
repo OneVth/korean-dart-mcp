@@ -15,6 +15,7 @@ import {
   filterUniverse,
   estimateApiCalls,
   calculateDailyLimitUsagePct,
+  shuffleWithSeed,
   KILLER_PASS_RATE_DEFAULT,
   SRIM_PASS_RATE_DEFAULT,
   type ListedCompany,
@@ -122,4 +123,28 @@ test("calculateDailyLimitUsagePct: 소수 1자리 영역", () => {
 test("default 상수 정합", () => {
   assert.equal(KILLER_PASS_RATE_DEFAULT, 0.8);
   assert.equal(SRIM_PASS_RATE_DEFAULT, 0.33);
+});
+
+test("shuffleWithSeed: 시드 고정 → 두 번 호출 결과 동일 (결정론)", () => {
+  const arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const r1 = shuffleWithSeed(arr, 42);
+  const r2 = shuffleWithSeed(arr, 42);
+  assert.deepEqual(r1, r2);
+  assert.deepEqual(arr, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  assert.notDeepEqual(r1, arr);
+});
+
+test("shuffleWithSeed: 시드 미지정 → 두 번 호출 결과 다름 (무작위)", () => {
+  // 충분히 큰 배열에서 두 번 무작위 shuffle이 동일할 확률은 1/n! — n=20에서 ~4e-19
+  const arr = Array.from({ length: 20 }, (_, i) => i);
+  const r1 = shuffleWithSeed(arr);
+  const r2 = shuffleWithSeed(arr);
+  assert.notDeepEqual(r1, r2);
+});
+
+test("shuffleWithSeed: edge — 빈 배열 / 단일 원소 → 동일 반환", () => {
+  assert.deepEqual(shuffleWithSeed([]), []);
+  assert.deepEqual(shuffleWithSeed([], 42), []);
+  assert.deepEqual(shuffleWithSeed([42]), [42]);
+  assert.deepEqual(shuffleWithSeed([42], 7), [42]);
 });
