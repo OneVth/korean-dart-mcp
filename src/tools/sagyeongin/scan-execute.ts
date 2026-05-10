@@ -50,9 +50,11 @@ import {
   type ScanCheckpointState,
 } from "./_lib/scan-checkpoint.js";
 import { killerCheckTool } from "./killer-check.js";
-import { srimTool } from "./srim.js";
+// [16(b) 측정] callCount 노출 — ADR-0015 효과 측정 영역.
+import { srimTool, naverLimited } from "./srim.js";
 import { cashflowCheckTool } from "./cashflow-check.js";
 import { capexSignalTool } from "./capex-signal.js";
+import { kisLimited } from "./required-return.js";
 import { sagyeonginInsiderSignalTool } from "./insider-signal.js";
 import { dividendCheckTool } from "./dividend-check.js";
 import { loadConfig } from "./_lib/config-store.js";
@@ -515,6 +517,12 @@ interface BuildResponseArgs {
   srimPassedCount: number;
   returnedCount: number | null;
   hasCheckpoint: boolean;
+  // [16(b) 측정] retry 흡수 총량 측정 영역 — ADR-0015 효과 측정.
+  externalCallStats: {
+    dart: number;
+    naver: number;
+    kis: number;
+  };
 }
 
 function buildResponse(args: BuildResponseArgs) {
@@ -543,6 +551,11 @@ function buildResponse(args: BuildResponseArgs) {
       after_killer_check: args.state.killer_passed_cumulative ?? 0,
       after_srim_filter: args.srimPassedCount,
       returned_candidates: args.returnedCount,
+    },
+    external_call_stats: {
+      dart_call_count: args.externalCallStats.dart,
+      naver_call_count: args.externalCallStats.naver,
+      kis_call_count: args.externalCallStats.kis,
     },
     candidates: args.candidates,
     skipped_corps: args.skipped,
@@ -575,6 +588,11 @@ function saveAndReturnPartial(
     srimPassedCount: partial.length,
     returnedCount: null,
     hasCheckpoint: true,
+    externalCallStats: {
+      dart: callCount,
+      naver: naverLimited.callCount,
+      kis: kisLimited.callCount,
+    },
   });
 }
 
@@ -659,6 +677,11 @@ export const scanExecuteTool = defineTool({
           srimPassedCount: 0,
           returnedCount: null,
           hasCheckpoint: true,
+          externalCallStats: {
+            dart: limited.callCount,
+            naver: naverLimited.callCount,
+            kis: kisLimited.callCount,
+          },
         });
       }
     }
@@ -805,6 +828,11 @@ export const scanExecuteTool = defineTool({
         srimPassedCount: partial.length,
         returnedCount: null,
         hasCheckpoint: true,
+        externalCallStats: {
+          dart: limited.callCount,
+          naver: naverLimited.callCount,
+          kis: kisLimited.callCount,
+        },
       });
     }
 
@@ -818,6 +846,11 @@ export const scanExecuteTool = defineTool({
       srimPassedCount: partial.length,
       returnedCount: finalCandidates.length,
       hasCheckpoint: false,
+      externalCallStats: {
+        dart: limited.callCount,
+        naver: naverLimited.callCount,
+        kis: kisLimited.callCount,
+      },
     });
   },
 });

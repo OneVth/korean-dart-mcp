@@ -24,8 +24,9 @@ import {
 
 // [ADR-0015 C1] kis-rating IP 차단 retry 정책 wrapper.
 // 모듈 단위 singleton — callCount는 본 모듈 내 누적.
+// [16(b) 측정] scan-execute에서 callCount 노출 영역 import — ADR-0015 효과 측정.
 const kisInner: KisRatingFetcher = { fetchBbbMinus5Y: fetchKisRatingBbbMinus5Y };
-const kisLimited = new RateLimitedKisRating(kisInner);
+export const kisLimited = new RateLimitedKisRating(kisInner);
 
 export type RequiredReturnResult = {
   value: number;                        // 분수
