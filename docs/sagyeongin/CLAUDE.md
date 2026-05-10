@@ -77,17 +77,27 @@
 - ~~[ ] 12단계 (백그라운드): insider 14b/c/d — Issue → 원작자 의향 확인 → PR~~ — 폐기 (ADR-0011, β-iii 폐기로 PR 영역 0)
 - [x] 13단계: `feat/corp-code-status` — sagyeongin_corp_code_status + scan-execute reason_code 분류 (TOOL_REGISTRY 28, 사경인 13, 2026-05-07)
 - [x] 14단계 (b): `feat/stage14-bundle1-se-fix` + `feat/stage14-bundle2-data-incomplete` — extractSharesOutstanding se 매치 정정 + skip-reason data_incomplete 분류 키 (TOOL_REGISTRY 28, 사경인 13, 2026-05-08)
+- [x] 15단계 (a): `feat/stage15a-pre-verify` + `feat/stage15a-field-test` — corp_code stale 가설 (α) 정밀 검증 + ADR-0015 신설 (외부 API burst 차단 통합 정책) (TOOL_REGISTRY 28, 사경인 13, 2026-05-09)
+- [x] 16단계: `feat/stage16-bundle1-A2-fetch-failed` + `feat/stage16-bundle2-C1-wrappers` + `feat/stage16-bundle3-B1-C1-callers` — ADR-0015 구현 (A2 fetch failed retry + B1 universe shuffle + C1 naver/KIS wrapper, D-i 정정으로 D1 코드 변경 X) (TOOL_REGISTRY 28, 사경인 13, 단테 188, 2026-05-09)
 
 ### 현재 작업 단계
 
-14단계 (b) 완료 (2026-05-08). TOOL_REGISTRY 28 (사경인 13, 도구 신설 0). `extractSharesOutstanding` `se` 매치 어긋남 정정 (`isCommonStockRow` 헬퍼 분리, includes 매치) + `_lib/skip-reason.ts` `data_incomplete` 분류 키 추가 (financial-extractor 5종 throw 망라). 2 묶음 + main 직커밋 2건: 사전 검증 (`feat/stage14-pre-verify`) → 묶음 1 (se 정정 + spec §10.14 신설, 단테 +6) → 묶음 2 (data_incomplete 분류 + ADR-0013 §추가, 단테 +4) → 매듭 (field-test 결과 + 마일스톤 + 누적 학습). 단테 누적 169 (+10 본 단계). β-i 격리 유지: `src/lib/` 0 변경.
+16단계 종결 (2026-05-09). TOOL_REGISTRY 28 (사경인 13, 도구 신설 0). ADR-0015 구현 — A2 (RateLimitedDartClient fetch failed retry) + B1 (universe shuffle) + C1 (naver/KIS wrapper). D-i 정정으로 D1 코드 변경 0 (현재 흐름이 fail-fast 본질 만족). 묶음 3건 + 정정 4건 + 매듭 1건 (본 commit):
+- 묶음 1 (`feat/stage16-bundle1-A2-fetch-failed`): A2 RateLimitedDartClient fetch failed 분기 + 단테 +6 (10 → 16) + 메서드 JSDoc 정정
+- 묶음 2 (`feat/stage16-bundle2-C1-wrappers`): naver-throttle.ts + kis-throttle.ts 신설 + 단테 +10 (dead code 머지)
+- 정정 1 (사전 검증 누락): docs/sagyeongin/verifications/2026-05-09-stage16-pre-verify.md main commit + .serena/ ignore
+- 정정 2 (자체 모순): 사전 검증 영역 3 결과 요약 옵션 α → β 정정
+- 정정 3 (D1 본질): ADR-0015 + 사전 검증 영역 3/7/8 β → D-i 정정 (코드 변경 0 채택)
+- 묶음 3 (`feat/stage16-bundle3-B1-C1-callers`): scan-helpers shuffleWithSeed + mulberry32 PRNG + scan-execute random_seed 통합 + srim/required-return wrapper 호출자 적용 + 단테 +3 (14 → 17)
 
-watchlist field-test 결과 (8건 표본 — 13단계 unknown 8건이었던 corp 재실행): srim verdict 복구 6/8 (SELL 5 / BUY 1), skip 분류 unknown 8 → 0 (verdict null 2건 ADR-0013 정상 경로 포함 — prices ≤0, skip 아님). data_incomplete 0건 (묶음 2 패일세이프 미발동).
+단테 누적 169 → 188 (+19 본 단계). β-i 격리 유지: `src/lib/` 0 변경. naver-price.ts / kis-rating-scraper.ts 변경 0.
 
-13단계 후속 후보 (a)/(c) 잔존 + 14단계 신규:
-- (a) KSIC 26 외 섹터 field-test (가설 (α) 정밀 검증, 우선순위 중 — 비활성 섹터 표적 universe)
-- (c) corp_code 갱신 도구 신설 (정황 증거 기반, 우선순위 낮음 — 가설 미지지)
-- (e) 응답 내 필드값 다양성 사전 검증 차원 정착 (14단계 (b) 학습 누적, 우선순위 높음 — 향후 사전 검증 명세 정착)
+다음 단계: **16(b) field-test (a) 재측정** — DART 24h 리셋 + naver/KIS IP 회복 후 별도 사이클 진입. 본 측정에서 *shuffle 효과* (B1 — 11단계/15(a) 65.8% / 2,607 동일 결과 회피) + *wrapper retry 효과* (C1 — naver/KIS IP 차단 회복) + *KSIC 26 비교 차원* (15(a)에서 candidates 0이었던 영역 회복) 본격 검증.
+
+후속 후보 잔존:
+- 16(b) field-test (a) 재측정 (우선순위 최상 — ADR-0015 효과 직접 검증)
+- §10.15 KSIC 9차/10차 정책 결정 (induty_code 매칭 정밀화, 우선순위 중)
+- (e) 응답 내 필드값 다양성 사전 검증 차원 정착 (지속, 우선순위 높음)
 
 ## 자주 막히는 곳
 
@@ -700,6 +710,42 @@ verifications/ 패턴의 최강 효과 — 단순 가설 검증/데이터 수집
 3. §10.15 KSIC 9차/10차 정책 결정 (induty_code 매칭 정밀화)
 
 corp_code stale 격리 도구는 본 우선순위에서 *제거*. 향후 새 정황 (예: 다른 universe에서 stale 결정론 정황 발견) 발생 시 재진입 가능.
+
+### 옵션 분석 후 *현재 흐름 만족* 옵션 채택 패턴 — 본질 검토 단계 추가
+
+발견: 16단계 D1 정정 (2026-05-09). ADR-0015 본문에서 D1 (연속 fetch failed N회 fail-fast)을 4영역 통합 채택했지만 묶음 3 명세 작성 사전 view 단계에서 본질 분석 결과 — A2 강화 후 모든 catch (stage1/2/3 + enrich)가 1번 throw로 즉시 종결 = 본질적 fail-fast. 별도 카운터 추가는 발동 시점 전에 의미 없음.
+
+옵션 분석 흐름이 α → β → γ로 *카운터 추가 자체*를 전제로 진행되면 *카운터 X 옵션* (D-i)이 누락되는 분기 발생. 본 분기 회피 위해 옵션 분석 *전*에 *현재 흐름이 본 본질 만족 영역인가* 본 검토 단계 추가.
+
+향후 새 카운터/임계/플래그 추가 결정 시 — *현재 흐름이 본 정책 본질을 이미 만족하는가* 본 검토 우선. 만족 시 *코드 변경 0* 옵션이 본질 정합.
+
+### 사전 검증 문서 main commit 진입 누락 가드
+
+발견: 16단계 (2026-05-09). 사전 검증 문서 (`verifications/2026-05-09-stage16-pre-verify.md`)를 작성했지만 fork에 commit 진입을 명세 흐름에서 명시 X — 묶음 1/2 진입 + 머지까지 untracked 파일 영역 그대로.
+
+verifications/ 패턴은 9단계 정착 — 사전 검증 작성 직후 main 직커밋이 정합 흐름. 향후 사전 검증 작성 시 *작성 + main commit + push*가 한 묶음. 사전 검증 진입 *직후* (다음 명세 작성 *전*) 즉시 commit이 본 패턴.
+
+### 명세 산수 오류 가드 — 직접 계산 + grep/diff 본문 첨부
+
+발견: 16단계 묶음 3 명세 (2026-05-09). 누적 단테 산수에서 "198 (185 + 3)"이라 기재 — 정확은 188 (185 + 3). 단순 누적 합 오류이지만 명세 자체에 값 어긋남 발생.
+
+향후 명세 작성 시 산수 영역 *직접 계산* + 검증 명령 본문 포함. 예: `185 + 3 = 188 (검증: grep -cE "test\(" target.test.ts)`. 누적 단테 / commit 누적 / diff stat 등 산수 영역 모두 *전제 vs 결과* 분리 + 검증 명령 첨부.
+
+### 사전 view 단계의 명세 본질 정정 가능 — 정정 누적 ②-plus 영역
+
+발견: 16단계 D-i 정정 (2026-05-09). 사전 검증 단계에서 옵션 α → β 정정 후 묶음 3 명세 작성 *진입 전* 사전 view 단계에서 추가 본질 분석 → β → D-i 정정 (코드 변경 0 채택). 한 사이클 안에서 정정이 *두 단계*에서 발생.
+
+14(b) 정착 패턴 ②-plus (정책 후보 자체 재정의) 누적 사례. 본 패턴이 단순 가설 검증/데이터 수집을 넘어 *명세 본문 자체 본질 정정* 영역으로 확장. 향후 사전 view 단계에서 *명세 본문 본질이 흐름과 정합한가* 검토 추가. 정합 X 시 명세 작성 진입 *전* 정정 docs commit 진입.
+
+### 16단계 종합 — ADR-0015 구현 + D-i 정정 + 누적 학습 4건
+
+ADR-0015 구현 본격 채택 영역:
+- A2 (RateLimitedDartClient fetch failed retry) — Node 18+ undici fetch 차단 detection + retry 흡수
+- B1 (universe shuffle) — 11단계/15(a) 동일 결과 회피, mulberry32 PRNG (외부 의존 0)
+- C1 (naver/KIS wrapper) — IP 차단 retry 정책, 모듈 singleton 인스턴스
+- D-i (D1 코드 변경 0) — 현재 흐름이 fail-fast 본질 만족, 별도 카운터 영역 X
+
+누적 단테 188 (+19 본 단계). β-i 격리 유지. spec assumption vs field-test mismatch 누적: 12 (15(a) 후) 그대로 (16단계는 코드 영역, 응답 본문 영역 X).
 
 ## 의사결정 시 주의
 
