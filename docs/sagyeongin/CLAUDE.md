@@ -79,23 +79,26 @@
 - [x] 14단계 (b): `feat/stage14-bundle1-se-fix` + `feat/stage14-bundle2-data-incomplete` — extractSharesOutstanding se 매치 정정 + skip-reason data_incomplete 분류 키 (TOOL_REGISTRY 28, 사경인 13, 2026-05-08)
 - [x] 15단계 (a): `feat/stage15a-pre-verify` + `feat/stage15a-field-test` — corp_code stale 가설 (α) 정밀 검증 + ADR-0015 신설 (외부 API burst 차단 통합 정책) (TOOL_REGISTRY 28, 사경인 13, 2026-05-09)
 - [x] 16단계: `feat/stage16-bundle1-A2-fetch-failed` + `feat/stage16-bundle2-C1-wrappers` + `feat/stage16-bundle3-B1-C1-callers` — ADR-0015 구현 (A2 fetch failed retry + B1 universe shuffle + C1 naver/KIS wrapper, D-i 정정으로 D1 코드 변경 X) (TOOL_REGISTRY 28, 사경인 13, 단테 188, 2026-05-09)
+- [x] 16단계 (b): `feat/stage16b-bundle1-callcount-exposure` + `feat/stage16b-field-test` — callCount 노출 (옵션 A1, scan-execute external_call_stats 결과 schema 추가) + field-test 측정 자격 검증 (DART daily limit으로 stage1 도중 차단 발동, ADR-0015 본격 효과 측정은 16(c) 후속 사이클 분리) (TOOL_REGISTRY 28, 사경인 13, 단테 188, 2026-05-10)
 
 ### 현재 작업 단계
 
-16단계 종결 (2026-05-09). TOOL_REGISTRY 28 (사경인 13, 도구 신설 0). ADR-0015 구현 — A2 (RateLimitedDartClient fetch failed retry) + B1 (universe shuffle) + C1 (naver/KIS wrapper). D-i 정정으로 D1 코드 변경 0 (현재 흐름이 fail-fast 본질 만족). 묶음 3건 + 정정 4건 + 매듭 1건 (본 commit):
-- 묶음 1 (`feat/stage16-bundle1-A2-fetch-failed`): A2 RateLimitedDartClient fetch failed 분기 + 단테 +6 (10 → 16) + 메서드 JSDoc 정정
-- 묶음 2 (`feat/stage16-bundle2-C1-wrappers`): naver-throttle.ts + kis-throttle.ts 신설 + 단테 +10 (dead code 머지)
-- 정정 1 (사전 검증 누락): docs/sagyeongin/verifications/2026-05-09-stage16-pre-verify.md main commit + .serena/ ignore
-- 정정 2 (자체 모순): 사전 검증 영역 3 결과 요약 옵션 α → β 정정
-- 정정 3 (D1 본질): ADR-0015 + 사전 검증 영역 3/7/8 β → D-i 정정 (코드 변경 0 채택)
-- 묶음 3 (`feat/stage16-bundle3-B1-C1-callers`): scan-helpers shuffleWithSeed + mulberry32 PRNG + scan-execute random_seed 통합 + srim/required-return wrapper 호출자 적용 + 단테 +3 (14 → 17)
+16(b) 종결 (2026-05-10). TOOL_REGISTRY 28 (사경인 13, 도구 신설 0). 본 사이클 본질 — *측정 자격 검증* (ADR-0015 본격 효과 측정 영역 사전 점검). 묶음 2건 + 매듭 (본 commit):
+- 묶음 1 (`feat/stage16b-bundle1-callcount-exposure`): callCount 노출 옵션 A1 — srim/required-return naverLimited/kisLimited singleton export + scan-execute BuildResponseArgs externalCallStats + result schema external_call_stats. 3 files / +38 / -3. 단테 영향 X (188 그대로)
+- 묶음 2 (`feat/stage16b-field-test`): field-test script 신설 + KSIC 26 universe 측정 + 결과 JSON 보존. main 머지 X (15(a) 정합 — 대용량 JSON feat 브랜치만)
+- 매듭 (본 commit): 결과 분석 md (`verifications/2026-05-10-stage16b-field-test.md`) + CLAUDE.md 갱신
 
-단테 누적 169 → 188 (+19 본 단계). β-i 격리 유지: `src/lib/` 0 변경. naver-price.ts / kis-rating-scraper.ts 변경 0.
+측정 결과 본질: stage1 도중 DART daily limit (서버 status 020) 발동 — dart_call_count 1,001 / 3,963 ≈ 25% partial 평가에서 차단. ADR-0015 효과 측정 4건 중 D1 fail-fast 정합 동작만 검증, B1/C1/candidates 회복 측정 X. 본 사이클을 *측정 자격 검증*으로 재정의.
 
-다음 단계: **16(b) field-test (a) 재측정** — DART 24h 리셋 + naver/KIS IP 회복 후 별도 사이클 진입. 본 측정에서 *shuffle 효과* (B1 — 11단계/15(a) 65.8% / 2,607 동일 결과 회피) + *wrapper retry 효과* (C1 — naver/KIS IP 차단 회복) + *KSIC 26 비교 차원* (15(a)에서 candidates 0이었던 영역 회복) 본격 검증.
+단테 누적 188 (변경 X). β-i 격리 유지: `src/lib/` 변경 0 + naver-price.ts / kis-rating-scraper.ts / wrapper 변경 0.
+
+다음 단계: **16(c) 후속 사이클** — ADR-0015 본격 효과 측정 영역. 측정 자격 보장 정책 결정 후 진입:
+- (옵션 i) DART daily limit 자정 직후 + 사전 호출 0 정책 → 동일 universe 재측정
+- (옵션 ii) ADR-0016 신설 — universe 사전 cache 영역 (KSIC 코드 사전 캐시) → 코드 변경 + 재측정
+- (옵션 iii) 측정 universe 축소 — 단일 corp_cls 등 → 측정 영역 본질 변경
 
 후속 후보 잔존:
-- 16(b) field-test (a) 재측정 (우선순위 최상 — ADR-0015 효과 직접 검증)
+- 16(c) 사이클 — ADR-0015 본격 효과 측정 (우선순위 최상)
 - §10.15 KSIC 9차/10차 정책 결정 (induty_code 매칭 정밀화, 우선순위 중)
 - (e) 응답 내 필드값 다양성 사전 검증 차원 정착 (지속, 우선순위 높음)
 
@@ -746,6 +749,41 @@ ADR-0015 구현 본격 채택 영역:
 - D-i (D1 코드 변경 0) — 현재 흐름이 fail-fast 본질 만족, 별도 카운터 영역 X
 
 누적 단테 188 (+19 본 단계). β-i 격리 유지. spec assumption vs field-test mismatch 누적: 12 (15(a) 후) 그대로 (16단계는 코드 영역, 응답 본문 영역 X).
+
+### 진입 프롬프트 작성 시 ADR/spec 직접 grep 누락 가드
+
+발견: 16(b) calibration (2026-05-10). 16(b) 진입 프롬프트의 calibration 항목 1번 라벨링 — "7부 D-2 '도구 신뢰성' + ADR-0015 구현". 실제 ADR-0015 line 162에는 `philosophy 7부 A (사전 솎아내기) + 5부 (분기 단위 점검 — 도구 신뢰성)` 명시. 7부 D-2는 S-RIM 적정가 도구 (4부 본질의 implementation), "도구 신뢰성" 본질은 5부.
+
+진입 프롬프트 작성 직전 *기억 영역*에서 라벨 회상 → ADR/spec 직접 grep 누락 → 본질 어긋남 라벨링. 본 어긋남이 다음 세션 calibration에서 정정.
+
+향후 진입 프롬프트 작성 시 — calibration 항목의 철학 라벨링은 *기억 영역* 영역 X, *fork ADR/spec 직접 grep 영역*. 작성 직전 ADR-N에서 `philosophy` 또는 `7부` / `5부` 등 라벨 직접 grep 본격 수행.
+
+### 위임 명세 line 번호 정확성 가드 — grep 매치 line vs 호출 영역 시작 line 어긋남
+
+발견: 16(b) 묶음 1 (2026-05-10). 위임 명세에서 buildResponse 호출 영역 (b)를 `line 655`로 기재 → 실제 위치 line 673 (Onev 보고) → 변경 후 최종 line 680. 어긋남 본질 — *grep 매치 line*은 함수 호출의 *return 키워드* 또는 *함수명* 매치 line이지만, *호출 영역 전체 시작 line*은 그것과 다를 수 있음 (인자 객체 여러 줄).
+
+향후 위임 명세 line 번호 명시 시 — *grep 결과 line 번호 그대로 인용* + *sed 검증 명령 명세 본문 포함* (`sed -n 'A,Bp' file.ts` 영역에서 직접 식별 영역). 명세 line 번호 vs 변경 후 실제 line 번호 어긋남 가드.
+
+### 사전 검증 baseline 가정의 측정 자격 의존성
+
+발견: 16(b) field-test (2026-05-10). 사전 검증 명세 영역 4의 "after_static_filter = 294 (13단계 측정값)" baseline 가정이 *완전 universe 평가 가능 시점* 가정. 16(b) 측정 결과 86 (1,001/3,963 partial 평가) — Onev 환경 API 키 daily limit 잔여량 의존.
+
+사전 검증 baseline 가정은 *측정 자격 자체*가 보장된 상황 가정. 외부 자원 daily limit 영역 (DART 등)에서는 측정 시점의 잔여량에 따라 *완전 평가 자격*이 다름.
+
+향후 사전 검증 명세 작성 시 — *측정 자격 자체 사전 확인 영역* 추가. 외부 자원 daily limit 잔여량 (status 020 응답 또는 잔여량 측정 영역) 사전 점검 후 baseline 가정 정합 영역 명시.
+
+### 16(b) 종합 — 측정 자격 검증 + callCount 노출 + 누적 학습 3건
+
+본 사이클 본질을 *측정 자격 검증*으로 재정의 (사전 검증 본질 ADR-0015 효과 직접 측정 → field-test 결과 stage1 차단으로 측정 자격 미회복):
+- 묶음 1: callCount 노출 (옵션 A1) — srim/required-return singleton export + scan-execute external_call_stats result schema. 3 files / +38 / -3. 단테 영향 X
+- 묶음 2: field-test 측정 — KSIC 26 universe + dart_call_count 1,001 (서버 status 020) + 1,001/3,963 partial 평가 + checkpoint 발동. main 머지 X (15(a) 정합)
+- 매듭: 결과 분석 md + CLAUDE.md 갱신
+
+ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 측정 / C1 측정 X / candidates 측정 X. 본격 효과 측정은 16(c) 후속 사이클 분리.
+
+영역 6 분기 5 신설 — DART daily limit 영역 측정 자격 미회복 (예상 외). 후속 ADR 후보 — ADR-0016 universe 사전 cache 영역.
+
+누적 단테 188 (변경 X). β-i 격리 유지. spec assumption vs field-test mismatch 누적: 12 그대로.
 
 ## 의사결정 시 주의
 
