@@ -40,8 +40,9 @@ import { fetchRequiredReturnK } from "./required-return.js";
 
 // [ADR-0015 C1] naver-price IP 차단 retry 정책 wrapper.
 // 모듈 단위 singleton — callCount는 본 모듈 내 누적 (호출 분산 방지).
+// [16(b) 측정] scan-execute에서 callCount 노출 영역 import — ADR-0015 효과 측정.
 const naverInner: NaverPriceFetcher = { fetchPrice: fetchNaverPrice };
-const naverLimited = new RateLimitedNaverPrice(naverInner);
+export const naverLimited = new RateLimitedNaverPrice(naverInner);
 
 async function resolveK(
   args: { override_K?: number },
