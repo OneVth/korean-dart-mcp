@@ -17,6 +17,15 @@ import { z } from "zod";
 import { defineTool, type ToolCtx, type ToolDef } from "../_helpers.js";
 import { loadConfig, saveConfig } from "./_lib/config-store.js";
 import { fetchKisRatingBbbMinus5Y } from "./_lib/kis-rating-scraper.js";
+import {
+  RateLimitedKisRating,
+  type KisRatingFetcher,
+} from "./_lib/kis-throttle.js";
+
+// [ADR-0015 C1] kis-rating IP 차단 retry 정책 wrapper.
+// 모듈 단위 singleton — callCount는 본 모듈 내 누적.
+const kisInner: KisRatingFetcher = { fetchBbbMinus5Y: fetchKisRatingBbbMinus5Y };
+const kisLimited = new RateLimitedKisRating(kisInner);
 
 export type RequiredReturnResult = {
   value: number;                        // 분수
@@ -66,7 +75,7 @@ export async function fetchRequiredReturnK(
 
   // 스크래핑 시도
   try {
-    const result = await fetchKisRatingBbbMinus5Y();
+    const result = await kisLimited.fetchBbbMinus5Y();
 
     // 정상 경로: save 1
     config.required_return_cache = {

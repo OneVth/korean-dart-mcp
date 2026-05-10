@@ -25,8 +25,9 @@
  *   resume 시 Stage 4~6 다시 호출(enriched 미보존, 단순화 4 — 묶음 3B에서 합의).
  *
  * β-i 격리: src/lib/dart-client.ts 변경 0. ctx.client을 RateLimitedDartClient로 교체.
+ * ADR-0015 B1: stage1 진입 시 universe 호출 순서 무작위화 (resolved.random_seed로 시드 옵션).
  *
- * Ref: spec §10.8, §7, philosophy 5부 + 4부 + 7부 F + 8부, ADR-0009/0012/0013/0014
+ * Ref: spec §10.8, §7, philosophy 5부 + 4부 + 7부 F + 8부, ADR-0009/0012/0013/0014/0015
  */
 
 import { z } from "zod";
@@ -38,6 +39,7 @@ import {
 import {
   loadListedCompanies,
   filterUniverse,
+  shuffleWithSeed,
   DAILY_LIMIT,
   type ListedCompany,
 } from "./_lib/scan-helpers.js";
@@ -67,6 +69,7 @@ const InputSchema = z.object({
   excluded_name_patterns: z.array(z.string()).optional(),
   min_opportunity_score: z.number().default(0),
   limit: z.number().default(10),
+  random_seed: z.number().int().optional(),
   resume_from: z.string().optional(),
 });
 
@@ -77,6 +80,7 @@ export interface ResolvedInput {
   excluded_name_patterns?: string[];
   min_opportunity_score: number;
   limit: number;
+  random_seed?: number;
 }
 
 interface CompanyMeta {
@@ -209,6 +213,7 @@ async function resolveInput(
       args.excluded_name_patterns ?? preset.excluded_name_patterns,
     min_opportunity_score: args.min_opportunity_score,
     limit: args.limit,
+    random_seed: args.random_seed,
   };
 }
 
@@ -230,11 +235,16 @@ async function stage1StaticFilter(
     excluded_name_patterns: resolved.excluded_name_patterns,
   });
 
+  // [ADR-0015 B1] corp_code 호출 순서 무작위화 — burst 임계 영역 분산
+  // resolved.random_seed 미지정 시 매 실행 다른 결과 (디폴트 정합)
+  // resolved.random_seed 지정 시 결정론 (resume + 디버깅 정합)
+  const shuffled = shuffleWithSeed(namePatterned, resolved.random_seed);
+
   const universe: ListedWithMeta[] = [];
   const universeMeta: Record<string, CompanyMeta> = {};
   const skipped: SkippedCorp[] = [];
 
-  for (const corp of namePatterned) {
+  for (const corp of shuffled) {
     if (limited.callCount >= CHECKPOINT_THRESHOLD) {
       return {
         universe,

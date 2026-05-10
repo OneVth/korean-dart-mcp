@@ -32,7 +32,16 @@ import {
   type SrimVerdict,
 } from "./_lib/srim-calc.js";
 import { fetchNaverPrice } from "./_lib/naver-price.js";
+import {
+  RateLimitedNaverPrice,
+  type NaverPriceFetcher,
+} from "./_lib/naver-throttle.js";
 import { fetchRequiredReturnK } from "./required-return.js";
+
+// [ADR-0015 C1] naver-price IP 차단 retry 정책 wrapper.
+// 모듈 단위 singleton — callCount는 본 모듈 내 누적 (호출 분산 방지).
+const naverInner: NaverPriceFetcher = { fetchPrice: fetchNaverPrice };
+const naverLimited = new RateLimitedNaverPrice(naverInner);
 
 async function resolveK(
   args: { override_K?: number },
@@ -100,7 +109,7 @@ async function handleSrim(
   let price_source: string;
   if (corp.stock_code) {
     try {
-      const naver = await fetchNaverPrice(corp.stock_code);
+      const naver = await naverLimited.fetchPrice(corp.stock_code);
       current_price = naver.price;
       price_source = "naver";
     } catch (err) {
