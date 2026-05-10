@@ -1,0 +1,61 @@
+{
+  "started_at": "2026-05-10T13:22:36.652Z",
+  "finished_at": "2026-05-10T13:23:21.634Z",
+  "elapsed_sec": 44.98,
+  "universe_args": {
+    "included_industries": [
+      "26"
+    ],
+    "markets": [
+      "KOSPI",
+      "KOSDAQ"
+    ]
+  },
+  "baseline_main_hash": "b44d3e5",
+  "run_error": null,
+  "pipeline_stats": {
+    "initial_universe": 3963,
+    "after_static_filter": 86,
+    "after_killer_check": 0,
+    "after_srim_filter": 0,
+    "returned_candidates": null
+  },
+  "external_call_stats": {
+    "dart_call_count": 1001,
+    "naver_call_count": 0,
+    "kis_call_count": 0
+  },
+  "scan_id": "scan_2026-05-10_m82gga",
+  "checkpoint": "scan_2026-05-10_m82gga",
+  "next_actions_suggested": [
+    "daily limit 80% 도달. 24시간 후 `resume_from: \"scan_2026-05-10_m82gga\"`로 재개."
+  ],
+  "stage_distribution": {
+    "stage1": 0,
+    "stage2": 0,
+    "stage3": 0
+  },
+  "reason_code_distribution": {
+    "status_013": 0,
+    "status_014": 0,
+    "status_other": 0,
+    "corp_not_found": 0,
+    "network_error": 0,
+    "parse_error": 0,
+    "data_incomplete": 0,
+    "unknown": 0
+  },
+  "verdict_distribution": {
+    "BUY": 0,
+    "BUY_FAIR": 0,
+    "HOLD": 0,
+    "SELL": 0,
+    "null": 0,
+    "other": 0
+  },
+  "candidates_count": 0,
+  "skipped_corps_count": 0,
+  "raw_skipped_corps": [],
+  "candidates_summary": [],
+  "candidates_full": []
+}
