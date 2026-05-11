@@ -2,8 +2,8 @@
  * corp-meta-cache 단위 테스트.
  *
  * Node built-in test runner (node --test). 빌드 후 실행.
- * SAGYEONGIN_CONFIG_DIR을 임시 디렉토리로 가리켜 격리 — scan-checkpoint.test.ts
- * 패턴 정합.
+ * SAGYEONGIN_CONFIG_DIR을 임시 디렉토리로 가리켜 격리 — scan-checkpoint.test.ts와
+ * 동일 패턴.
  *
  * Ref: ADR-0016, ADR-0003
  */
@@ -143,18 +143,18 @@ describe("invalidateStale", () => {
     assert.notEqual(getCorpMeta("00258801"), null);
   });
 
-  test("dump 영역에 부재한 corp_code → 삭제 (dump 영역 삭제 정황)", () => {
+  test("dump에 부재한 corp_code → 삭제 (dump에서 삭제된 정황)", () => {
     setCorpMeta(makeRecord("00126380"));
     setCorpMeta(makeRecord("99999999"));
     const map = new Map([
       ["00126380", "20260101"],
-      // 99999999 부재 → stale 영역
+      // 99999999 부재 → stale
     ]);
     assert.equal(invalidateStale(map), 1);
     assert.equal(getCorpMeta("99999999"), null);
   });
 
-  test("대량 영역 (50건 중 10건 갱신) — 정확히 10건 삭제", () => {
+  test("대량 (50건 중 10건 갱신) — 정확히 10건 삭제", () => {
     for (let i = 0; i < 50; i++) {
       const corp_code = String(i).padStart(8, "0");
       setCorpMeta(
@@ -164,7 +164,7 @@ describe("invalidateStale", () => {
     const map = new Map<string, string>();
     for (let i = 0; i < 50; i++) {
       const corp_code = String(i).padStart(8, "0");
-      // 첫 10건만 갱신 영역
+      // 첫 10건만 갱신
       map.set(corp_code, i < 10 ? "20260601" : "20260101");
     }
     assert.equal(invalidateStale(map), 10);

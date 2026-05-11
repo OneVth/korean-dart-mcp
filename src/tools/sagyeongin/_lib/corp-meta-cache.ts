@@ -2,25 +2,25 @@
  * corp-meta-cache — 16(c) 인프라 (ADR-0016).
  *
  * DART company.json의 induty_code + corp_cls per-corp_code 영구 cache.
- * 본 본질 영역: 측정 자격 보장 — 매 측정 사이클마다 동일 ~3,963 corp에 대해 동일
- * 호출 반복 영역 해소.
+ * 목적: 측정 자격 보장. 매 측정 사이클마다 동일 ~3,963 corp에 대해 동일 호출을
+ * 반복하던 흐름을 해소한다.
  *
- * 저장 위치: ~/.sagyeongin-dart/corp_meta_cache.sqlite (scan-checkpoint 정합)
+ * 저장 위치: ~/.sagyeongin-dart/corp_meta_cache.sqlite (scan-checkpoint와 동일 디렉토리).
  * 환경 변수 SAGYEONGIN_CONFIG_DIR로 오버라이드 가능 (테스트 격리).
  *
- * β-ii 영역 (ADR-0001 §B2 사경인 코드 100% 단일 디렉토리) — upstream src/lib/
- * 0 touch. corp-meta-cache는 cache store만 + 외부 호출 0 — DartClient 호출은
- * 외부 영역 (scan-execute / induty-extractor 묶음 1B)에서만.
+ * β-ii 격리 (ADR-0001 §B2 — 사경인 코드 100% 단일 디렉토리). upstream src/lib/
+ * 0 touch. 본 모듈은 cache store 책임만 가지며 외부 호출은 하지 않는다.
+ * DartClient 호출은 scan-execute / induty-extractor (묶음 1B)에서만.
  *
- * invalidate 정책: corp_code dump 갱신 시점에 CorpRecord.modify_date와 비교 →
- * 갱신된 corp만 invalidate. cache TTL 자체 없음 (영구 cache + modify_date
+ * invalidate 정책: corp_code dump 갱신 시점에 CorpRecord.modify_date와 비교하여
+ * 갱신된 corp만 invalidate. cache 자체 TTL은 없다 (영구 cache + modify_date
  * 단일 트리거).
  *
  * 인터페이스 5개:
  * - getCorpMeta(corp_code) — cache 조회 (미존재 → null)
  * - setCorpMeta(record) — 신규/갱신 (INSERT OR REPLACE)
  * - invalidateCorpMeta(corp_code) — 단일 삭제 (존재 → true / 부재 → false)
- * - corpMetaSize() — 전체 cache 영역 카운트
+ * - corpMetaSize() — 전체 cache 카운트
  * - invalidateStale(modifyDateMap) — modify_date 갱신 corp 일괄 삭제 (반환 = 삭제 개수)
  *
  * Ref: ADR-0016, ADR-0001 §B2, ADR-0015, philosophy 7부 A + 5부
@@ -34,9 +34,9 @@ import { mkdirSync } from "node:fs";
 /**
  * corp_meta cache 레코드.
  *
- * modify_date는 CorpRecord.modify_date (upstream `corpCode.xml` dump) 영역 정합 —
- * invalidate 트리거 영역.
- * fetched_at은 ISO 8601 — cache 영역 시점 (디버깅 / 향후 TTL 영역 정착 영역).
+ * modify_date는 CorpRecord.modify_date (upstream `corpCode.xml` dump)와 동기 —
+ * invalidate 트리거 키.
+ * fetched_at은 ISO 8601 — cache 저장 시점 (디버깅 / 향후 TTL 도입 시 활용).
  */
 export interface CorpMetaCacheRecord {
   corp_code: string;
@@ -60,9 +60,9 @@ function getCacheDbPath(): string {
 /**
  * SQLite 연결 + 스키마 ensure.
  *
- * scan-checkpoint.ts openDb() 패턴 정합:
- * - mkdirSync recursive (config-store G1 동일 영역)
- * - CREATE TABLE IF NOT EXISTS (첫 호출 영역만 본격 생성)
+ * scan-checkpoint.ts openDb() 패턴과 동일:
+ * - mkdirSync recursive (config-store G1과 동일)
+ * - CREATE TABLE IF NOT EXISTS (첫 호출에서만 실제 생성)
  */
 function openDb(): Database.Database {
   const dir = getCacheDir();
@@ -137,7 +137,7 @@ export function invalidateCorpMeta(corp_code: string): boolean {
 }
 
 /**
- * 전체 cache 영역 카운트.
+ * 전체 cache 카운트.
  */
 export function corpMetaSize(): number {
   const db = openDb();
@@ -155,11 +155,11 @@ export function corpMetaSize(): number {
  * modify_date 갱신 corp 일괄 삭제.
  *
  * 입력: corp_code → 현재 dump의 modify_date 매핑.
- * 본 매핑 영역과 cache 영역의 modify_date 비교 → 다른 영역 (또는 매핑에 corp_code
- * 부재) 영역 삭제. 반환 = 삭제된 영역 개수.
+ * 매핑과 cache의 modify_date를 비교하여 다른 경우 (또는 매핑에 corp_code가
+ * 부재한 경우) 삭제. 반환 = 삭제된 개수.
  *
- * corp_code dump 갱신 시점 영역에서 호출 (묶음 2 또는 묶음 1B 영역). 본 묶음
- * 1A 영역에서는 단테 영역만 정착.
+ * corp_code dump 갱신 시점에 호출 (묶음 2 또는 묶음 1B). 본 묶음 1A에서는
+ * 단테만 정착.
  */
 export function invalidateStale(
   modifyDateMap: Map<string, string>,
@@ -173,8 +173,8 @@ export function invalidateStale(
     const staleCorpCodes = allRows
       .filter((row) => {
         const currentModifyDate = modifyDateMap.get(row.corp_code);
-        // 매핑 영역에 부재 → stale 영역 (dump 영역에서 corp 영역 삭제 정황) OR
-        // modify_date 다른 영역 → stale (dump 영역 갱신 정황)
+        // 매핑에 부재 → stale (dump에서 corp 삭제 정황) OR
+        // modify_date 다른 경우 → stale (dump 갱신 정황)
         return (
           currentModifyDate === undefined ||
           currentModifyDate !== row.modify_date
