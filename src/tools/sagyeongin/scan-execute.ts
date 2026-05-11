@@ -49,6 +49,10 @@ import {
   loadCheckpoint,
   type ScanCheckpointState,
 } from "./_lib/scan-checkpoint.js";
+import {
+  extractCompanyMeta,
+  type CompanyMeta,
+} from "./_lib/company-meta-extractor.js";
 import { killerCheckTool } from "./killer-check.js";
 // [16(b) 측정] callCount 노출 — ADR-0015 효과 측정 영역.
 import { srimTool, naverLimited } from "./srim.js";
@@ -83,11 +87,6 @@ export interface ResolvedInput {
   min_opportunity_score: number;
   limit: number;
   random_seed?: number;
-}
-
-interface CompanyMeta {
-  corp_cls: string;
-  induty_code: string;
 }
 
 interface ListedWithMeta extends ListedCompany {
@@ -151,27 +150,6 @@ export interface SkippedCorp {
   reason: string;
   /** 호출 실패 분류 키 (verdict-기반 skip은 부재). 분류 본문: `_lib/skip-reason.ts`. */
   reason_code?: string;
-}
-
-async function extractCompanyMeta(
-  corp_code: string,
-  ctx: ToolCtx,
-): Promise<CompanyMeta> {
-  const raw = await ctx.client.getJson<{
-    status: string;
-    message?: string;
-    corp_cls?: string;
-    induty_code?: string;
-  }>("company.json", { corp_code });
-  if (raw.status !== "000") {
-    throw new Error(
-      `company.json 응답 오류 [${raw.status}]: ${raw.message ?? ""}`,
-    );
-  }
-  return {
-    corp_cls: (raw.corp_cls ?? "").trim(),
-    induty_code: (raw.induty_code ?? "").trim(),
-  };
 }
 
 function isMarketMatch(
