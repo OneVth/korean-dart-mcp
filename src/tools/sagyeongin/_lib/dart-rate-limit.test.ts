@@ -71,7 +71,7 @@ describe("RateLimitedDartClient", () => {
       const mock = makeMock({
         jsonResponses: [{ status: "000", list: [{ a: 1 }] }],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       const r = await limited.getJson<{ status: string; list: unknown[] }>(
         "path",
       );
@@ -85,7 +85,7 @@ describe("RateLimitedDartClient", () => {
       const mock = makeMock({
         jsonResponses: [{ status: "013", message: "조회된 데이터가 없습니다" }],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       const r = await limited.getJson<{ status: string; message: string }>(
         "path",
       );
@@ -102,7 +102,7 @@ describe("RateLimitedDartClient", () => {
           { status: "000", list: [{ ok: true }] },
         ],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       const r = await limited.getJson<{ status: string; list?: unknown[] }>(
         "path",
       );
@@ -118,7 +118,7 @@ describe("RateLimitedDartClient", () => {
           { status: "020", message: "초과" },
         ],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       await assert.rejects(
         () => limited.getJson("path"),
         (err: unknown) => {
@@ -139,7 +139,7 @@ describe("RateLimitedDartClient", () => {
       const mock = makeMock({
         jsonResponses: [new Error("DART path → HTTP 500")],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       await assert.rejects(
         () => limited.getJson("path"),
         (err: unknown) => {
@@ -158,7 +158,7 @@ describe("RateLimitedDartClient", () => {
     test("getZip 정상 ZIP → callCount 1 + Buffer 반환", async () => {
       const buf = Buffer.from("PK\x03\x04mock-zip");
       const mock = makeMock({ zipResponses: [buf] });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       const r = await limited.getZip("path");
       assert.equal(r, buf);
       assert.equal(limited.callCount, 1);
@@ -172,7 +172,7 @@ describe("RateLimitedDartClient", () => {
           buf,
         ],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       const r = await limited.getZip("path");
       assert.equal(r, buf);
       assert.equal(limited.callCount, 2);
@@ -186,7 +186,7 @@ describe("RateLimitedDartClient", () => {
           new Error("DART path → [020] 요청 건수 초과"),
         ],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       await assert.rejects(
         () => limited.getZip("path"),
         (err: unknown) => {
@@ -202,7 +202,7 @@ describe("RateLimitedDartClient", () => {
       const mock = makeMock({
         zipResponses: [new Error("DART path → HTTP 500")],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       await assert.rejects(
         () => limited.getZip("path"),
         (err: unknown) => {
@@ -224,7 +224,7 @@ describe("RateLimitedDartClient", () => {
           { status: "000", list: [{ ok: true }] },
         ],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       const r = await limited.getJson<{ status: string; list?: unknown[] }>(
         "path",
       );
@@ -240,7 +240,7 @@ describe("RateLimitedDartClient", () => {
           new TypeError("fetch failed"),
         ],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       await assert.rejects(
         () => limited.getJson("path"),
         (err: unknown) => {
@@ -262,7 +262,7 @@ describe("RateLimitedDartClient", () => {
           new Error("DART path → HTTP 500"),
         ],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       await assert.rejects(
         () => limited.getJson("path"),
         (err: unknown) => {
@@ -283,7 +283,7 @@ describe("RateLimitedDartClient", () => {
       const mock = makeMock({
         zipResponses: [new TypeError("fetch failed"), buf],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       const r = await limited.getZip("path");
       assert.equal(r, buf);
       assert.equal(limited.callCount, 2);
@@ -297,7 +297,7 @@ describe("RateLimitedDartClient", () => {
           new TypeError("fetch failed"),
         ],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       await assert.rejects(
         () => limited.getZip("path"),
         (err: unknown) => {
@@ -318,7 +318,7 @@ describe("RateLimitedDartClient", () => {
           new Error("DART path → [020] 요청 건수 초과"),
         ],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       await assert.rejects(
         () => limited.getZip("path"),
         (err: unknown) => {
@@ -341,12 +341,40 @@ describe("RateLimitedDartClient", () => {
         ],
         zipResponses: [Buffer.from("zip1"), Buffer.from("zip2")],
       });
-      const limited = new RateLimitedDartClient(mock);
+      const limited = new RateLimitedDartClient(mock, 0);
       await limited.getJson("p1");
       await limited.getJson("p2");
       await limited.getZip("p3");
       await limited.getZip("p4");
       assert.equal(limited.callCount, 4);
     });
+  });
+});
+
+describe("ADR-0017 — inter-call delay", () => {
+  test("interCallDelayMs > 0 → 성공 호출 후 sleep 발동 (실측)", async () => {
+    const mock: DartClientLike = {
+      async getJson<T = unknown>(_path: string, _params?: Record<string, string | number | undefined>): Promise<T> {
+        return { status: "000", data: "ok" } as unknown as T;
+      },
+      async getZip(_path: string, _params?: Record<string, string | number | undefined>): Promise<Buffer> {
+        return Buffer.from("ok");
+      },
+    };
+    // delay 100ms 에서 2 호출 — 최소 100ms 격증 검증
+    const limited = new RateLimitedDartClient(mock, 100);
+
+    const t0 = Date.now();
+    await limited.getJson("test.json");
+    await limited.getJson("test.json");
+    const elapsed = Date.now() - t0;
+
+    // 2 호출에서 첫 번째 호출 후 delay 발동 (100ms)
+    // 5ms tolerance (CI 환경 정합)
+    assert.ok(
+      elapsed >= 95,
+      `expected elapsed >= 95ms, got ${elapsed}ms`,
+    );
+    assert.equal(limited.callCount, 2);
   });
 });
