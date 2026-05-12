@@ -81,35 +81,30 @@
 - [x] 16단계: `feat/stage16-bundle1-A2-fetch-failed` + `feat/stage16-bundle2-C1-wrappers` + `feat/stage16-bundle3-B1-C1-callers` — ADR-0015 구현 (A2 fetch failed retry + B1 universe shuffle + C1 naver/KIS wrapper, D-i 정정으로 D1 코드 변경 X) (TOOL_REGISTRY 28, 사경인 13, 단테 188, 2026-05-09)
 - [x] 16단계 (b): `feat/stage16b-bundle1-callcount-exposure` + `feat/stage16b-field-test` — callCount 노출 (옵션 A1, scan-execute external_call_stats 결과 schema 추가) + field-test 측정 자격 검증 (DART daily limit으로 stage1 도중 차단 발동, ADR-0015 본격 효과 측정은 16(c) 후속 사이클 분리) (TOOL_REGISTRY 28, 사경인 13, 단테 188, 2026-05-10)
 - [x] 16단계 (c): `feat/stage16c-bundle1a-adr-0016-corp-meta-cache` + `feat/stage16c-bundle1b-cache-integration` + `feat/stage16c-bundle2-corp-meta-refresh` + `feat/stage16c-bundle2a-field-test` + `feat/stage16c-bundle2b-adr-0017-inter-call-delay` + `feat/stage16c-bundle2c-field-test-rerun` + `feat/stage16c-bundle3-scan-execute-rerun` — ADR-0016 (corp_meta cache) + ADR-0017 (DART burst limit inter-call delay) + cache 영구 정착 (3,963) + candidates 10개 회복 (TOOL_REGISTRY 29, 사경인 14, 단테 219, 2026-05-14)
+- [x] 17단계: `docs(sagyeongin): 17단계 결정 매듭` (main 직접) — candidates 10개 watchlist 일괄 add 결정 + verifications/2026-05-14-stage17-watchlist-add.md 정착 (결정 사이클, 코드 변경 0) (TOOL_REGISTRY 29, 사경인 14, 단테 219, 2026-05-14)
 
 ### 현재 작업 단계
 
-16(c) 종결 (2026-05-14). TOOL_REGISTRY 29 (사경인 14 — corp_meta_refresh 신설). 본 사이클 본질 — *측정 자격 영구 정착*: cache 영구 회복 + burst 정책 정착 + ADR-0015 효과 본격 측정 자격 회복 + candidates 회복.
+17단계 종결 (2026-05-14). TOOL_REGISTRY 29 (변경 X). 본 사이클 본질 — *결정 사이클*: candidates 10개 watchlist 일괄 add 결정 + 결정 본문 verifications/ 정착. 코드 변경 0.
 
-묶음 정착 경로:
-- 묶음 1A (`feat/stage16c-bundle1a-adr-0016-corp-meta-cache`): ADR-0016 신설 + corp-meta-cache 모듈 + 단테 14건 (β-ii 영역)
-- 묶음 1B (`feat/stage16c-bundle1b-cache-integration`): company-meta-extractor 신설 + extractCompanyMeta 분리 + extractIndutyCode wrapper 정정 + 단테 7건
-- 묶음 2 (`feat/stage16c-bundle2-corp-meta-refresh`): sagyeongin_corp_meta_refresh 도구 신설 + 단테 9건 (TOOL_REGISTRY 28 → 29)
-- 묶음 2-a (`feat/stage16c-bundle2a-field-test`): field-test 1차 — B1 정합 + DART burst limit 발견 (999건 / 52초 IP 차단)
-- 묶음 2-b (`feat/stage16c-bundle2b-adr-0017-inter-call-delay`): ADR-0017 신설 + RateLimitedDartClient 200ms delay + 단테 17건 (16 정정 + 1 신규)
-- 묶음 2-c (`feat/stage16c-bundle2c-field-test-rerun`): field-test 재측정 — ADR-0017 정합 + cache 완전 정착 (3,963)
-- 묶음 3 (`feat/stage16c-bundle3-scan-execute-rerun`): scan_execute 재측정 — candidates 10개 회복 (15(a) 0 / 13단계 5 비교)
-- 매듭 (본 commit): CLAUDE.md 갱신 + 누적 학습 8건 (9~16) + ADR 17개 종합
+본 사이클 산출:
+- 결정 본문 (`verifications/2026-05-14-stage17-watchlist-add.md`): 10개 후보 본격 분석 + 철학 정합 + Onev 환경 영역 watchlist add 명령
+- Onev 환경 영역 watchlist 정착 (`~/.sagyeongin-dart/config.json`, fork commit X)
+- 누적 학습 17번 정착 (철학 라벨링 재발)
 
-핵심 성과:
-- ADR-0016 cache 영구 정착 — Stage 1 DART 호출 ~0
-- ADR-0017 burst 정책 영구 정착 — 200ms inter-call delay (5건/초 보수적)
-- candidates 회복 — 10 (15(a) 0 → 10)
-- B1 shuffle 정합 — 0.000% 일치율 (결정론 X 정합)
-- D1 fail-fast 정합 — DartRateLimitError 즉시 break
-- C1 wrapper retry — burst X 영역에서 retry 0 (자연)
+핵심 verdict:
+- 10/10 watchlist 자격 동등 (7부 F "10개 내외" + 7부 D 2단계 srim BUY + 7부 A killer PASS + 7부 B cashflow CLEAN)
+- #1 신도리코 = 단일 capex confluence (7부 C 선행지표, major_capex_existing_business)
+- KSIC 26 100% 집중 — Onev 환경 position sizing 영역 본격
+- 일괄 add 정합 (composite_score = 강도 영역, 자격 영역 X)
+- 데이터 누락 영역 (srim fair_value, insider verdict, dividend yield, capex signals 배열) — 별개 사이클 본격 진단
 
-단테 누적 219 (188 → +14 cache + 7 extractor + 9 refresh + 1 delay = 31). β-i 격리 영구 유지: `src/lib/` 변경 0 + composition wrapper 패턴.
+단테 누적 219 (변경 X). β-i 격리 영구 유지: `src/lib/` 변경 0.
 
-다음 단계: 17단계 — 후속 후보:
-- §10.15 KSIC 9차/10차 정책 결정 (induty_code 매칭 정밀화, 우선순위 중)
-- (e) 응답 내 필드값 다양성 사전 검증 차원 정착 (지속, 우선순위 높음)
-- candidates 본격 검증 영역 — 본 10개 후보 본문 검토 + watchlist 정착 영역
+다음 단계: 18단계 후속 후보:
+- 데이터 누락 영역 진단 (출력 직렬화 vs 계산 본문 분리)
+- §10.15 KSIC 9차/10차 정책 결정 (KSIC 26 집중 관찰 evidence 정합)
+- 분기 점검 별개 사이클 (분기 elapsed 후, 2026-08~)
 
 ## 자주 막히는 곳
 
@@ -813,6 +808,12 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 15. **위임 명세 기대값 작성 시 기존 verifications 직접 view 필수** — partial 측정값 vs 전체 추정값 구분 (16(b) partial 86 vs 묶음 3 전체 294 — after_static_filter 어긋남 발생)
 
 16. **ADR 효과 범위 명확화 필수** — ADR-0016 cache는 Stage 1 (corp 메타)만 적용, Stage 2~6 (재무 데이터)는 별개. 위임 명세에서 ADR 효과 기대값 정착 시 *적용 범위* 명시
+
+#### 17단계 누적 (2026-05-14)
+
+본 사이클에서 발견한 1건 누적 학습:
+
+17. **진입 프롬프트 작성 시 7부 X 라벨 직접 grep 누락 가드** — 누적 학습 5번 (16(b) "진입 프롬프트 작성 시 ADR/spec 직접 grep 누락 가드") 본질 동일 재발. 17단계 진입 프롬프트 "7부 G (자산 형성기 관심 종목) + 7부 F (분기 단위 점검)" 라벨 어긋남 — 실제 7부 F는 *스코프* ("10개 내외 종목, 3~5년 장기 보유, 분기·반기 단위 점검"), 7부 G는 *생애주기 보정* (자산 형성기는 G의 한 단계). 진입 프롬프트 작성 시 *모든 7부 라벨* + *모든 ADR 번호* + *모든 spec §* 영역 본문 직접 grep 후 정착. **반복 금지** (학습 5 → 학습 17 재발).
 
 ## 의사결정 시 주의
 
