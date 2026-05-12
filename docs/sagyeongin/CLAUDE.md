@@ -80,27 +80,36 @@
 - [x] 15단계 (a): `feat/stage15a-pre-verify` + `feat/stage15a-field-test` — corp_code stale 가설 (α) 정밀 검증 + ADR-0015 신설 (외부 API burst 차단 통합 정책) (TOOL_REGISTRY 28, 사경인 13, 2026-05-09)
 - [x] 16단계: `feat/stage16-bundle1-A2-fetch-failed` + `feat/stage16-bundle2-C1-wrappers` + `feat/stage16-bundle3-B1-C1-callers` — ADR-0015 구현 (A2 fetch failed retry + B1 universe shuffle + C1 naver/KIS wrapper, D-i 정정으로 D1 코드 변경 X) (TOOL_REGISTRY 28, 사경인 13, 단테 188, 2026-05-09)
 - [x] 16단계 (b): `feat/stage16b-bundle1-callcount-exposure` + `feat/stage16b-field-test` — callCount 노출 (옵션 A1, scan-execute external_call_stats 결과 schema 추가) + field-test 측정 자격 검증 (DART daily limit으로 stage1 도중 차단 발동, ADR-0015 본격 효과 측정은 16(c) 후속 사이클 분리) (TOOL_REGISTRY 28, 사경인 13, 단테 188, 2026-05-10)
+- [x] 16단계 (c): `feat/stage16c-bundle1a-adr-0016-corp-meta-cache` + `feat/stage16c-bundle1b-cache-integration` + `feat/stage16c-bundle2-corp-meta-refresh` + `feat/stage16c-bundle2a-field-test` + `feat/stage16c-bundle2b-adr-0017-inter-call-delay` + `feat/stage16c-bundle2c-field-test-rerun` + `feat/stage16c-bundle3-scan-execute-rerun` — ADR-0016 (corp_meta cache) + ADR-0017 (DART burst limit inter-call delay) + cache 영구 정착 (3,963) + candidates 10개 회복 (TOOL_REGISTRY 29, 사경인 14, 단테 219, 2026-05-14)
 
 ### 현재 작업 단계
 
-16(b) 종결 (2026-05-10). TOOL_REGISTRY 28 (사경인 13, 도구 신설 0). 본 사이클 본질 — *측정 자격 검증* (ADR-0015 본격 효과 측정 영역 사전 점검). 묶음 2건 + 매듭 (본 commit):
-- 묶음 1 (`feat/stage16b-bundle1-callcount-exposure`): callCount 노출 옵션 A1 — srim/required-return naverLimited/kisLimited singleton export + scan-execute BuildResponseArgs externalCallStats + result schema external_call_stats. 3 files / +38 / -3. 단테 영향 X (188 그대로)
-- 묶음 2 (`feat/stage16b-field-test`): field-test script 신설 + KSIC 26 universe 측정 + 결과 JSON 보존. main 머지 X (15(a) 정합 — 대용량 JSON feat 브랜치만)
-- 매듭 (본 commit): 결과 분석 md (`verifications/2026-05-10-stage16b-field-test.md`) + CLAUDE.md 갱신
+16(c) 종결 (2026-05-14). TOOL_REGISTRY 29 (사경인 14 — corp_meta_refresh 신설). 본 사이클 본질 — *측정 자격 영구 정착*: cache 영구 회복 + burst 정책 정착 + ADR-0015 효과 본격 측정 자격 회복 + candidates 회복.
 
-측정 결과 본질: stage1 도중 DART daily limit (서버 status 020) 발동 — dart_call_count 1,001 / 3,963 ≈ 25% partial 평가에서 차단. ADR-0015 효과 측정 4건 중 D1 fail-fast 정합 동작만 검증, B1/C1/candidates 회복 측정 X. 본 사이클을 *측정 자격 검증*으로 재정의.
+묶음 정착 경로:
+- 묶음 1A (`feat/stage16c-bundle1a-adr-0016-corp-meta-cache`): ADR-0016 신설 + corp-meta-cache 모듈 + 단테 14건 (β-ii 영역)
+- 묶음 1B (`feat/stage16c-bundle1b-cache-integration`): company-meta-extractor 신설 + extractCompanyMeta 분리 + extractIndutyCode wrapper 정정 + 단테 7건
+- 묶음 2 (`feat/stage16c-bundle2-corp-meta-refresh`): sagyeongin_corp_meta_refresh 도구 신설 + 단테 9건 (TOOL_REGISTRY 28 → 29)
+- 묶음 2-a (`feat/stage16c-bundle2a-field-test`): field-test 1차 — B1 정합 + DART burst limit 발견 (999건 / 52초 IP 차단)
+- 묶음 2-b (`feat/stage16c-bundle2b-adr-0017-inter-call-delay`): ADR-0017 신설 + RateLimitedDartClient 200ms delay + 단테 17건 (16 정정 + 1 신규)
+- 묶음 2-c (`feat/stage16c-bundle2c-field-test-rerun`): field-test 재측정 — ADR-0017 정합 + cache 완전 정착 (3,963)
+- 묶음 3 (`feat/stage16c-bundle3-scan-execute-rerun`): scan_execute 재측정 — candidates 10개 회복 (15(a) 0 / 13단계 5 비교)
+- 매듭 (본 commit): CLAUDE.md 갱신 + 누적 학습 8건 (9~16) + ADR 17개 종합
 
-단테 누적 188 (변경 X). β-i 격리 유지: `src/lib/` 변경 0 + naver-price.ts / kis-rating-scraper.ts / wrapper 변경 0.
+핵심 성과:
+- ADR-0016 cache 영구 정착 — Stage 1 DART 호출 ~0
+- ADR-0017 burst 정책 영구 정착 — 200ms inter-call delay (5건/초 보수적)
+- candidates 회복 — 10 (15(a) 0 → 10)
+- B1 shuffle 정합 — 0.000% 일치율 (결정론 X 정합)
+- D1 fail-fast 정합 — DartRateLimitError 즉시 break
+- C1 wrapper retry — burst X 영역에서 retry 0 (자연)
 
-다음 단계: **16(c) 후속 사이클** — ADR-0015 본격 효과 측정 영역. 측정 자격 보장 정책 결정 후 진입:
-- (옵션 i) DART daily limit 자정 직후 + 사전 호출 0 정책 → 동일 universe 재측정
-- (옵션 ii) ADR-0016 신설 — universe 사전 cache 영역 (KSIC 코드 사전 캐시) → 코드 변경 + 재측정
-- (옵션 iii) 측정 universe 축소 — 단일 corp_cls 등 → 측정 영역 본질 변경
+단테 누적 219 (188 → +14 cache + 7 extractor + 9 refresh + 1 delay = 31). β-i 격리 영구 유지: `src/lib/` 변경 0 + composition wrapper 패턴.
 
-후속 후보 잔존:
-- 16(c) 사이클 — ADR-0015 본격 효과 측정 (우선순위 최상)
+다음 단계: 17단계 — 후속 후보:
 - §10.15 KSIC 9차/10차 정책 결정 (induty_code 매칭 정밀화, 우선순위 중)
 - (e) 응답 내 필드값 다양성 사전 검증 차원 정착 (지속, 우선순위 높음)
+- candidates 본격 검증 영역 — 본 10개 후보 본문 검토 + watchlist 정착 영역
 
 ## 자주 막히는 곳
 
@@ -784,6 +793,26 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 영역 6 분기 5 신설 — DART daily limit 영역 측정 자격 미회복 (예상 외). 후속 ADR 후보 — ADR-0016 universe 사전 cache 영역.
 
 누적 단테 188 (변경 X). β-i 격리 유지. spec assumption vs field-test mismatch 누적: 12 그대로.
+
+#### 16(c) 누적 (2026-05-14)
+
+본 사이클에서 발견한 8건 누적 학습:
+
+9. **KIS HEAD 차단** — 사전 검증 스크립트 작성 시 HEAD가 아닌 GET 우선 정책. KIS는 HEAD 요청 405 차단 정합 (필요 시 selector sniff용 GET)
+
+10. **DART burst limit (~19건/초 → IP 차단)** — 외부 자원 호출 시 daily limit 외 burst 사전 검토 필수. RateLimitedDartClient는 *재시도만* 정합, 성공 호출 사이 delay 정착 X (ADR-0015) → ADR-0017 신설로 inter-call delay 정착
+
+11. **DartRateLimitError 라벨링 본질** — daily limit (status 020) + burst limit (network_block) + 외부 차단 일반 모두 흡수. 명칭/본질 정정은 후속 사이클
+
+12. **ADR 본문 분리 본격 영역** — 본질 분리 시 별개 ADR 신설 우선 (단일 ADR 본문 확장 X). 가독성 + 미래 변경 conflict 면 격리 정합
+
+13. **Windows bash rm 어긋남 가능성** — `rm -f ~/...`에서 `~` 확장 어긋남 가능. 명세 영역에서 *절대 경로* 또는 *명시적 검증 단계* 정착
+
+14. **cacheSizeBefore vs cache_hit_count 시점 어긋남** — handler 시작 시점 corpMetaSize() 측정과 loop 영역 cache_hit_count 카운트 시점 어긋남. 사이클 사이 별개 호출 정책 강화
+
+15. **위임 명세 기대값 작성 시 기존 verifications 직접 view 필수** — partial 측정값 vs 전체 추정값 구분 (16(b) partial 86 vs 묶음 3 전체 294 — after_static_filter 어긋남 발생)
+
+16. **ADR 효과 범위 명확화 필수** — ADR-0016 cache는 Stage 1 (corp 메타)만 적용, Stage 2~6 (재무 데이터)는 별개. 위임 명세에서 ADR 효과 기대값 정착 시 *적용 범위* 명시
 
 ## 의사결정 시 주의
 
