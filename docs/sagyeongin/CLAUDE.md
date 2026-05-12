@@ -88,8 +88,8 @@
 17단계 종결 (2026-05-14). TOOL_REGISTRY 29 (변경 X). 본 사이클 본질 — *결정 사이클*: candidates 10개 watchlist 일괄 add 결정 + 결정 본문 verifications/ 정착. 코드 변경 0.
 
 본 사이클 산출:
-- 결정 본문 (`verifications/2026-05-14-stage17-watchlist-add.md`): 10개 후보 본격 분석 + 철학 정합 + Onev 환경 영역 watchlist add 명령
-- Onev 환경 영역 watchlist 정착 (`~/.sagyeongin-dart/config.json`, fork commit X)
+- 결정 본문 (`verifications/2026-05-14-stage17-watchlist-add.md`): 10개 후보 본격 분석 + 철학 정합 + MCP 도구 (`sagyeongin_update_watchlist`) 호출 명세
+- watchlist 정착: MCP 등록 Claude 세션 호출 (Claude Code 세션 X) → Onev 환경 `~/.sagyeongin-dart/config.json` 저장 (fork commit X)
 - 누적 학습 17번 정착 (철학 라벨링 재발)
 
 핵심 verdict:
@@ -814,6 +814,8 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 본 사이클에서 발견한 1건 누적 학습:
 
 17. **진입 프롬프트 작성 시 7부 X 라벨 직접 grep 누락 가드** — 누적 학습 5번 (16(b) "진입 프롬프트 작성 시 ADR/spec 직접 grep 누락 가드") 본질 동일 재발. 17단계 진입 프롬프트 "7부 G (자산 형성기 관심 종목) + 7부 F (분기 단위 점검)" 라벨 어긋남 — 실제 7부 F는 *스코프* ("10개 내외 종목, 3~5년 장기 보유, 분기·반기 단위 점검"), 7부 G는 *생애주기 보정* (자산 형성기는 G의 한 단계). 진입 프롬프트 작성 시 *모든 7부 라벨* + *모든 ADR 번호* + *모든 spec §* 영역 본문 직접 grep 후 정착. **반복 금지** (학습 5 → 학습 17 재발).
+
+18. **MCP 도구 호출 본질 표기 가드** — 위임 명세 + 결정 본문 작성 시 도구가 본 fork TOOL_REGISTRY 정착 여부 사전 grep 후 "MCP 등록 Claude 세션" vs "Claude Code 세션" 분리 영역 명시. "사용자 직접 호출" 표기는 도구가 MCP 외부 영역인 경우만 정합. 17단계 매듭 (`2fa52c2`) 영역에서 `sagyeongin_update_watchlist` (TOOL_REGISTRY 29 / 사경인 14 포함) MCP 도구를 "Onev 환경 영역 watchlist add 명령" / "사용자 직접 호출" 영역으로 표기 — Claude Code 세션의 MCP 등록 부재 본질을 도구 영역으로 잘못 전환. **반복 금지.**
 
 ## 의사결정 시 주의
 

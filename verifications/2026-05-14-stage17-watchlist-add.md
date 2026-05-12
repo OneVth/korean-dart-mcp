@@ -157,9 +157,14 @@ composite_score = capex.opportunity_score - cashflow.concern_score = **신호 co
 - #1 신도리코: capex 신호 발동 → 가중 정당화
 - #2~#10: srim BUY만 → 균등 가중 또는 srim gap 정합 가중
 
-## Onev 환경 영역 watchlist add 명령
+## MCP 도구 호출 — `sagyeongin_update_watchlist`
 
-`sagyeongin_update_watchlist` 호출:
+본 fork TOOL_REGISTRY 29 (사경인 14) 정착 MCP 도구. 호출 영역 분리:
+
+- **호출 주체**: MCP 등록 Claude 세션 (Onev 일반 작업 영역, 사경인 MCP 서버 등록 상태). Claude Code 세션은 *코드/git 작업* 영역 — MCP 등록 X, 도구 노출 X
+- **저장 위치**: `~/.sagyeongin-dart/config.json` (Onev 로컬 환경, fork commit X)
+
+호출 본문:
 
 ```json
 {
@@ -181,9 +186,7 @@ composite_score = capex.opportunity_score - cashflow.concern_score = **신호 co
 }
 ```
 
-**저장 위치**: `~/.sagyeongin-dart/config.json` (Onev 환경 영역, fork commit X).
-
-**결과 검증**: `sagyeongin_update_watchlist` action `list` 호출 → 10개 정착 확인.
+**결과 검증**: 호출 후 `sagyeongin_update_watchlist` action `list` 호출 → 10개 정착 확인 (MCP 등록 세션).
 
 ## 다음 사이클 (분기 점검)
 
