@@ -30,9 +30,11 @@
  *   limited.callCount;             // 카운트 노출 (checkpoint 시점 결정에 활용)
  *
  * Ref: ADR-0009, ADR-0015 (외부 API burst 차단 통합 정책 영역 A2),
+ *      ADR-0017 (DART burst limit policy — inter-call delay 정착),
  *      ADR-0012 (callCount는 daily limit 80% checkpoint 시점에 활용),
  *      verifications/2026-05-04-stage11-pre-verify.md 1번,
- *      verifications/2026-05-09-stage16-pre-verify.md 영역 1
+ *      verifications/2026-05-09-stage16-pre-verify.md 영역 1,
+ *      verifications/2026-05-12-stage16c-field-test.md (ADR-0017 발견)
  */
 
 /** DartClient의 호출 표면만 추출. inner와 mock 모두 만족하는 interface. */
@@ -109,10 +111,17 @@ function sleep(ms: number): Promise<void> {
  */
 export class RateLimitedDartClient {
   private readonly inner: DartClientLike;
+  private readonly interCallDelayMs: number;
   private _callCount: number = 0;
 
-  constructor(inner: DartClientLike) {
+  /**
+   * @param inner DartClient 또는 mock
+   * @param interCallDelayMs 성공 호출 후 sleep (ADR-0017 burst 회피).
+   *                        default 200ms. test에서는 0 정합.
+   */
+  constructor(inner: DartClientLike, interCallDelayMs: number = 200) {
     this.inner = inner;
+    this.interCallDelayMs = interCallDelayMs;
   }
 
   get callCount(): number {
@@ -148,7 +157,10 @@ export class RateLimitedDartClient {
       await sleep(1000);
       this._callCount++;
       try {
-        return await this.inner.getJson<T>(path, params);
+        const retryResult = await this.inner.getJson<T>(path, params);
+        // ADR-0017: retry 성공 시점도 burst 보호 영역
+        await this.interCallDelay();
+        return retryResult;
       } catch (err2) {
         if (isFetchFailedError(err2)) {
           throw new DartRateLimitError(
@@ -158,12 +170,20 @@ export class RateLimitedDartClient {
         throw err2;
       }
     }
-    if (!isRateLimitJsonResponse(r1)) return r1;
+    if (!isRateLimitJsonResponse(r1)) {
+      // ADR-0017: burst 보호 — 성공 호출 후 inter-call delay
+      await this.interCallDelay();
+      return r1;
+    }
     // 1차 020 감지 — sleep + retry
     await sleep(1000);
     this._callCount++;
     const r2 = await this.inner.getJson<T>(path, params);
-    if (!isRateLimitJsonResponse(r2)) return r2;
+    if (!isRateLimitJsonResponse(r2)) {
+      // ADR-0017: retry 성공 시점도 burst 보호 영역
+      await this.interCallDelay();
+      return r2;
+    }
     throw new DartRateLimitError(
       `DART rate limit reached after retry — path=${path}, status=${RATE_LIMIT_STATUS}, callCount=${this._callCount}`,
     );
@@ -186,7 +206,10 @@ export class RateLimitedDartClient {
   ): Promise<Buffer> {
     this._callCount++;
     try {
-      return await this.inner.getZip(path, params);
+      const r1 = await this.inner.getZip(path, params);
+      // ADR-0017: burst 보호 — 성공 호출 후 inter-call delay
+      await this.interCallDelay();
+      return r1;
     } catch (err) {
       const isRateLimit = isRateLimitErrorMessage(err);
       const isFetchFailed = isFetchFailedError(err);
@@ -197,7 +220,10 @@ export class RateLimitedDartClient {
       await sleep(1000);
       this._callCount++;
       try {
-        return await this.inner.getZip(path, params);
+        const retryResult = await this.inner.getZip(path, params);
+        // ADR-0017: retry 성공 시점도 burst 보호 영역
+        await this.interCallDelay();
+        return retryResult;
       } catch (err2) {
         if (isRateLimitErrorMessage(err2)) {
           throw new DartRateLimitError(
@@ -211,6 +237,18 @@ export class RateLimitedDartClient {
         }
         throw err2;
       }
+    }
+  }
+
+  /**
+   * ADR-0017: burst 보호 — 성공 호출 후 inter-call delay.
+   *
+   * interCallDelayMs === 0 시 sleep X (단테 격리 정합).
+   * production에서는 default 200ms — DART burst (~19건/초)에서 5건/초 보수적 정책.
+   */
+  private async interCallDelay(): Promise<void> {
+    if (this.interCallDelayMs > 0) {
+      await sleep(this.interCallDelayMs);
     }
   }
 }
