@@ -97,14 +97,15 @@
 - #1 신도리코 = 단일 capex confluence (7부 C 선행지표, major_capex_existing_business)
 - KSIC 26 100% 집중 — Onev 환경 position sizing 영역 본격
 - 일괄 add 정합 (composite_score = 강도 영역, 자격 영역 X)
-- 데이터 누락 영역 (srim fair_value, insider verdict, dividend yield, capex signals 배열) — 별개 사이클 본격 진단
+- 17단계 §6 "데이터 누락 영역" 본문은 어긋남 (키 이름 가정 어긋남) — 정정 commit 영역에서 정합 본문 정정. 실제 본문 정합 (srim.prices.* / insider.signal / capex.top_signals / dividend.grade)
 
 단테 누적 219 (변경 X). β-i 격리 영구 유지: `src/lib/` 변경 0.
 
-다음 단계: 18단계 후속 후보:
-- 데이터 누락 영역 진단 (출력 직렬화 vs 계산 본문 분리)
+다음 단계: 18단계 본격 — Real use case e2e 테스트 사이클 (통합 시나리오 본격 측정 — 개별 도구 + scan→watchlist→check 통합 흐름). 후속 후보:
 - §10.15 KSIC 9차/10차 정책 결정 (KSIC 26 집중 관찰 evidence 정합)
+- scan-execute output schema 확장 (dividend yield/payout 노출 영역)
 - 분기 점검 별개 사이클 (분기 elapsed 후, 2026-08~)
+- D 3단계 컨센서스 도구 영역 (MVP 외, 보류 후보)
 
 ## 자주 막히는 곳
 
@@ -816,6 +817,8 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 17. **진입 프롬프트 작성 시 7부 X 라벨 직접 grep 누락 가드** — 누적 학습 5번 (16(b) "진입 프롬프트 작성 시 ADR/spec 직접 grep 누락 가드") 본질 동일 재발. 17단계 진입 프롬프트 "7부 G (자산 형성기 관심 종목) + 7부 F (분기 단위 점검)" 라벨 어긋남 — 실제 7부 F는 *스코프* ("10개 내외 종목, 3~5년 장기 보유, 분기·반기 단위 점검"), 7부 G는 *생애주기 보정* (자산 형성기는 G의 한 단계). 진입 프롬프트 작성 시 *모든 7부 라벨* + *모든 ADR 번호* + *모든 spec §* 영역 본문 직접 grep 후 정착. **반복 금지** (학습 5 → 학습 17 재발).
 
 18. **MCP 도구 호출 본질 표기 가드** — 위임 명세 + 결정 본문 작성 시 도구가 본 fork TOOL_REGISTRY 정착 여부 사전 grep 후 "MCP 등록 Claude 세션" vs "Claude Code 세션" 분리 영역 명시. "사용자 직접 호출" 표기는 도구가 MCP 외부 영역인 경우만 정합. 17단계 매듭 (`2fa52c2`) 영역에서 `sagyeongin_update_watchlist` (TOOL_REGISTRY 29 / 사경인 14 포함) MCP 도구를 "Onev 환경 영역 watchlist add 명령" / "사용자 직접 호출" 영역으로 표기 — Claude Code 세션의 MCP 등록 부재 본질을 도구 영역으로 잘못 전환. **반복 금지.**
+
+19. **JSON 본문 분석 시 키 이름 가정 가드** — 분석 코드 (python `dict.get` 등) 작성 시 본 도구 result interface 직접 grep + JSON 본문 `keys()` 본격 확인 후 분석 코드 작성. python `dict.get('xxx')` None 결과를 *데이터 누락*으로 잘못 해석 가드. 17단계 §6 "데이터 누락 영역" 본문에서 srim/capex/insider 3건 어긋남 (srim `fair_value` 가정 → 실제 `srim.prices.fair_price`; capex `signals` 가정 → 실제 `top_signals`; insider `verdict` 가정 → 실제 `signal`). 학습 15번 ("위임 명세 기대값 작성 시 기존 verifications 직접 view 필수")은 *partial vs 전체* 영역 — 학습 19번은 *키 이름 가정* 영역 본질 별개. **반복 금지.**
 
 ## 의사결정 시 주의
 

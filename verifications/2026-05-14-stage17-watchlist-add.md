@@ -48,7 +48,7 @@
 | 7부 A killer | PASS, triggered 0 |
 | 7부 B cashflow | CLEAN, concern_score 0, signals [] |
 | 7부 D srim | BUY |
-| 7부 C insider | verdict `None`, cluster `None` (JSON 본문 직렬화 X — quick_summary는 "neutral_or_mixed" 표기) |
+| 7부 C insider | `signal: "neutral_or_mixed"`, `cluster_quarter: null` (10개 모두 동일) |
 
 → **10개 모두 watchlist 자격 동등**.
 
@@ -61,7 +61,7 @@
 
 #1만 7부 C 선행지표 confluence 정합. 본 본질: 자기자본 10%+ 시설투자 + 기존 사업 일치 → 매출 증가 선행지표.
 
-**관찰**: capex `signals` 배열은 `[]` (빈 상태) — score 80은 정착되었으나 signal 본문 직렬화 누락. 별개 사이클 진단 영역.
+**관찰**: capex 본문은 `top_signals` 배열 정착 (`scan-execute` output schema 본문). 신도리코: `top_signals: ["major_capex_existing_business"]`.
 
 ### 3. 산업 집중 관찰 — KSIC 26 10/10
 
@@ -107,18 +107,20 @@
 | D | #1, #2, #4, #5, #6, #7 | 6건 |
 | N/A | #3 세진티에스, #10 코텍 | 2건 |
 
-**관찰**: yield/payout None — 데이터 깊이 부족. 별개 사이클 진단 영역.
+**관찰**: `scan-execute` output schema는 `dividend.grade`만 노출 정합 (line 410 직접 정착). `dividend-check` 도구 단독 호출 시 `avg_payout_ratio` / `avg_dividend_yield` / `payout_stddev` 본격 정착. scan-execute schema 확장 영역 별개 사이클 검토 가치.
 
-### 6. 데이터 누락 영역 (verifications/ JSON 본문)
+### 6. scan-execute output schema 본문 정합 (정정)
 
-| 영역 | 본문 |
-|---|---|
-| srim `fair_value` / `current_price` | 10개 모두 None (verdict + gap만 정착) |
-| insider `verdict` / `cluster_count` | 10개 모두 None |
-| capex `signals` 배열 | #1만 score 80, signals 배열 빈 상태 |
-| dividend `yield_pct` / `payout_ratio_pct` | 10개 모두 None |
+본 section은 17단계 작성 시 *키 이름 가정 어긋남*으로 "데이터 누락 영역"으로 잘못 표기되었던 영역. 정정 commit (Stage 18 선행)에서 본문 정합 정정. 실제 본문:
 
-본 본질 — **출력 본문 직렬화 누락 vs 계산 본문 누락 영역 분리 필요**. 본 사이클 결정에 영향 X (composite + srim verdict + killer + cashflow + capex SIGNAL_DETECTED 본문 정합 충분). **별개 사이클 (Stage 18+) 본격 진단 영역**.
+| 도구 | scan-execute output schema | 정합 본문 |
+|---|---|---|
+| srim | `srim.{verdict, prices, gap_to_fair}` | `prices` = `{buy_price, fair_price, sell_price, current_price}` 본격 정합 (e.g. 신도리코 `prices.current_price = 46700`, `prices.fair_price = 76276`) |
+| insider | `insider.{signal, cluster_quarter}` | 10개 모두 `signal: "neutral_or_mixed"`, `cluster_quarter: null` |
+| capex | `capex.{verdict, opportunity_score, top_signals}` | 신도리코: `top_signals: ["major_capex_existing_business"]` |
+| dividend | `dividend.{grade}` | scan-execute schema 의도적 정합 (line 410). `dividend-check` 도구 단독 호출 시 `avg_payout_ratio` / `avg_dividend_yield` / `payout_stddev` 본격 정착 — 별개 사이클 schema 확장 영역 가치 |
+
+**원본 어긋남 본질**: python `dict.get('fair_value')` 식 키 이름 가정 어긋남 (실제 키 `prices.current_price` 등 별경로). 누적 학습 19번 정착 본문.
 
 ### 7. 분기 점검 추적 영역 (7부 G 자산 형성기 정합)
 
@@ -128,7 +130,7 @@
 |---|---|
 | capex 진행도 (신규시설투자 후속 공시) | **#1 신도리코** (기 신호 발동 후 진행 본문 추적) |
 | 신규 capex 신호 발동 | #2~#10 (현재 NO_SIGNAL → 신호 발동 시 confluence 진입) |
-| insider cluster 진입 (2명+ 매수) | 10개 모두 (현재 verdict None, 후속 사이클 정착 본문) |
+| insider cluster 진입 (2명+ 매수) | 10개 모두 (현재 `signal: "neutral_or_mixed"`, 후속 사이클 cluster 발동 시 confluence 진입) |
 | srim gap 변화 (가격/이익 변동) | 10개 모두 (분기 elapsed 후 신규 데이터) |
 | dividend grade 변화 | 10개 모두 (특히 D → A/B 변화 추적) |
 
