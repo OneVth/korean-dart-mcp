@@ -39,9 +39,12 @@ import {
 import {
   loadListedCompanies,
   filterUniverse,
+  estimateApiCalls,
+  calculateDailyLimitUsagePct,
   shuffleWithSeed,
   DAILY_LIMIT,
   type ListedCompany,
+  type FilterConfig,
 } from "./_lib/scan-helpers.js";
 import {
   generateScanId,
@@ -66,6 +69,31 @@ import { classifySkipReason } from "./_lib/skip-reason.js";
 
 /** daily limit 80% — ADR-0012 checkpoint 저장 임계. */
 const CHECKPOINT_THRESHOLD = Math.floor(DAILY_LIMIT * 0.8); // 16,000
+
+export class DailyLimitPreCheckError extends Error {
+  readonly estimated_calls: number;
+  readonly daily_limit: number;
+  readonly usage_pct: number;
+  readonly universe_count: number;
+
+  constructor(info: {
+    estimated_calls: number;
+    daily_limit: number;
+    usage_pct: number;
+    universe_count: number;
+  }) {
+    super(
+      `scan_execute pre-check failed — estimated calls (${info.estimated_calls}) ` +
+        `exceeds daily limit (${info.daily_limit}, usage ${info.usage_pct}%). ` +
+        `Narrow universe via included_industries filter (current universe: ${info.universe_count}).`,
+    );
+    this.name = "DailyLimitPreCheckError";
+    this.estimated_calls = info.estimated_calls;
+    this.daily_limit = info.daily_limit;
+    this.usage_pct = info.usage_pct;
+    this.universe_count = info.universe_count;
+  }
+}
 
 const InputSchema = z.object({
   preset: z.string().optional(),
@@ -626,6 +654,24 @@ export const scanExecuteTool = defineTool({
     } else {
       // 신규 scan
       resolved = await resolveInput(args);
+
+      // ADR-0019: daily limit 사전 가드
+      const filterConfig: FilterConfig = {
+        excluded_name_patterns: resolved.excluded_name_patterns,
+      };
+      const allListed = loadListedCompanies();
+      const filtered = filterUniverse(allListed, filterConfig);
+      const estimate = estimateApiCalls(filtered.length);
+      const usagePct = calculateDailyLimitUsagePct(estimate.total);
+      if (usagePct > 100) {
+        throw new DailyLimitPreCheckError({
+          estimated_calls: estimate.total,
+          daily_limit: DAILY_LIMIT,
+          usage_pct: usagePct,
+          universe_count: filtered.length,
+        });
+      }
+
       const stage1 = await stage1StaticFilter(limitedCtx, resolved, limited);
       universe = stage1.universe;
       stage1Skipped = stage1.skipped;
