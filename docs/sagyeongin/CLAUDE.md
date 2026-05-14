@@ -82,30 +82,42 @@
 - [x] 16단계 (b): `feat/stage16b-bundle1-callcount-exposure` + `feat/stage16b-field-test` — callCount 노출 (옵션 A1, scan-execute external_call_stats 결과 schema 추가) + field-test 측정 자격 검증 (DART daily limit으로 stage1 도중 차단 발동, ADR-0015 본격 효과 측정은 16(c) 후속 사이클 분리) (TOOL_REGISTRY 28, 사경인 13, 단테 188, 2026-05-10)
 - [x] 16단계 (c): `feat/stage16c-bundle1a-adr-0016-corp-meta-cache` + `feat/stage16c-bundle1b-cache-integration` + `feat/stage16c-bundle2-corp-meta-refresh` + `feat/stage16c-bundle2a-field-test` + `feat/stage16c-bundle2b-adr-0017-inter-call-delay` + `feat/stage16c-bundle2c-field-test-rerun` + `feat/stage16c-bundle3-scan-execute-rerun` — ADR-0016 (corp_meta cache) + ADR-0017 (DART burst limit inter-call delay) + cache 영구 정착 (3,963) + candidates 10개 회복 (TOOL_REGISTRY 29, 사경인 14, 단테 219, 2026-05-14)
 - [x] 17단계: `docs(sagyeongin): 17단계 결정 매듭` (main 직접) — candidates 10개 watchlist 일괄 add 결정 + verifications/2026-05-14-stage17-watchlist-add.md 정착 (결정 사이클, 코드 변경 0) (TOOL_REGISTRY 29, 사경인 14, 단테 219, 2026-05-14)
+- [x] 18단계 (e2e): scenarios/ 신설 + 명세/템플릿 정착 + (a) 진단 매듭 (`fb2a4d7`) + (c-1) ADR-0018/0019 문서 (`85a562b`) + (c-2) ADR-0018 구현 `feat/adr-0018-html-response-block` (`e8d3429`) + (c-3) ADR-0019 구현 + 본문 정정 `feat/adr-0019-daily-limit-precheck` (`b3ffc2a`) + (d) (ii) 명세 정정 (`d587f55`) + (e) Phase 1+2 결과 정착 (`6dd5a1b`) + analysis.md 매듭 (`11e6c12`) — Real use case e2e 측정 사이클 (ii 단독, iii는 17 add 후속 사이클 분리). ADR-0017/0018/0019 검증 완료. 핵심 발견: 17단계 결정/실행 분리 (학습 27번) (TOOL_REGISTRY 29, 사경인 14, 단테 226, +7, 2026-05-14)
 
 ### 현재 작업 단계
 
-17단계 종결 (2026-05-14). TOOL_REGISTRY 29 (변경 X). 본 사이클 본질 — *결정 사이클*: candidates 10개 watchlist 일괄 add 결정 + 결정 본문 verifications/ 정착. 코드 변경 0.
+18단계 종결 (2026-05-14). TOOL_REGISTRY 29 (변경 X). 본 사이클 본질 — *Real use case e2e 측정 사이클*: scenarios/ 신설 + (ii) 통합 흐름 단독 실행 + ADR-0018/0019 신설/구현/검증.
 
-본 사이클 산출:
-- 결정 본문 (`verifications/2026-05-14-stage17-watchlist-add.md`): 10개 후보 본격 분석 + 철학 정합 + MCP 도구 (`sagyeongin_update_watchlist`) 호출 명세
-- watchlist 정착: MCP 등록 Claude 세션 호출 (Claude Code 세션 X) → Onev 환경 `~/.sagyeongin-dart/config.json` 저장 (fork commit X)
-- 누적 학습 17번 정착 (철학 라벨링 재발)
+본 사이클 commit chain (7건):
+- (a) `fb2a4d7` — 진단 매듭 + 16c 누락 untracked 정착
+- (c-1) `85a562b` — ADR-0018/0019 문서 신설 (Accepted)
+- (c-2) `e8d3429` — ADR-0018 구현 (RateLimitedDartClient.getJson SyntaxError → DartRateLimitError 변환, +3 단테)
+- (c-3) `b3ffc2a` — ADR-0019 구현 + 본문 정정 (scan_execute daily limit 사전 가드, +4 단테)
+- (d) `d587f55` — 18-e2e (ii) 명세 정정 (limit 의미 + included_industries 필터 + pre-check 동작)
+- (e) `6dd5a1b` — Phase 1+2 결과 정착 (`results/01-integrated-flow.md` 250 line)
+- 매듭 `11e6c12` — analysis.md 채움 (225 line, 학습 7건 정착)
 
 핵심 verdict:
-- 10/10 watchlist 자격 동등 (7부 F "10개 내외" + 7부 D 2단계 srim BUY + 7부 A killer PASS + 7부 B cashflow CLEAN)
-- #1 신도리코 = 단일 capex confluence (7부 C 선행지표, major_capex_existing_business)
-- KSIC 26 100% 집중 — Onev 환경 position sizing 영역 본격
-- 일괄 add 정합 (composite_score = 강도 영역, 자격 영역 X)
-- 17단계 §6 "데이터 누락 영역" 본문은 어긋남 (키 이름 가정 어긋남) — 정정 commit 영역에서 정합 본문 정정. 실제 본문 정합 (srim.prices.* / insider.signal / capex.top_signals / dividend.grade)
+- ADR-0017 inter-call delay: 2,732 DART 호출 hang 없이 완주 ✓
+- ADR-0018 html_response_block: 정상 path 정합 (throw 발동 X) ✓
+- ADR-0019 pre-check: included_industries 적용 시 통과 ✓
+- [1]/[2] scan_preview/scan_execute PASS / [3]/[4] update_watchlist/watchlist_check FAIL (환경 영역 — 17 결정/실행 분리)
+- candidates 5/10 17단계 baseline 일치 (universe drift 3607→3964)
 
-단테 누적 219 (변경 X). β-i 격리 영구 유지: `src/lib/` 변경 0.
+**핵심 발견 — 학습 27번**: 17단계 결정 매듭 (`2fa52c2`)은 결정 단독 commit — MCP `update_watchlist(add)` 호출 본 분리. 18-e2e 명세 "17단계 watchlist 전제" 부정. 학습 #21 (Phase 분리) 본질이 commit 영역까지 확장.
 
-다음 단계: 18단계 본격 — Real use case e2e 테스트 사이클 (통합 시나리오 본격 측정 — 개별 도구 + scan→watchlist→check 통합 흐름). 후속 후보:
-- §10.15 KSIC 9차/10차 정책 결정 (KSIC 26 집중 관찰 evidence 정합)
-- scan-execute output schema 확장 (dividend yield/payout 노출 영역)
-- 분기 점검 별개 사이클 (분기 elapsed 후, 2026-08~)
-- D 3단계 컨센서스 도구 영역 (MVP 외, 보류 후보)
+학습 정착 7건: 21 (Phase 분리 4차 재발) / 22 (위임 클라이언트 명시) / 23 (회신 해석 가드) / 24 (DART 차단 pre-check) / 25 (fetch timeout) / 26 (killer-check fail-safe 차단 부작용) / 27 (결정/실행 분리). 본 상세는 `docs/sagyeongin/scenarios/stage18-e2e/analysis.md` 참조.
+
+단테 누적 226 (+7). β-i 격리 영구 유지: `src/lib/` 변경 0.
+
+다음 단계 후보:
+- **Stage 18.5** (즉시 가능): 17단계 watchlist add 실행 — `update_watchlist(action: "add", corp_codes: [10건])` MCP 호출 + analysis 매듭
+- **(iii) Phase 1+2** (Stage 18.5 후): watchlist 정착 후 10 종목 × 5 도구 단독 호출 — (B-2) surface 차이 + 7부 E 진입 정합 측정
+- **§10.15 KSIC 9차/10차 정책 결정** — KSIC 26 100% 집중 evidence 활용
+- **scan-execute output schema 확장** — dividend yield/payout 노출 (17단계 §6 gap 정착)
+- **ADR-0020 (fetch timeout) / ADR-0021 (fail-safe 누적 throw) / ADR-0022 (DART IP 차단 사전 가드)** 신설 — 학습 25/26/24 정착
+- **분기 점검 별개 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정
+- **D 3단계 컨센서스 도구** (MVP 외, 보류 후보)
 
 ## 자주 막히는 곳
 
