@@ -378,3 +378,63 @@ describe("ADR-0017 — inter-call delay", () => {
     assert.equal(limited.callCount, 2);
   });
 });
+
+// ADR-0018: HTML 응답 (SyntaxError) → DartRateLimitError 변환 검증
+describe("ADR-0018: HTML 응답 → DartRateLimitError", () => {
+  test("1차 호출 SyntaxError → DartRateLimitError(html_response_block), callCount=1", async () => {
+    const mock = makeMock({
+      jsonResponses: [new SyntaxError("Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON")],
+    });
+    const limited = new RateLimitedDartClient(mock, 0);
+
+    await assert.rejects(
+      () => limited.getJson("api/list.json", {}),
+      (err: Error) => {
+        assert.ok(err instanceof DartRateLimitError);
+        assert.match(err.message, /status=\[html_response_block\]/);
+        assert.match(err.message, /callCount=1/);
+        return true;
+      },
+    );
+  });
+
+  test("retry 호출 SyntaxError → DartRateLimitError(html_response_block), callCount=2", async () => {
+    const mock = makeMock({
+      jsonResponses: [
+        new TypeError("fetch failed"),
+        new SyntaxError("Unexpected token '<'"),
+      ],
+    });
+    const limited = new RateLimitedDartClient(mock, 0);
+
+    await assert.rejects(
+      () => limited.getJson("api/list.json", {}),
+      (err: Error) => {
+        assert.ok(err instanceof DartRateLimitError);
+        assert.match(err.message, /status=\[html_response_block\]/);
+        assert.match(err.message, /callCount=2/);
+        return true;
+      },
+    );
+  });
+
+  test("020 retry 호출 SyntaxError → DartRateLimitError(html_response_block), callCount=2", async () => {
+    const mock = makeMock({
+      jsonResponses: [
+        { status: "020", message: "한도 초과" },
+        new SyntaxError("Unexpected token '<'"),
+      ],
+    });
+    const limited = new RateLimitedDartClient(mock, 0);
+
+    await assert.rejects(
+      () => limited.getJson("api/list.json", {}),
+      (err: Error) => {
+        assert.ok(err instanceof DartRateLimitError);
+        assert.match(err.message, /status=\[html_response_block\]/);
+        assert.match(err.message, /callCount=2/);
+        return true;
+      },
+    );
+  });
+});

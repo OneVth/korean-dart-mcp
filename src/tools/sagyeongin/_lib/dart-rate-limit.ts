@@ -152,6 +152,12 @@ export class RateLimitedDartClient {
     try {
       r1 = await this.inner.getJson<T>(path, params);
     } catch (err) {
+      // ADR-0018: HTML 응답 (302 redirect 추적 후) → SyntaxError 감지
+      if (err instanceof SyntaxError) {
+        throw new DartRateLimitError(
+          `DART rate limit reached — path=${path}, status=[html_response_block], callCount=${this._callCount}`,
+        );
+      }
       if (!isFetchFailedError(err)) throw err;
       // 1차 fetch failed — sleep + retry (020 분기와 병렬, 독립 정책)
       await sleep(1000);
@@ -162,6 +168,12 @@ export class RateLimitedDartClient {
         await this.interCallDelay();
         return retryResult;
       } catch (err2) {
+        // ADR-0018: retry 후에도 HTML 응답 가능
+        if (err2 instanceof SyntaxError) {
+          throw new DartRateLimitError(
+            `DART rate limit reached after retry — path=${path}, status=[html_response_block], callCount=${this._callCount}`,
+          );
+        }
         if (isFetchFailedError(err2)) {
           throw new DartRateLimitError(
             `DART rate limit reached after retry — path=${path}, status=[network_block], callCount=${this._callCount}`,
@@ -178,7 +190,18 @@ export class RateLimitedDartClient {
     // 1차 020 감지 — sleep + retry
     await sleep(1000);
     this._callCount++;
-    const r2 = await this.inner.getJson<T>(path, params);
+    // ADR-0018: 020 retry도 HTML 응답 가능 — try/catch 추가
+    let r2: T;
+    try {
+      r2 = await this.inner.getJson<T>(path, params);
+    } catch (err3) {
+      if (err3 instanceof SyntaxError) {
+        throw new DartRateLimitError(
+          `DART rate limit reached after retry — path=${path}, status=[html_response_block], callCount=${this._callCount}`,
+        );
+      }
+      throw err3;
+    }
     if (!isRateLimitJsonResponse(r2)) {
       // ADR-0017: retry 성공 시점도 burst 보호 영역
       await this.interCallDelay();
