@@ -62,6 +62,15 @@ interface MockSpec {
   insiderThrow?: Error;
   dividendThrow?: Error;
   insiderInputCapture?: { input?: unknown };
+  // 19단계 학습 31 — cashflow yearly_data 기본값 주입
+  cashflowYearlyData?: Array<{
+    year: string;
+    op_profit: number | null;
+    op_cf: number;
+    inv_cf: number;
+    fin_cf: number;
+    oi_cf_ratio: number | null;
+  }>;
 }
 
 function makeDeps(spec: MockSpec = {}): EnrichDeps {
@@ -74,6 +83,7 @@ function makeDeps(spec: MockSpec = {}): EnrichDeps {
             verdict: "OK",
             concern_score: 5,
             flags: [{ flag: "F1" }],
+            yearly_data: spec.cashflowYearlyData ?? [],
           }
         );
       },
@@ -106,7 +116,20 @@ function makeDeps(spec: MockSpec = {}): EnrichDeps {
     dividend: {
       handler: async () => {
         if (spec.dividendThrow) throw spec.dividendThrow;
-        return spec.dividendResp ?? { sustainability_grade: "A" };
+        return (
+          spec.dividendResp ?? {
+            sustainability_grade: "A",
+            metrics: {
+              avg_payout_ratio: 0,
+              avg_dividend_yield: 0,
+              payout_stddev: 0,
+              years_of_dividend: 0,
+              recent_cut: false,
+            },
+            series: [],
+            interpretation_notes: [],
+          }
+        );
       },
     },
   };
@@ -121,6 +144,7 @@ describe("enrichCandidates — 4 도구 매핑", () => {
         verdict: "REVIEW_REQUIRED",
         concern_score: 25,
         flags: [{ flag: "F_A" }, { flag: "F_B" }],
+        yearly_data: [],
       },
       capexResp: {
         verdict: "STRONG",
@@ -130,7 +154,12 @@ describe("enrichCandidates — 4 도구 매핑", () => {
       insiderResp: {
         summary: { signal: "CLUSTER_BUY", strongest_quarter: "2024Q3" },
       },
-      dividendResp: { sustainability_grade: "B" },
+      dividendResp: {
+        sustainability_grade: "B",
+        metrics: { avg_payout_ratio: 0, avg_dividend_yield: 0, payout_stddev: 0, years_of_dividend: 0, recent_cut: false },
+        series: [],
+        interpretation_notes: [],
+      },
     });
     const result = await enrichCandidates(
       [makePartial("00001", "테스트A")],
@@ -145,6 +174,7 @@ describe("enrichCandidates — 4 도구 매핑", () => {
       verdict: "REVIEW_REQUIRED",
       concern_score: 25,
       top_flags: ["F_A", "F_B"],
+      yearly_data: [],
     });
     assert.deepEqual(c.capex, {
       verdict: "STRONG",
@@ -155,7 +185,12 @@ describe("enrichCandidates — 4 도구 매핑", () => {
       signal: "CLUSTER_BUY",
       cluster_quarter: "2024Q3",
     });
-    assert.deepEqual(c.dividend, { grade: "B" });
+    assert.deepEqual(c.dividend, {
+      grade: "B",
+      metrics: { avg_payout_ratio: 0, avg_dividend_yield: 0, payout_stddev: 0, years_of_dividend: 0, recent_cut: false },
+      series: [],
+      interpretation_notes: [],
+    });
     assert.deepEqual(c.stage_notes, []);
   });
 
@@ -171,6 +206,7 @@ describe("enrichCandidates — 4 도구 매핑", () => {
           { flag: "4" },
           { flag: "5" },
         ],
+        yearly_data: [],
       },
     });
     const result = await enrichCandidates(
@@ -287,6 +323,110 @@ describe("enrichCandidates — 4 도구 매핑", () => {
     assert.equal(result.enriched[0].corp_code, "00009");
     assert.equal(result.enriched[1].corp_code, "00010");
   });
+
+  // --- S1-S4: 19단계 yearly_data + metrics/series 전파 검증 ---
+
+  test("S1: cashflow.yearly_data — mock response 정합 전파", async () => {
+    const mockYd = [
+      { year: "2023", op_profit: 80, op_cf: 100, inv_cf: -50, fin_cf: 30, oi_cf_ratio: 1.25 },
+    ];
+    const deps = makeDeps({
+      cashflowResp: {
+        verdict: "OK",
+        concern_score: 0,
+        flags: [],
+        yearly_data: mockYd,
+      },
+    });
+    const result = await enrichCandidates(
+      [makePartial("S001", "S1법인")],
+      mockCtx,
+      mockLimited(0),
+      deps,
+    );
+    assert.deepEqual(result.enriched[0].cashflow?.yearly_data, mockYd);
+  });
+
+  test("S2: dividend.metrics/series/notes — mock response 정합 전파", async () => {
+    const mockMetrics = {
+      avg_payout_ratio: 0.3,
+      avg_dividend_yield: 0.02,
+      payout_stddev: 0.05,
+      years_of_dividend: 5,
+      recent_cut: false,
+    };
+    const mockSeries = [
+      { year: "2024", payout_ratio: 0.3, dividend_yield: 0.02, net_income: 1_000_000, dividend_total: 300_000 },
+    ];
+    const mockNotes = ["배당 안정성 양호"];
+    const deps = makeDeps({
+      dividendResp: {
+        sustainability_grade: "A+",
+        metrics: mockMetrics,
+        series: mockSeries,
+        interpretation_notes: mockNotes,
+      },
+    });
+    const result = await enrichCandidates(
+      [makePartial("S002", "S2법인")],
+      mockCtx,
+      mockLimited(0),
+      deps,
+    );
+    assert.deepEqual(result.enriched[0].dividend?.metrics, mockMetrics);
+    assert.deepEqual(result.enriched[0].dividend?.series, mockSeries);
+    assert.deepEqual(result.enriched[0].dividend?.interpretation_notes, mockNotes);
+  });
+
+  test("S3: cashflow throw → cashflow=null, dividend.metrics 정상 전파", async () => {
+    const mockMetrics = {
+      avg_payout_ratio: 0.2,
+      avg_dividend_yield: 0.01,
+      payout_stddev: 0.02,
+      years_of_dividend: 3,
+      recent_cut: false,
+    };
+    const deps = makeDeps({
+      cashflowThrow: new Error("CF 실패"),
+      dividendResp: {
+        sustainability_grade: "B",
+        metrics: mockMetrics,
+        series: [],
+        interpretation_notes: [],
+      },
+    });
+    const result = await enrichCandidates(
+      [makePartial("S003", "S3법인")],
+      mockCtx,
+      mockLimited(0),
+      deps,
+    );
+    assert.equal(result.enriched[0].cashflow, null);
+    assert.deepEqual(result.enriched[0].dividend?.metrics, mockMetrics);
+  });
+
+  test("S4: dividend throw → dividend=null, cashflow.yearly_data 정상 전파", async () => {
+    const mockYd = [
+      { year: "2025", op_profit: 100, op_cf: 300, inv_cf: -70, fin_cf: 50, oi_cf_ratio: 3 },
+    ];
+    const deps = makeDeps({
+      dividendThrow: new Error("배당 실패"),
+      cashflowResp: {
+        verdict: "CLEAN",
+        concern_score: 0,
+        flags: [],
+        yearly_data: mockYd,
+      },
+    });
+    const result = await enrichCandidates(
+      [makePartial("S004", "S4법인")],
+      mockCtx,
+      mockLimited(0),
+      deps,
+    );
+    assert.equal(result.enriched[0].dividend, null);
+    assert.deepEqual(result.enriched[0].cashflow?.yearly_data, mockYd);
+  });
 });
 
 // ---- finalizeCandidates ----
@@ -307,7 +447,7 @@ describe("finalizeCandidates — composite_score + sort + limit + rank", () => {
       killer: { verdict: "PASS", triggered_rules: [] },
       srim: { verdict: "BUY", prices: {}, gap_to_fair: 5.0 },
       cashflow:
-        con == null ? null : { verdict: "OK", concern_score: con, top_flags: [] },
+        con == null ? null : { verdict: "OK", concern_score: con, top_flags: [], yearly_data: [] },
       capex:
         opp == null
           ? null
@@ -401,10 +541,15 @@ describe("buildQuickSummary — 8부 사용자 직관 보조", () => {
       composite_score: 30,
       killer: { verdict: "PASS", triggered_rules: [] },
       srim: { verdict: "BUY", prices: {}, gap_to_fair: 12.5 },
-      cashflow: { verdict: "OK", concern_score: 5, top_flags: [] },
+      cashflow: { verdict: "OK", concern_score: 5, top_flags: [], yearly_data: [] },
       capex: { verdict: "STRONG", opportunity_score: 35, top_signals: [] },
       insider: { signal: "NORMAL", cluster_quarter: null },
-      dividend: { grade: "A" },
+      dividend: {
+        grade: "A",
+        metrics: { avg_payout_ratio: 0, avg_dividend_yield: 0, payout_stddev: 0, years_of_dividend: 0, recent_cut: false },
+        series: [],
+        interpretation_notes: [],
+      },
       stage_notes: [],
       quick_summary: "",
       ...overrides,
@@ -440,6 +585,7 @@ describe("buildQuickSummary — 8부 사용자 직관 보조", () => {
           verdict: "REVIEW_REQUIRED",
           concern_score: 30,
           top_flags: [],
+          yearly_data: [],
         },
       }),
     );
@@ -452,7 +598,14 @@ describe("buildQuickSummary — 8부 사용자 직관 보조", () => {
   });
 
   test("dividend N/A grade → dividend 표시 생략", () => {
-    const s = buildQuickSummary(makeFull({ dividend: { grade: "N/A" } }));
+    const s = buildQuickSummary(makeFull({
+      dividend: {
+        grade: "N/A",
+        metrics: { avg_payout_ratio: 0, avg_dividend_yield: 0, payout_stddev: 0, years_of_dividend: 0, recent_cut: false },
+        series: [],
+        interpretation_notes: [],
+      },
+    }));
     assert.doesNotMatch(s, /dividend/);
   });
 
