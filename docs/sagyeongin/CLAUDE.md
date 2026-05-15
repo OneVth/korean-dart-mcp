@@ -85,52 +85,35 @@
 - [x] 18단계 (e2e): scenarios/ 신설 + 명세/템플릿 정착 + (a) 진단 매듭 (`fb2a4d7`) + (c-1) ADR-0018/0019 문서 (`85a562b`) + (c-2) ADR-0018 구현 `feat/adr-0018-html-response-block` (`e8d3429`) + (c-3) ADR-0019 구현 + 본문 정정 `feat/adr-0019-daily-limit-precheck` (`b3ffc2a`) + (d) (ii) 명세 정정 (`d587f55`) + (e) Phase 1+2 결과 정착 (`6dd5a1b`) + analysis.md 매듭 (`11e6c12`) — Real use case e2e 측정 사이클 (ii 단독, iii는 17 add 후속 사이클 분리). ADR-0017/0018/0019 검증 완료. 핵심 발견: 17단계 결정/실행 분리 (학습 27번) (TOOL_REGISTRY 29, 사경인 14, 단테 226, +7, 2026-05-14)
 - [x] 18.5단계 (17 watchlist add 실행): `docs(sagyeongin): Stage 18.5 — 17 watchlist add 실행` (main 직접) — verifications/2026-05-14-stage18.5-watchlist-add-execution.md 정착 + 10 corp_code watchlist 정착 (`~/.sagyeongin-dart/config.json`). 학습 27번 직접 후속 — 17 결정 (2fa52c2) → 본 사이클 실행. 실행 사이클 (코드 변경 0, MCP 1 호출) (TOOL_REGISTRY 29, 사경인 14, 단테 226, 2026-05-14)
 - [x] 18단계 (iii) 사용자 의사결정 흐름: `docs(sagyeongin): (iii) 50 호출 결과 정착 + analysis.md (iii) 영역 채움` (`63c1e60`) — 10 종목 × 5 도구 = 50 MCP 호출, 에러 0건. (B-2) scan_execute embedded vs 단독 surface 차이 측정 + (C) 7부 E 진입 정합 8/10. 핵심 발견 5건 (학습 28~31 후보) (TOOL_REGISTRY 29, 사경인 14, 단테 226, 2026-05-14)
+- [x] 19단계: `feat/stage19-schema-expansion` — scan_execute schema 확장 (학습 28 + 학습 31 정착). cashflow.yearly_data 5 필드 + dividend.metrics/series/interpretation_notes 노출. evaluateOiCfDivergence signature 정정 (옵션 B, 추가 fetch 0). ADR-0019 산수 불변. β-i 가드 유지 (src/lib/ + _lib/ 변경 0). 단테 +10 (C1-C6 + S1-S4 = 236, 4 commits, 2026-05-16)
 
 ### 현재 작업 단계
 
-18단계 (iii) 종결 (2026-05-14). TOOL_REGISTRY 29 (변경 X). 본 사이클 본질 — *(iii) 사용자 의사결정 흐름 측정*: Stage 18.5 watchlist 정착 후 10 종목 × 5 도구 = 50 MCP 호출 + analysis 매듭.
+19단계 종결 (2026-05-16). TOOL_REGISTRY 29 (변경 X). 본 사이클 본질 — *scan_execute schema 확장 (학습 28 + 31 정착)*: evaluateOiCfDivergence signature 정정 (옵션 B) → yearly_data 5 필드 노출 + dividend metrics/series/notes 전파.
 
-본 사이클 산출 (commit `63c1e60`):
-- `results/02-decision-flow.md` 채움 (274 → 397) — 50 응답 + (A)/(B)/(B-2)/(C) 4영역 평가
-- `analysis.md` (iii) 영역 채움 (225 → 269) — "미실행" → 50 cell PASS/FAIL + 핵심 발견 정착
+본 사이클 산출 (merge commit `77c2ac7`):
+- `cashflow-check.ts`: 룰 1 signature 정정 + yearly_data 계산 블록 추가
+- `scan-execute.ts`: EnrichedCandidate 타입 확장 + cashflow/dividend enrichment 본체 정정
+- `cashflow-check.test.ts`: 신규 (C1-C6, 6건)
+- `scan-enrich.test.ts`: S1-S4 추가 + 기존 cashflow/dividend 객체 정합 갱신
 
-50/50 PASS, 에러 0건. ADR-0018/0019 정합 (DART 정상, T4 입력 어긋남 가드 정상).
+단테 236건 전체 통과 (회귀 0). β-i 가드: src/lib/ 0변경, _lib/ 0변경. ADR-0019 산수 불변 (추가 fetch 0).
 
-(B-2) scan_execute embedded vs 단독 호출 surface 차이 — 본 사이클 핵심:
-- T3 capex `evidence.dart_reference` (강) — DART 원문 view 진입 경로
-- T4 insider `quarterly_clusters.reporters` (강) — 시간 분산 매수 패턴 노출
-- T5 dividend `metrics + series` 5년 (강) — 17단계 §6 gap 정확 확인
-- T1 srim `inputs (ROE/K)` (중) — ROE/K 추적
-- T2 cashflow `yearly_data` 부재 (약) — 명세 어긋남
-
-(C) 7부 E 진입 정합 8/10 명확:
-- 파트론·파이오링크 (A 등급): 배당 + srim 정합, 최적
-- 신도리코: capex SIGNAL + DART 원문 진입 (`20250930000475`)
-- 아이디피: 고ROE (15.43%) → srim K 보정 진입 (fair > buy 역전)
-- 씨유테크: sell 직전 (gap_to_sell -2.55%) → 7부 A killer 재점검
-- 삼영전자공업: 배당 110.6% → 지속성 분석 진입
-
-핵심 발견 5건 (학습 후보):
-- 학습 28: scan-execute schema 확장 (T5 dividend metrics+series + T2 cashflow yearly_data)
-- 학습 29: srim K 보정 — 고ROE 종목 fair > buy 역전 정책
-- 학습 30: insider cluster_threshold 본질 — 동시 vs 시간 분산 분리 (philosophy 7부 C 재정정)
-- 학습 31: T2 cashflow yearly_data schema gap
-
-단테 누적 226 (변경 X). β-i 격리 영구 유지 (`src/lib/` 0 변경).
-
-18단계 본 사이클 commit chain (10건 누적):
-- 18(a)~18 종결 (8건): fb2a4d7 / 85a562b / e8d3429 / b3ffc2a / d587f55 / 6dd5a1b / 11e6c12 / 7fc30fd
-- 18.5 종결: bca2af3
-- (iii) Phase 2: **63c1e60**
+19단계 commit chain (4건):
+- `dfbb87f`: feat(cashflow): 룰 1 signature 정정 + yearly_data 노출
+- `d110410`: feat(scan-execute): EnrichedCandidate 타입 확장
+- `957e5eb`: feat(scan-execute): cashflow + dividend enrichment 본체 정정
+- `0fd10bd`: test(stage19): 단테 10건
+- merge: **77c2ac7**
 
 다음 단계 후보:
-- **scan-execute output schema 확장** (1순위) — T5 dividend metrics+series + T2 cashflow yearly_data 추가 노출 (학습 28/31)
-- **ADR-0023 srim K 보정** (2순위) — 고ROE 종목 fair > buy 역전 정책 (학습 29)
-- **philosophy 7부 C 재정정** (2순위) — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30)
+- **19단계 (iii)-redux**: scan_execute 50 호출 재실행 — 학습 28/31 gap 제거 검증 (별 사이클)
+- **ADR-0023 srim K 보정** — 고ROE 종목 fair > buy 역전 정책 (학습 29)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30)
 - **ADR-0020 (fetch timeout) / ADR-0021 (fail-safe 누적 throw) / ADR-0022 (DART IP 차단 사전 가드)** — 학습 25/26/24 정착 (별경로)
 - **§10.15 KSIC 9차/10차 정책 결정** — KSIC 26 집중 evidence 활용 (별경로)
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
-- **개별 도구 drill-in** — (iii) 특이 발견 (씨유테크 sell 직전, 삼영전자공업 110.6% 등) 후속
+- **개별 도구 drill-in** — 씨유테크 sell 직전, 삼영전자공업 110.6% 등 후속
 
 ## 자주 막히는 곳
 
