@@ -154,6 +154,15 @@ export interface EnrichedCandidate {
     verdict: string;
     concern_score: number;
     top_flags: string[];
+    // 19단계 학습 31 — 7부 B 시계열 노출 (CF 사실 + 영업이익 + 비율)
+    yearly_data: Array<{
+      year: string;
+      op_profit: number | null;
+      op_cf: number;
+      inv_cf: number;
+      fin_cf: number;
+      oi_cf_ratio: number | null;
+    }>;
   } | null;
   capex: {
     verdict: string;
@@ -164,8 +173,24 @@ export interface EnrichedCandidate {
     signal: string;
     cluster_quarter: string | null;
   } | null;
+  // 19단계 학습 28 — 7부 E 배당주 진입 인터페이스 (metrics + series + notes)
   dividend: {
     grade: string;
+    metrics: {
+      avg_payout_ratio: number;
+      avg_dividend_yield: number;
+      payout_stddev: number;
+      years_of_dividend: number;
+      recent_cut: boolean;
+    };
+    series: Array<{
+      year: string;
+      payout_ratio: number;
+      dividend_yield: number;
+      net_income: number;
+      dividend_total: number;
+    }>;
+    interpretation_notes: string[];
   } | null;
   stage_notes: string[];
   quick_summary: string;
