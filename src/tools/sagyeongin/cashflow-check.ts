@@ -62,17 +62,23 @@ const INVESTIGATION_HINTS: Record<string, string[]> = {
 };
 
 // 룰 1: 영업이익(+) vs 영업CF(−) 합산 2회+ 어긋남
+//
+// 19단계: signature 정정 — opIncome 시계열 본체에 회수 위해 결과 객체로 반환.
+// 본 정정으로 cashflow-check 본체가 룰 1 호출 결과에서 영업이익 시계열 회수 →
+// yearly_data.op_profit 노출 가능 + 추가 fetch 0 (ADR-0019 산수 불변).
 async function evaluateOiCfDivergence(
   corp_code: string,
   cf: { operating: number[]; investing: number[]; financing: number[] },
   ctx: ToolCtx,
   years: number,
-): Promise<Flag | null> {
+): Promise<{ flag: Flag | null; opIncome: number[] }> {
   // 7부 B oi_cf_divergence: CFS 우선 → OFS 폴백 (그룹 전체 사실 영역)
   // killer-check.ts의 OFS 강제 호출과 본질 분리 — 호출 시점 정책 명시
   const oi = await extractOperatingIncomeSeries(corp_code, years, ctx, "CFS_FIRST");
 
-  if (!oi.length || !cf.operating.length) return null;
+  if (!oi.length || !cf.operating.length) {
+    return { flag: null, opIncome: oi };
+  }
 
   // 길이 정합: 두 시계열 길이 다를 수 있음 (응답 연도 누락)
   // 가장 최근 N년만 비교 — 어긋남 발생 여부가 본질, 정확한 연도 매핑은 범위 외
@@ -85,18 +91,23 @@ async function evaluateOiCfDivergence(
     if (oiTail[i] > 0 && cfTail[i] < 0) divergenceCount++;
   }
 
-  if (divergenceCount < 2) return null;
+  if (divergenceCount < 2) {
+    return { flag: null, opIncome: oi };
+  }
 
   return {
-    flag: "oi_cf_divergence",
-    severity: "high",
-    description: `영업이익 양수 vs 영업CF 음수 — ${divergenceCount}회 어긋남`,
-    evidence: {
-      operating_income_series: oiTail,
-      operating_cf_series: cfTail,
-      divergence_count: divergenceCount,
+    flag: {
+      flag: "oi_cf_divergence",
+      severity: "high",
+      description: `영업이익 양수 vs 영업CF 음수 — ${divergenceCount}회 어긋남`,
+      evidence: {
+        operating_income_series: oiTail,
+        operating_cf_series: cfTail,
+        divergence_count: divergenceCount,
+      },
+      investigation_hints: INVESTIGATION_HINTS.oi_cf_divergence,
     },
-    investigation_hints: INVESTIGATION_HINTS.oi_cf_divergence,
+    opIncome: oi,
   };
 }
 
@@ -209,12 +220,15 @@ export const cashflowCheckTool: ToolDef = defineTool({
 
     const flags: Flag[] = [];
 
-    // 룰 1: oi_cf_divergence
+    // 룰 1: oi_cf_divergence — 19단계 yearly_data.op_profit 노출 위해 결과 분해
+    let opIncome: number[] = [];
     try {
-      const f = await evaluateOiCfDivergence(args.corp_code, cf, ctx, args.years);
-      if (f) flags.push(f);
+      const oiResult = await evaluateOiCfDivergence(args.corp_code, cf, ctx, args.years);
+      if (oiResult.flag) flags.push(oiResult.flag);
+      opIncome = oiResult.opIncome;
     } catch {
-      // 영업이익 추출 실패 — 룰 미트리거 (7부 B 본질: 데이터 부재 시 사전 판정 안 함)
+      // 영업이익 추출 실패 — 룰 미트리거 + opIncome 부재 정합
+      // (7부 B 본질: 데이터 부재 시 사전 판정 안 함; yearly_data.op_profit은 null로 정착)
     }
 
     // 룰 2: negative_ocf_persistent (CF 시계열만 사용)
@@ -239,6 +253,49 @@ export const cashflowCheckTool: ToolDef = defineTool({
     );
     const verdict = flags.length > 0 ? "REVIEW_REQUIRED" : "CLEAN";
 
-    return { corp_code: args.corp_code, corp_name, verdict, concern_score, flags };
+    // 19단계 yearly_data 계산 — 7부 B "현금흐름은 사실" 시계열 노출.
+    // 본 시계열 = CF 사실 시계열 (operating/investing/financing) 기준 길이 n.
+    // opIncome (영업이익) 부족 연도는 null 채움 — 7부 B 본질: CF 사실이 본 노출, opIncome은 보조.
+    // 룰 1 catch 케이스 (영업이익 추출 실패) — opIncome = [] → 모든 op_profit/oi_cf_ratio null.
+    const cfLengths = [cf.operating.length, cf.investing.length, cf.financing.length];
+    const n = Math.min(...cfLengths);
+    const endYear = new Date().getFullYear() - 1;
+    const opTail = cf.operating.slice(-n);
+    const invTail = cf.investing.slice(-n);
+    const finTail = cf.financing.slice(-n);
+
+    // opIncome 길이 정합: n보다 짧으면 앞쪽 null 채움
+    const opIncomeAligned: (number | null)[] = (() => {
+      if (opIncome.length === 0) return Array(n).fill(null);
+      const oiTail = opIncome.slice(-n);
+      if (oiTail.length === n) return oiTail;
+      // 짧음 — 앞쪽 null 채움 (최근 연도 정렬 유지)
+      return [...Array(n - oiTail.length).fill(null), ...oiTail];
+    })();
+
+    const yearly_data = Array.from({ length: n }, (_, i) => {
+      const op_profit = opIncomeAligned[i];
+      const op_cf = opTail[i];
+      // oi_cf_ratio: op_profit null 또는 0 시 null
+      const oi_cf_ratio =
+        op_profit !== null && op_profit !== 0 ? op_cf / op_profit : null;
+      return {
+        year: String(endYear - n + 1 + i),
+        op_profit,
+        op_cf,
+        inv_cf: invTail[i],
+        fin_cf: finTail[i],
+        oi_cf_ratio,
+      };
+    });
+
+    return {
+      corp_code: args.corp_code,
+      corp_name,
+      verdict,
+      concern_score,
+      flags,
+      yearly_data,
+    };
   },
 });
