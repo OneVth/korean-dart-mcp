@@ -398,11 +398,21 @@ export async function enrichCandidates(
         verdict: string;
         concern_score: number;
         flags: Array<{ flag: string }>;
+        // 19단계 학습 31 — yearly_data 전파
+        yearly_data: Array<{
+          year: string;
+          op_profit: number | null;
+          op_cf: number;
+          inv_cf: number;
+          fin_cf: number;
+          oi_cf_ratio: number | null;
+        }>;
       };
       cashflowStage = {
         verdict: r.verdict,
         concern_score: r.concern_score,
         top_flags: r.flags.slice(0, 3).map((f) => f.flag),
+        yearly_data: r.yearly_data,
       };
     } catch (e) {
       if (e instanceof DartRateLimitError) {
@@ -459,8 +469,29 @@ export async function enrichCandidates(
         ctx,
       )) as {
         sustainability_grade: string;
+        // 19단계 학습 28 — 배당 진입 인터페이스 전파
+        metrics: {
+          avg_payout_ratio: number;
+          avg_dividend_yield: number;
+          payout_stddev: number;
+          years_of_dividend: number;
+          recent_cut: boolean;
+        };
+        series: Array<{
+          year: string;
+          payout_ratio: number;
+          dividend_yield: number;
+          net_income: number;
+          dividend_total: number;
+        }>;
+        interpretation_notes: string[];
       };
-      dividendStage = { grade: r.sustainability_grade };
+      dividendStage = {
+        grade: r.sustainability_grade,
+        metrics: r.metrics,
+        series: r.series,
+        interpretation_notes: r.interpretation_notes,
+      };
     } catch (e) {
       if (e instanceof DartRateLimitError) {
         return { enriched, limitReachedDuringEnrich: true };
