@@ -44,8 +44,8 @@ await resolver.init(client);
 console.log("초기화 완료\n");
 
 const TODAY = new Date().toISOString().slice(0, 10).replace(/-/g, "-");
-const R1_PATH = resolve(root, `verifications/2026-05-12-stage16c-field-test-r1.json`);
-const R2_PATH = resolve(root, `verifications/2026-05-12-stage16c-field-test-r2.json`);
+const R1_PATH = resolve(root, `verifications/2026-05-13-stage16c-field-test-r1.json`);
+const R2_PATH = resolve(root, `verifications/2026-05-13-stage16c-field-test-r2.json`);
 
 // === 1회차 ===
 console.log(`=== 1회차 시작 (${new Date().toISOString()}) ===`);
