@@ -89,25 +89,31 @@
 
 ### 현재 작업 단계
 
-19단계 종결 (2026-05-16). TOOL_REGISTRY 29 (변경 X). 본 사이클 본질 — *scan_execute schema 확장 (학습 28 + 31 정착)*: evaluateOiCfDivergence signature 정정 (옵션 B) → yearly_data 5 필드 노출 + dividend metrics/series/notes 전파.
+19단계 종결 (2026-05-16). TOOL_REGISTRY 29.
 
-본 사이클 산출 (merge commit `77c2ac7`):
-- `cashflow-check.ts`: 룰 1 signature 정정 + yearly_data 계산 블록 추가
-- `scan-execute.ts`: EnrichedCandidate 타입 확장 + cashflow/dividend enrichment 본체 정정
-- `cashflow-check.test.ts`: 신규 (C1-C6, 6건)
-- `scan-enrich.test.ts`: S1-S4 추가 + 기존 cashflow/dividend 객체 정합 갱신
+#### Stage 20 (iii)-redux 보류 (2026-05-17)
 
-단테 236건 전체 통과 (회귀 0). β-i 가드: src/lib/ 0변경, _lib/ 0변경. ADR-0019 산수 불변 (추가 fetch 0).
+본 사이클 본질 — 학습 28/31 user-facing gap 제거 정합 검증. 1단계 명세 commit `df389df` push 완료. 2단계 MCP 호출 진입에서 본질적 한계 발견 → 보류 결정.
 
-19단계 commit chain (4건):
-- `dfbb87f`: feat(cashflow): 룰 1 signature 정정 + yearly_data 노출
-- `d110410`: feat(scan-execute): EnrichedCandidate 타입 확장
-- `957e5eb`: feat(scan-execute): cashflow + dividend enrichment 본체 정정
-- `0fd10bd`: test(stage19): 단테 10건
-- merge: **77c2ac7**
+진입 발견:
+- entry prompt 가정 3건 위반 — scan_execute Input schema에 `universe` / `max_candidates` parameter 자체 부재. 17단계 watchlist를 scan_execute universe로 사용 가능 가정은 misunderstanding (watchlist는 `watchlist_check` 전용 input)
+- scan_execute 1회 완주 본질적 불가 — universe ~3,607 기준 stage2~6 실호출 ~29,000 → daily limit 20,000 초과. scan_execute 본질 = checkpoint + resume 분할 실행
+- corp_meta_cache (ADR-0016) 적용 범위는 stage1만. stage2~6은 cache 부재 — universe 곱한 호출량 그대로 발생
+- ADR-0019 pre-check estimate는 cache hit 미반영 — universe × N 산식. 실제 호출량 분리 식별 필요
+
+Stage 20 1단계 산출:
+- `docs/sagyeongin/scenarios/stage20-iii-redux/00-scope.md` (323 line, commit `df389df`)
+- 부수 hotfix `78339c7` (verifications/run-corp-meta-refresh.mjs 경로 정정 05-12→05-13)
+
+다음 사이클 보강 본문:
+- 18 (iii) `docs/sagyeongin/scenarios/stage18-e2e/02-decision-flow.md` 실제 scan_execute 호출 흐름 직접 회수
+- scan_execute checkpoint + resume 흐름 회수 후 V1+V2 검증 방식 재설계
+- `00-scope.md` 본 가정 정정 (`universe` parameter 부재 등)
+
+단테 누적 변화 0 (236 유지). β-i 가드 유지 (src/lib/ + _lib/ 변경 0). spec-assumption mismatch 누적 +1 → 14건+.
 
 다음 단계 후보:
-- **19단계 (iii)-redux**: scan_execute 50 호출 재실행 — 학습 28/31 gap 제거 검증 (별 사이클)
+- **Stage 20 (iii)-redux 재진입** — 다음 세션 entry prompt에 학습 20~23 정착 후
 - **ADR-0023 srim K 보정** — 고ROE 종목 fair > buy 역전 정책 (학습 29)
 - **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30)
 - **ADR-0020 (fetch timeout) / ADR-0021 (fail-safe 누적 throw) / ADR-0022 (DART IP 차단 사전 가드)** — 학습 25/26/24 정착 (별경로)
@@ -827,6 +833,18 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 18. **MCP 도구 호출 본질 표기 가드** — 위임 명세 + 결정 본문 작성 시 도구가 본 fork TOOL_REGISTRY 정착 여부 사전 grep 후 "MCP 등록 Claude 세션" vs "Claude Code 세션" 분리 영역 명시. "사용자 직접 호출" 표기는 도구가 MCP 외부 영역인 경우만 정합. 17단계 매듭 (`2fa52c2`) 영역에서 `sagyeongin_update_watchlist` (TOOL_REGISTRY 29 / 사경인 14 포함) MCP 도구를 "Onev 환경 영역 watchlist add 명령" / "사용자 직접 호출" 영역으로 표기 — Claude Code 세션의 MCP 등록 부재 본질을 도구 영역으로 잘못 전환. **반복 금지.**
 
 19. **JSON 본문 분석 시 키 이름 가정 가드** — 분석 코드 (python `dict.get` 등) 작성 시 본 도구 result interface 직접 grep + JSON 본문 `keys()` 본격 확인 후 분석 코드 작성. python `dict.get('xxx')` None 결과를 *데이터 누락*으로 잘못 해석 가드. 17단계 §6 "데이터 누락 영역" 본문에서 srim/capex/insider 3건 어긋남 (srim `fair_value` 가정 → 실제 `srim.prices.fair_price`; capex `signals` 가정 → 실제 `top_signals`; insider `verdict` 가정 → 실제 `signal`). 학습 15번 ("위임 명세 기대값 작성 시 기존 verifications 직접 view 필수")은 *partial vs 전체* 영역 — 학습 19번은 *키 이름 가정* 영역 본질 별개. **반복 금지.**
+
+#### Stage 20 (iii)-redux 누적 (2026-05-17)
+
+본 사이클에서 발견한 4건 누적 학습:
+
+20. **RW_MODE 명시 가드** — 위임 명세 첫 줄에 `RW_MODE: READ_ONLY` / `PUSH_ONLY` / `MCP_ONLY` / `WRITE` 명시. 변경 발생 가능 명령 발견 시 Claude Code stop + 본 세션 회신 요청. 보고 양식 마지막에 "변경 발생 0 confirm" 항목 강제. Stage 20 사이클 stale-recovery 위임에서 read-only 가드 위반 발생 (Claude Code가 stage19-schema-gap.md revert + run-corp-meta-refresh.mjs 정정 commit `78339c7` 자체 판단 실행). 학습 18 ("MCP 도구 호출 본질 표기 가드") 본질과 다름 — 학습 18은 *도구 영역* 표기, 학습 20은 *위임 권한* 명시. **반복 금지.**
+
+21. **호출 입력 schema 직접 회수 가드** — 사이클 진입 시 entry prompt의 호출 input 가정을 도구 source (Input z.object schema) 직접 회수로 검증. Stage 20 (iii)-redux entry prompt의 `universe: "watchlist"` + `max_candidates: 3` 가정은 scan_execute Input schema에 해당 parameter 자체 부재. 17단계 watchlist를 scan_execute universe로 사용 가능 가정도 misunderstanding — watchlist는 watchlist_check 전용 input. 학습 5/17 ("진입 프롬프트 ADR/spec/7부 라벨 직접 grep 누락") 본질 동일 재발 — 본 학습은 *Input schema* 영역 특화. **반복 금지.**
+
+22. **ADR-0019 estimate cache hit 미반영** — ADR-0019 pre-check estimate (universe × N) 산식은 corp_meta_cache (stage1) hit을 무시. 실제 호출량 분리 식별 필수. stage2~6은 cache 부재 — universe 곱한 호출량 그대로 발생. Stage 20 사이클에서 universe 3,607 기준 ADR-0019 통과해도 실 daily limit 초과 가능성 식별. 학습 16 ("ADR 효과 범위 명확화 필수") 본질 재확인 — ADR-0019 본문에 cache 영향 명시 보강 후보.
+
+23. **사이클 본질 가정 위반 시 보류 결정** — entry prompt + 명세 가정의 본질 위반을 발견하면 사이클 강제 진행보다 본 세션 종결 + 다음 세션 새 본질 진입이 정합. Stage 20 사이클은 entry prompt + 명세 `00-scope.md` 재작성이 새 사이클에 해당 — 본 세션 컨텍스트 부담 누적 + noise 통제 위반 누적으로 다음 세션 효율 우선. 동일 본 세션에서 계속 진행 시 학습 누적 정착 부정확 위험.
 
 ## 의사결정 시 주의
 
