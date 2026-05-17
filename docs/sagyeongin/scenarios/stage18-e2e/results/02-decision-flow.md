@@ -121,9 +121,9 @@
 ```
 
 - **(A) PASS** — 단 schema 가정 위배
-- **(B)**: ⚠️ **fair (6,335) > buy (5,886)** — 정상 srim 본질 (sell > fair > buy 또는 sell > buy > fair) 위배 — *fair > buy* 역전
+- **(B)**: 분포 sell (7,637) > fair (6,335) > buy (5,886) — ROE 15.43% > K 10.54% 케이스 정상 분포 (excess income 양수, srim 공식 본질 정합). **학습 29 정정 (ADR-0023)**: 본 분포는 "역전"이 아닌 정상 srim 분포. 분포 역전 영역은 ROE < K 9건 (저ROE/정상ROE 모두) — buy > fair > sell 분포
 - **(B-2)**: 본 역전 구조 본 scan_execute embedded 본 동일 노출 영역 — 단 *원인 추적* 본 단독 호출의 `inputs` 본문 (avg_roe 15.43% — 10건 중 #1) 필수
-- **(C)**: ROE 15.43% > K 10.54% → fair value가 큰 가치 → buy 진입가가 fair보다 낮아진 *srim 역전 구조*. 본 종목은 *고ROE × srim K 보정* 수동 분석 진입 영역. 7부 E 핵심 영역
+- **(C)**: ROE 15.43% > K 10.54% → excess income 양수 → srim 분포 정상 (sell > fair > buy). 본 종목은 10건 중 유일한 ROE > K 케이스 — srim 공식 본질 정합 영역. 7부 D-2 RIM "초과이익 양수 종목 발견" 본질 정합
 
 ### 파트론 (00490151)
 
@@ -169,12 +169,12 @@
 
 ### T1 종합
 
-- 10/10 BUY ✓ (17 baseline 정합)
-- 가격 구조 본 분포:
-  - **정상 (sell > fair > buy 패턴)**: 파트론, 파이오링크, LX세미콘, 코텍 (4건)
-  - **fair > buy 역전** (고ROE): 아이디피 (1건)
-  - **buy > fair > current 큰 할인** (저ROE): 신도리코, 세진티에스, 인탑스, 삼영전자공업, 씨유테크 (5건)
-- **(B-2) 주요 발견**: `inputs.avg_roe` + `inputs.required_return_K` + `roe_method` — scan_execute 영역 외. ROE/K 격차 추적이 srim 신뢰도 평가 핵심
+- 10/10 BUY (17 baseline 정합) — **단 verdict BUY 산출 본질 부정확 9건 (ADR-0023)**
+- 가격 분포 — srim 공식 본질 ROE/K 의존 (`_lib/srim-calc.ts` line 119-132):
+  - **ROE > K (정상 분포 sell > fair > buy)**: 아이디피 1건 (ROE 15.43% > K 10.54%)
+  - **ROE < K (분포 역전 buy > fair > sell)**: 9건 — 파트론/파이오링크/LX세미콘/코텍/신도리코/세진티에스/인탑스/삼영전자공업/씨유테크
+- **학습 29 정정 (ADR-0023)**: 분포 역전 본질 영역은 ROE < K 케이스 (excess income 음수 → W=1.0 분모 최소로 sell 가장 작음). 9건이 ROE < K — 사경인 7부 D-2 "초과이익 양수 종목 발견" 본질 위반. handler verdict 본문 first-match (`current ≤ prices.buy → BUY`)가 분포 역전 시 항상 BUY 산출 — verdict invariant 가드 본문 정합 (분기 Y, phase 2 진입 영역)
+- **(B-2) 주요 발견**: `inputs.avg_roe` + `inputs.required_return_K` + `roe_method` — scan_execute 영역 외. ROE/K 격차 추적이 srim 신뢰도 평가 핵심. ADR-0023 verdict 가드 진입 시 사용자가 inputs ROE vs K 본문 직접 식별 가능 정합
 
 ---
 
