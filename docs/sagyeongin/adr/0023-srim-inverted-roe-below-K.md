@@ -95,6 +95,11 @@ W10 = equity + (excess × 1.0) / (1 + K − 1.0)  → sell = W10 / shares
 - 코드 변경 0 (results md 파일만 정정).
 - 사이클 본질 재정의 정착 본문.
 
+## 효과 측정
+
+- 18(iii) baseline 10건 효과 측정: `verifications/2026-05-18-adr-0023-effect.md`
+- 9건 발동 (verdict null) + 1건 미발동 (아이디피 BUY 유지) — 사상 정합
+
 ## 적용 범위
 
 - `src/tools/sagyeongin/_lib/srim-calc.ts` — `judgeSrimVerdict` invariant 가드 (phase 2)
