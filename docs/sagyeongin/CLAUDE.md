@@ -87,10 +87,11 @@
 - [x] 18단계 (iii) 사용자 의사결정 흐름: `docs(sagyeongin): (iii) 50 호출 결과 정착 + analysis.md (iii) 영역 채움` (`63c1e60`) — 10 종목 × 5 도구 = 50 MCP 호출, 에러 0건. (B-2) scan_execute embedded vs 단독 surface 차이 측정 + (C) 7부 E 진입 정합 8/10. 핵심 발견 5건 (학습 28~31 후보) (TOOL_REGISTRY 29, 사경인 14, 단테 226, 2026-05-14)
 - [x] 19단계: `feat/stage19-schema-expansion` — scan_execute schema 확장 (학습 28 + 학습 31 정착). cashflow.yearly_data 5 필드 + dividend.metrics/series/interpretation_notes 노출. evaluateOiCfDivergence signature 정정 (옵션 B, 추가 fetch 0). ADR-0019 산수 불변. β-i 가드 유지 (src/lib/ + _lib/ 변경 0). 단테 +10 (C1-C6 + S1-S4 = 236, 4 commits, 2026-05-16)
 - [x] Stage 20 (iii)-redux 정착 (2026-05-17): 보류 종결 `cf47a64` → 정정 사이클 `dcd3d40` (분기 E 정착) — 학습 28/31 user-facing gap 제거 정합 검증 정착 (정적 코드 분석 + scan-enrich.test.ts S1~S4 정합). MCP 호출 0, 코드 변경 0. V1~V5 5/5 PASS. 학습 #24~26 정착 (TOOL_REGISTRY 29, 사경인 14, 단테 236, 2026-05-17)
+- [x] Stage 21 phase 1 결정 (2026-05-17): ADR-0023 신설 + 18(iii) results §T1 본문 정정 + 학습 29 재정의 — srim 분포 ROE/K 의존 본질 식별 (`_lib/srim-calc.ts` line 119-132). ROE > K 정상 (sell > fair > buy) vs ROE < K 분포 역전 (buy > fair > sell). 18(iii) baseline 10건 중 9건 ROE < K → verdict 항상 BUY 산출 (사경인 D-2 본질 위반). 분기 Y (verdict invariant 가드) + Z (results 정정) 결합, X (calculateSrim 가드) 보류. phase 2 (구현) 별 사이클 진입 영역. 코드 변경 0, 단테 236 (변화 0) (TOOL_REGISTRY 29, 사경인 14, 2026-05-17)
 
 ### 현재 작업 단계
 
-Stage 20 (iii)-redux 정착 종결 (2026-05-17). TOOL_REGISTRY 29.
+Stage 21 phase 1 결정 종결 (2026-05-17). phase 2 (분기 Y 구현) 별 사이클 영역. TOOL_REGISTRY 29.
 
 #### Stage 20 (iii)-redux — 보류 + 정착 두 사이클 (2026-05-17)
 
@@ -874,6 +875,21 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 25. **사이클 응답 재호출 0 정합 (handler deterministic)** — 보류 사이클 응답 (V3+V4 4건: 신도리코/LX세미콘/파트론/코텍)이 정착 사이클에서도 정합 활용 가능. 동일 handler 동일 입력 → 동일 응답 (deterministic) 본질로 재호출 잉여. Stage 20 정착 사이클에서 V3+V4 cover 본 본문 정합 정착. ADR-0003 mock 단테 원칙과 정합.
 
 26. **V1+V2 ↔ V3+V4 교차 정합 = type 시스템 + handler 동일성** — scan_execute embedded vs 단독 호출 동일 handler 호출 시 type 일치 → 응답 일치 정합. EnrichedCandidate.cashflow.yearly_data type ≡ cashflow_check 응답 yearly_data type (동일 handler 호출). corp_code overlap 보장 검증 잉여. Stage 20 정착 사이클 분기 E 정합. 학습 24 후속 — 정적 분석 영역 본질 확장.
+
+#### Stage 21 phase 1 누적 (2026-05-17)
+
+본 사이클 phase 1에서 정착된 3건 누적 학습:
+
+27. **사이클 본질 entry prompt 가정 위반 — origin 본문 자체 모순 식별 정합** — entry prompt 분기 3건 가정 (분기 1 K_floor / 분기 2 ROE_cap / 분기 3 fair_buy_invariant 가드) 모두 ROE > K 큰 격차 전제. 회수 D (18(iii) results 직접 view) + 회수 A (`_lib/srim-calc.ts` line 119-132 multiplier 산출 본문 직접 view)에서 실제 본질 식별 — ROE < K 케이스 분포 역전 (9/10 baseline). origin "고ROE × K 보정" 영역 자체 부정확. 학습 21 ("호출 입력 schema 직접 회수 가드") 본문 본질 확장 — schema 외 *공식/계산 본문* 직접 회수 정합. **반복 금지.**
+
+28. **srim 공식 분포 ROE/K 의존 본질** — `_lib/srim-calc.ts` line 121-123 W08/W09/W10 산출 본문에서 분모 (1+K-W)가 W=1.0에서 최소. excess income 부호에 따라 분포 결정:
+    - ROE > K (excess 양수) → sell > fair > buy (안전마진 정합)
+    - ROE = K (excess 0) → buy = fair = sell (가격 압축)
+    - ROE < K (excess 음수) → buy > fair > sell (분포 역전)
+
+    사경인 7부 D-2 RIM은 "초과이익 양수 종목 발견" 본질 — ROE < K 종목 srim 적용 자체 의문 영역. ADR-0023 분기 Y 본질 정합 영역.
+
+29. **결정/실행 분리 commit chain — phase 1 (결정 main 직접) + phase 2 (실행 feat branch) 본격 정합** — 학습 #27 ("결정 ↔ 실행 분리") 본문 본질 확장. Stage 21 phase 1 (ADR-0023 신설 + results 정정 + CLAUDE.md 갱신) main 직접 3 commit chain. phase 2 (srim-calc.ts + srim.ts + test 신설) 별 사이클 feat branch + `--no-ff` merge 영역. 결정 본문 정착 후 실행 진입 정합 — 결정 본문 변경 시 phase 2 진입 사전 본 ADR 재검토 영역.
 
 ## 의사결정 시 주의
 
