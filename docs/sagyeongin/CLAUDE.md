@@ -86,40 +86,59 @@
 - [x] 18.5단계 (17 watchlist add 실행): `docs(sagyeongin): Stage 18.5 — 17 watchlist add 실행` (main 직접) — verifications/2026-05-14-stage18.5-watchlist-add-execution.md 정착 + 10 corp_code watchlist 정착 (`~/.sagyeongin-dart/config.json`). 학습 27번 직접 후속 — 17 결정 (2fa52c2) → 본 사이클 실행. 실행 사이클 (코드 변경 0, MCP 1 호출) (TOOL_REGISTRY 29, 사경인 14, 단테 226, 2026-05-14)
 - [x] 18단계 (iii) 사용자 의사결정 흐름: `docs(sagyeongin): (iii) 50 호출 결과 정착 + analysis.md (iii) 영역 채움` (`63c1e60`) — 10 종목 × 5 도구 = 50 MCP 호출, 에러 0건. (B-2) scan_execute embedded vs 단독 surface 차이 측정 + (C) 7부 E 진입 정합 8/10. 핵심 발견 5건 (학습 28~31 후보) (TOOL_REGISTRY 29, 사경인 14, 단테 226, 2026-05-14)
 - [x] 19단계: `feat/stage19-schema-expansion` — scan_execute schema 확장 (학습 28 + 학습 31 정착). cashflow.yearly_data 5 필드 + dividend.metrics/series/interpretation_notes 노출. evaluateOiCfDivergence signature 정정 (옵션 B, 추가 fetch 0). ADR-0019 산수 불변. β-i 가드 유지 (src/lib/ + _lib/ 변경 0). 단테 +10 (C1-C6 + S1-S4 = 236, 4 commits, 2026-05-16)
+- [x] Stage 20 (iii)-redux 정착 (2026-05-17): 보류 종결 `cf47a64` → 정정 사이클 `dcd3d40` (분기 E 정착) — 학습 28/31 user-facing gap 제거 정합 검증 정착 (정적 코드 분석 + scan-enrich.test.ts S1~S4 정합). MCP 호출 0, 코드 변경 0. V1~V5 5/5 PASS. 학습 #24~26 정착 (TOOL_REGISTRY 29, 사경인 14, 단테 236, 2026-05-17)
 
 ### 현재 작업 단계
 
-19단계 종결 (2026-05-16). TOOL_REGISTRY 29.
+Stage 20 (iii)-redux 정착 종결 (2026-05-17). TOOL_REGISTRY 29.
 
-#### Stage 20 (iii)-redux 보류 (2026-05-17)
+#### Stage 20 (iii)-redux — 보류 + 정착 두 사이클 (2026-05-17)
 
-본 사이클 본질 — 학습 28/31 user-facing gap 제거 정합 검증. 1단계 명세 commit `df389df` push 완료. 2단계 MCP 호출 진입에서 본질적 한계 발견 → 보류 결정.
+본 사이클 본질 — 학습 28/31 user-facing gap 제거 정합 검증.
 
-진입 발견:
+##### 보류 사이클 (`cf47a64`)
+
+1단계 명세 commit `df389df` push 완료. 2단계 MCP 호출 진입에서 본질적 한계 발견 → 보류 결정.
+
+진입 발견 4건:
 - entry prompt 가정 3건 위반 — scan_execute Input schema에 `universe` / `max_candidates` parameter 자체 부재. 17단계 watchlist를 scan_execute universe로 사용 가능 가정은 misunderstanding (watchlist는 `watchlist_check` 전용 input)
 - scan_execute 1회 완주 본질적 불가 — universe ~3,607 기준 stage2~6 실호출 ~29,000 → daily limit 20,000 초과. scan_execute 본질 = checkpoint + resume 분할 실행
 - corp_meta_cache (ADR-0016) 적용 범위는 stage1만. stage2~6은 cache 부재 — universe 곱한 호출량 그대로 발생
 - ADR-0019 pre-check estimate는 cache hit 미반영 — universe × N 산식. 실제 호출량 분리 식별 필요
 
-Stage 20 1단계 산출:
-- `docs/sagyeongin/scenarios/stage20-iii-redux/00-scope.md` (323 line, commit `df389df`)
-- 부수 hotfix `78339c7` (verifications/run-corp-meta-refresh.mjs 경로 정정 05-12→05-13)
+보류 사이클 산출:
+- `df389df` (1단계 명세 가정 위반, 324 line)
+- `78339c7` (hotfix — verifications/run-corp-meta-refresh.mjs 경로 정정)
+- `cf47a64` (보류 종결 매듭)
 
-다음 사이클 보강 본문:
-- 18 (iii) `docs/sagyeongin/scenarios/stage18-e2e/02-decision-flow.md` 실제 scan_execute 호출 흐름 직접 회수
-- scan_execute checkpoint + resume 흐름 회수 후 V1+V2 검증 방식 재설계
-- `00-scope.md` 본 가정 정정 (`universe` parameter 부재 등)
+##### 정착 사이클 (`dcd3d40` → 매듭)
 
-단테 누적 변화 0 (236 유지). β-i 가드 유지 (src/lib/ + _lib/ 변경 0). spec-assumption mismatch 누적 +1 → 14건+.
+보류 사이클 발견 4건 정정 후 분기 결정 본문 재구성 — A (universe 축소 + MCP) / B (checkpoint+resume) / C (cover 0) / D (코드 추가) / **E (정적 분석)** 중 E 선택.
+
+분기 E 근거: 19단계 schema 확장이 이미 코드 + test 양쪽 정착. 코드 path (scan-execute.ts:415 학습 31, 491-493 학습 28 + 525-545 finalize mutation 부재 + 622 buildResponse 그대로 노출) + scan-enrich.test.ts S1~S4 (mock propagation assertion) 정합으로 deterministic cover. MCP live 호출 잉여.
+
+검증 결과 5/5 PASS:
+- V1 (학습 28 dividend propagation): 코드 path + S2/S3 ✓
+- V2 (학습 31 cashflow propagation): 코드 path + S1/S4 ✓
+- V3 (cashflow_check 단독): 보류 사이클 응답 2건 (신도리코/LX세미콘) 정착, 재호출 0 ✓
+- V4 (dividend_check 단독): 보류 사이클 응답 2건 (파트론/코텍) 정착, 재호출 0 ✓
+- V5 (7부 B/E user-facing 의사결정): V1~V4 분석 ✓
+
+정착 사이클 산출:
+- `dcd3d40` (정정 명세 228 line, -96 line 단순화 + verifications 300 line 신설, 분기 E)
+- 본 매듭 commit (학습 #24~26 정착)
+
+단테 누적 변화 0 (236 유지). β-i 가드 유지 (src/lib/ + _lib/ 변경 0). 코드 변경 0 사이클 2건 (보류 + 정착). spec-assumption mismatch 누적 +1 → 14건+ (보류 사이클 발견 정합).
 
 다음 단계 후보:
-- **Stage 20 (iii)-redux 재진입** — 다음 세션 entry prompt에 학습 20~23 정착 후
 - **ADR-0023 srim K 보정** — 고ROE 종목 fair > buy 역전 정책 (학습 29)
 - **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30)
 - **ADR-0020 (fetch timeout) / ADR-0021 (fail-safe 누적 throw) / ADR-0022 (DART IP 차단 사전 가드)** — 학습 25/26/24 정착 (별경로)
 - **§10.15 KSIC 9차/10차 정책 결정** — KSIC 26 집중 evidence 활용 (별경로)
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 - **개별 도구 drill-in** — 씨유테크 sell 직전, 삼영전자공업 110.6% 등 후속
+- **V3 룰 1 트리거 cover** — 본 사이클 V3-2 (LX세미콘) 룰 1 미트리거 (null path 미cover) — 후속 18(iii) 재실행 또는 별개 사이클
+- **V4 Path 1 cover** — 본 사이클 V4 Path 2만 cover (배당 이력 0 케이스 부재) — 후속 보강
 
 ## 자주 막히는 곳
 
@@ -845,6 +864,16 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 22. **ADR-0019 estimate cache hit 미반영** — ADR-0019 pre-check estimate (universe × N) 산식은 corp_meta_cache (stage1) hit을 무시. 실제 호출량 분리 식별 필수. stage2~6은 cache 부재 — universe 곱한 호출량 그대로 발생. Stage 20 사이클에서 universe 3,607 기준 ADR-0019 통과해도 실 daily limit 초과 가능성 식별. 학습 16 ("ADR 효과 범위 명확화 필수") 본질 재확인 — ADR-0019 본문에 cache 영향 명시 보강 후보.
 
 23. **사이클 본질 가정 위반 시 보류 결정** — entry prompt + 명세 가정의 본질 위반을 발견하면 사이클 강제 진행보다 본 세션 종결 + 다음 세션 새 본질 진입이 정합. Stage 20 사이클은 entry prompt + 명세 `00-scope.md` 재작성이 새 사이클에 해당 — 본 세션 컨텍스트 부담 누적 + noise 통제 위반 누적으로 다음 세션 효율 우선. 동일 본 세션에서 계속 진행 시 학습 누적 정착 부정확 위험.
+
+#### Stage 20 (iii)-redux 정착 사이클 누적 (2026-05-17)
+
+분기 E 정착 사이클에서 정착된 3건 누적 학습:
+
+24. **user-facing gap 제거 검증 = 코드 path + test 정합** — MCP live 호출 대안. 19단계 schema 확장 type-safe propagation이 정적 분석 (handler 응답 → enrichCandidates → EnrichedCandidate → finalizeCandidates → buildResponse 흐름 mutation 부재) + test mock propagation assertion (scan-enrich.test.ts S1~S4)으로 deterministic하게 cover 가능. Stage 20 정착 사이클에서 분기 E 본질로 정합. 학습 16 ("ADR 효과 범위 명확화") 본질과 별개 — 본 학습은 *검증 수단 전환* 영역.
+
+25. **사이클 응답 재호출 0 정합 (handler deterministic)** — 보류 사이클 응답 (V3+V4 4건: 신도리코/LX세미콘/파트론/코텍)이 정착 사이클에서도 정합 활용 가능. 동일 handler 동일 입력 → 동일 응답 (deterministic) 본질로 재호출 잉여. Stage 20 정착 사이클에서 V3+V4 cover 본 본문 정합 정착. ADR-0003 mock 단테 원칙과 정합.
+
+26. **V1+V2 ↔ V3+V4 교차 정합 = type 시스템 + handler 동일성** — scan_execute embedded vs 단독 호출 동일 handler 호출 시 type 일치 → 응답 일치 정합. EnrichedCandidate.cashflow.yearly_data type ≡ cashflow_check 응답 yearly_data type (동일 handler 호출). corp_code overlap 보장 검증 잉여. Stage 20 정착 사이클 분기 E 정합. 학습 24 후속 — 정적 분석 영역 본질 확장.
 
 ## 의사결정 시 주의
 
