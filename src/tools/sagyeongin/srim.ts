@@ -162,7 +162,11 @@ async function handleSrim(
   } else if (srim == null) {
     noteParts.push("srim_status=null (calculation invalid: shares≤0 or denominator≈0, ADR-0013)");
   } else if (current_price != null && verdict == null) {
-    noteParts.push("srim_status=verdict_null (computed prices invalid: ≤0, ADR-0013)");
+    if (srim != null && srim.prices.buy > srim.prices.sell) {
+      noteParts.push("srim_status=verdict_null (srim_inverted_roe_below_K, ADR-0023)");
+    } else {
+      noteParts.push("srim_status=verdict_null (computed prices invalid: ≤0, ADR-0013)");
+    }
   }
 
   return {
