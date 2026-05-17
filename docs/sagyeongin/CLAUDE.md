@@ -89,10 +89,48 @@
 - [x] Stage 20 (iii)-redux 정착 (2026-05-17): 보류 종결 `cf47a64` → 정정 사이클 `dcd3d40` (분기 E 정착) — 학습 28/31 user-facing gap 제거 정합 검증 정착 (정적 코드 분석 + scan-enrich.test.ts S1~S4 정합). MCP 호출 0, 코드 변경 0. V1~V5 5/5 PASS. 학습 #24~26 정착 (TOOL_REGISTRY 29, 사경인 14, 단테 236, 2026-05-17)
 - [x] Stage 21 phase 1 결정 (2026-05-17): ADR-0023 신설 + 18(iii) results §T1 본문 정정 + 학습 29 재정의 — srim 분포 ROE/K 의존 본질 식별 (`_lib/srim-calc.ts` line 119-132). ROE > K 정상 (sell > fair > buy) vs ROE < K 분포 역전 (buy > fair > sell). 18(iii) baseline 10건 중 9건 ROE < K → verdict 항상 BUY 산출 (사경인 D-2 본질 위반). 분기 Y (verdict invariant 가드) + Z (results 정정) 결합, X (calculateSrim 가드) 보류. phase 2 (구현) 별 사이클 진입 영역. 코드 변경 0, 단테 236 (변화 0) (TOOL_REGISTRY 29, 사경인 14, 2026-05-17)
 - [x] Stage 21 phase 2 구현 (2026-05-17): `feat/stage21-phase2-srim-invariant-guard` merge `b58079e` — ADR-0023 분기 Y 구현 정착. `judgeSrimVerdict` invariant 가드 (`prices.buy > prices.sell → null`) + `srim.ts` note 본문 reason 분기 (`srim_inverted_roe_below_K` vs `prices ≤ 0`) + 테스트 5건 신설 (calculateSrim ROE<K 산출 + judgeSrimVerdict 가드 basis="fair"/"buy" + 통합 + 정상 분포 회귀 가드). 3 파일 변경 (+57/-1), 241/241 tests PASS. β-i 가드 유지. 단테 +5 = 241 (TOOL_REGISTRY 29, 사경인 14, 2026-05-17)
+- [x] Stage 22 ADR-0023 효과 측정 (2026-05-18): main 직접 `ec76332` — `verifications/2026-05-18-adr-0023-effect.md` 신설 (117 line) + ADR-0023 본문 "## 효과 측정" section 신설 (cross-reference 한 줄). 18(iii) baseline 10건 가드 발동 분류 (9건 발동 verdict null + 1건 미발동 아이디피 BUY 유지) + 9건 발동 예상 응답 변화 본문 + 특기 케이스 2건 (씨유테크 sell 직전 / LX세미콘 분포 압축) + 검증 본문 (정적 분석 + INVERTED_INPUT 테스트 cover). 결정 a (results §T1 갱신) 0 (baseline 영구 보존 가드) / 결정 b 부분 (ADR cross-reference 한 줄, ADR 비대화 가드) / 결정 c 정합 (verifications 신설). 코드 변경 0. β-i 가드 무관. 학습 32~34 정착. 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
 
 ### 현재 작업 단계
 
-Stage 21 phase 2 정착 종결 (2026-05-17). ADR-0023 분기 Y 구현 + 학습 27~31 정착. 분기 X (`calculateSrim` 진입 가드) 보류 — 후속 사이클 영역. TOOL_REGISTRY 29.
+Stage 22 매듭 종결 (2026-05-18). ADR-0023 분기 Y 효과 측정 본문 정착 (`ec76332`) + 학습 32~34 정착. 분기 X (`calculateSrim` 진입 가드) 보류 유지 — 후속 사이클 영역. TOOL_REGISTRY 29.
+
+#### Stage 22 — ADR-0023 효과 측정 (2026-05-18)
+
+본 사이클 본질 — Stage 21 phase 2 정착 분기 Y 가드의 사용자 측 응답 변화 본문 정착 + 18(iii) baseline 10건 효과 분류.
+
+산출:
+- `verifications/2026-05-18-adr-0023-effect.md` 신설 (117 line) — baseline 10건 입력값 + 가드 발동 분류 + 9건 발동 예상 응답 변화 + 특기 케이스 (씨유테크/LX세미콘)
+- ADR-0023 본문 "## 효과 측정" section 신설 — cross-reference 한 줄 (ADR 비대화 가드, 결정 b 부분 정합)
+
+핵심 분류:
+- 9건 가드 발동 (verdict null + note reason `srim_inverted_roe_below_K, ADR-0023`) — 신도리코/삼영전자공업/세진티에스/인탑스/씨유테크/LX세미콘/파트론/파이오링크/코텍
+- 1건 가드 미발동 (verdict BUY 유지) — 아이디피 (유일 ROE > K, 정상 분포 sell > fair > buy)
+
+결정 a/b/c 평가:
+- 결정 a (results §T1 갱신): **0** — results = "Stage 18(iii) 측정 시점 baseline" 영구 보존 본질, 갱신 시 baseline 휘발 누적
+- 결정 b (ADR 본문 효과 측정 추가): **부분** — ADR 비대화 가드, cross-reference 한 줄만 신설 (적용 범위 직전 section)
+- 결정 c (verifications 신설): **정합** — 학습 #9 영구 보존 본문 정합, ADR-0024+ 후속 효과 측정 동일 패턴
+
+사상 정합 (7부 D-2):
+- RIM 모델 수학 도메인 ROE > K (초과이익 양수). ROE < K 케이스는 RIM 적용 가능 전제 깨진 종목
+- 분기 Y verdict null = "RIM 적용 가능 전제 불성립 정직 노출" / verdict 강제 = 사용자 오도
+- 7부 D-2 "W 가중치 사용자 보수 보정" 본문은 RIM 적용 가능 전제 위에 성립 — W 가중치 무효 영역
+
+코드 변경 0. β-i 가드 무관. 단테 변화 0 (241 유지).
+
+학습 32~34 정착:
+- **학습 32 — 환경 영역 사전 검증 가드**: 본 세션 환경 (clone/web_fetch/bash/view) 사전 grep 후 결정 진입. 본 사이클 2회 누락 본문 (직접 view 가정 / web_fetch 영역 가정) → 응답 본문 정정 누적. 신 세션 진입 시 첫 단계에서 환경 영역 직접 회수 가능 영역 grep 정합
+- **학습 33 — 보고 양식 명세 정밀화**: 위임 명세 보고 양식에 (a) 단일 파일 line 수 vs diff stat 분리 표기 + (b) markdown section 신설 시 사후 빈줄 포함 git diff line 산식 명시 정합. 본 사이클 ADR-0023 edit "4줄 — header + 빈줄 + 2 bullet" 보고 vs git diff +5 (사후 빈줄 추가) 어긋남 — 향후 명세 본문 "header + 빈줄 + bullet × N + 사후 빈줄 = +X" 명시 정합
+- **학습 34 — Q&A 답변 본질 평가 영역**: calibration Q&A 본문 평가 시 본 세션 추천 본문보다 강한 본질 식별 가능성 영역 — Onev 답변 본문이 본 세션 entry prompt 영역 한 답변 영역 본질 확장 정합 검증. 본 사이클 Q2 (RIM 수학 도메인 본문) + Q4 (ADR 비대화 가드 + 결정 a/b/c 분리 본질) 2건 본 세션 추천보다 강한 본질 정착. 학습 #5/#17 본문 외 *답변 본질 평가* 영역 신설
+
+다음 단계 후보:
+- **ADR-0023 분기 X 진입 결정** — `calculateSrim` 진입 가드 (9건 응답 자체 사라짐 본질). 분기 Y 정착 후 사용자 측 피드백 영역
+- **ADR-0023 K 보정 정책** — ROE < K 9건 K 산식 재검토 (학습 29 정정 영역 외 후속)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30 본문)
+- **ADR-0020/0021/0022** — 학습 25/26/24 정착 (별경로)
+- **§10.15 KSIC 9차/10차 정책 결정** (별경로)
+- **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 
 #### Stage 20 (iii)-redux — 보류 + 정착 두 사이클 (2026-05-17)
 
