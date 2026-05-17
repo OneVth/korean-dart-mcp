@@ -245,3 +245,51 @@ describe("judgeSrimVerdict", () => {
     assert.strictEqual(result, null);
   });
 });
+
+// ADR-0023: ROE < K 케이스 분포 역전 (buy > fair > sell) — verdict invariant 가드
+const INVERTED_INPUT = {
+  equity: 100_000_000_000,
+  avgRoe: 0.05,
+  K: 0.10,
+  shares: 1_000_000,
+};
+// 산수: excess=-5B, W08=86.67B→buy≈86_666.67, W09=77.5B→fair=77_500, W10=50B→sell=50_000
+const INVERTED_PRICES = { buy: 86_666.67, fair: 77_500, sell: 50_000 };
+
+describe("calculateSrim — ROE < K 분포 역전 (ADR-0023)", () => {
+  test("ROE 5% / K 10% → 분포 buy > fair > sell 산출", () => {
+    const result = calculateSrim(INVERTED_INPUT);
+    assert.ok(result != null);
+    assert.ok(Math.abs(result.excessIncome - (-5_000_000_000)) < 1.0, `excessIncome 기대 -5B, 실제 ${result.excessIncome}`);
+    assert.ok(Math.abs(result.prices.buy - 86_666.67) < 0.01, `buy 기대 ≈86_666.67, 실제 ${result.prices.buy}`);
+    assert.ok(Math.abs(result.prices.fair - 77_500) < 0.01, `fair 기대 77_500, 실제 ${result.prices.fair}`);
+    assert.ok(Math.abs(result.prices.sell - 50_000) < 0.01, `sell 기대 50_000, 실제 ${result.prices.sell}`);
+    assert.ok(result.prices.buy > result.prices.fair, "buy > fair (분포 역전)");
+    assert.ok(result.prices.fair > result.prices.sell, "fair > sell (분포 역전)");
+  });
+});
+
+describe("judgeSrimVerdict — invariant 가드 (ADR-0023)", () => {
+  test("buy > sell → null (분포 역전 invariant 가드)", () => {
+    const result = judgeSrimVerdict({ currentPrice: 70_000, prices: INVERTED_PRICES, basis: "fair" });
+    assert.strictEqual(result, null);
+  });
+
+  test("buy > sell + basis=buy → null (basis 무관 가드 발동)", () => {
+    const result = judgeSrimVerdict({ currentPrice: 70_000, prices: INVERTED_PRICES, basis: "buy" });
+    assert.strictEqual(result, null);
+  });
+
+  test("INVERTED_INPUT 전체 흐름 — calculateSrim + judgeSrimVerdict null", () => {
+    const srim = calculateSrim(INVERTED_INPUT);
+    assert.ok(srim != null);
+    const verdict = judgeSrimVerdict({ currentPrice: 70_000, prices: srim.prices, basis: "fair" });
+    assert.strictEqual(verdict, null);
+  });
+
+  test("정상 분포 (CORE_PRICES, buy < sell) → null 아님 (가드 미발동)", () => {
+    const result = judgeSrimVerdict({ currentPrice: 100_000, prices: CORE_PRICES, basis: "fair" });
+    assert.ok(result != null);
+    assert.equal(result.verdict, "BUY");
+  });
+});

@@ -148,6 +148,10 @@ export function judgeSrimVerdict(input: VerdictInput): VerdictResult | null {
     return null; // ADR-0013: prices ≤ 0 → null
   }
 
+  if (prices.buy > prices.sell) {
+    return null; // ADR-0023: ROE < K 케이스 분포 역전 (buy > fair > sell) — verdict 보류
+  }
+
   let verdict: SrimVerdict;
 
   if (basis === "fair") {
