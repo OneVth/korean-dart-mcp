@@ -89,11 +89,41 @@
 - [x] Stage 20 (iii)-redux 정착 (2026-05-17): 보류 종결 `cf47a64` → 정정 사이클 `dcd3d40` (분기 E 정착) — 학습 28/31 user-facing gap 제거 정합 검증 정착 (정적 코드 분석 + scan-enrich.test.ts S1~S4 정합). MCP 호출 0, 코드 변경 0. V1~V5 5/5 PASS. 학습 #24~26 정착 (TOOL_REGISTRY 29, 사경인 14, 단테 236, 2026-05-17)
 - [x] Stage 21 phase 1 결정 (2026-05-17): ADR-0023 신설 + 18(iii) results §T1 본문 정정 + 학습 29 재정의 — srim 분포 ROE/K 의존 본질 식별 (`_lib/srim-calc.ts` line 119-132). ROE > K 정상 (sell > fair > buy) vs ROE < K 분포 역전 (buy > fair > sell). 18(iii) baseline 10건 중 9건 ROE < K → verdict 항상 BUY 산출 (사경인 D-2 본질 위반). 분기 Y (verdict invariant 가드) + Z (results 정정) 결합, X (calculateSrim 가드) 보류. phase 2 (구현) 별 사이클 진입 영역. 코드 변경 0, 단테 236 (변화 0) (TOOL_REGISTRY 29, 사경인 14, 2026-05-17)
 - [x] Stage 21 phase 2 구현 (2026-05-17): `feat/stage21-phase2-srim-invariant-guard` merge `b58079e` — ADR-0023 분기 Y 구현 정착. `judgeSrimVerdict` invariant 가드 (`prices.buy > prices.sell → null`) + `srim.ts` note 본문 reason 분기 (`srim_inverted_roe_below_K` vs `prices ≤ 0`) + 테스트 5건 신설 (calculateSrim ROE<K 산출 + judgeSrimVerdict 가드 basis="fair"/"buy" + 통합 + 정상 분포 회귀 가드). 3 파일 변경 (+57/-1), 241/241 tests PASS. β-i 가드 유지. 단테 +5 = 241 (TOOL_REGISTRY 29, 사경인 14, 2026-05-17)
-- [x] Stage 22 ADR-0023 효과 측정 (2026-05-18): main 직접 `ec76332` — `verifications/2026-05-18-adr-0023-effect.md` 신설 (117 line) + ADR-0023 본문 "## 효과 측정" section 신설 (cross-reference 한 줄). 18(iii) baseline 10건 가드 발동 분류 (9건 발동 verdict null + 1건 미발동 아이디피 BUY 유지) + 9건 발동 예상 응답 변화 본문 + 특기 케이스 2건 (씨유테크 sell 직전 / LX세미콘 분포 압축) + 검증 본문 (정적 분석 + INVERTED_INPUT 테스트 cover). 결정 a (results §T1 갱신) 0 (baseline 영구 보존 가드) / 결정 b 부분 (ADR cross-reference 한 줄, ADR 비대화 가드) / 결정 c 정합 (verifications 신설). 코드 변경 0. β-i 가드 무관. 학습 32~34 정착. 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
+- [x] Stage 22 ADR-0023 효과 측정 (2026-05-18): main 직접 `ec76332` — `verifications/2026-05-18-adr-0023-effect.md` 신설 (117 line) + ADR-0023 본문 "## 효과 측정" section 신설 (cross-reference 한 줄). 18(iii) baseline 10건 가드 발동 분류 (9건 발동 verdict null + 1건 미발동 아이디피 BUY 유지) + 9건 발동 예상 응답 변화 본문 + 특기 케이스 2건 (씨유테크 sell 직전 / LX세미콘 분포 압축) + 검증 본문 (정적 분析 + INVERTED_INPUT 테스트 cover). 결정 a (results §T1 갱신) 0 (baseline 영구 보존 가드) / 결정 b 부분 (ADR cross-reference 한 줄, ADR 비대화 가드) / 결정 c 정합 (verifications 신설). 코드 변경 0. β-i 가드 무관. 학습 32~34 정착. 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
+- [x] Stage 23 ADR-0023 분기 X 영구 종결 결정 (2026-05-18): main 직접 `<COMMIT_HASH>` — ADR-0023 line 64 결정 본문 정정 ("분기 X 보류" → "분기 X 영구 종결") + line 86-90 section header 정정 ("분기 X 보류 근거" → "분기 X 영구 종결 근거") + bullet 3건 정정 (정보 차단 본질 7부 D-2 어긋남 / 분기 Y 효과 측정 baseline 정합 / W triple 출력 결정 본질 어긋남). `verifications/2026-05-18-adr-0023-branch-x-decision.md` 신설 (42 line) — 결정 baseline 영구 보존 (학습 #9 정합). 결정 사이클 본질 (학습 #27 정합) — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 35 정착 (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
 
 ### 현재 작업 단계
 
-Stage 22 매듭 종결 (2026-05-18). ADR-0023 분기 Y 효과 측정 본문 정착 (`ec76332`) + 학습 32~34 정착. 분기 X (`calculateSrim` 진입 가드) 보류 유지 — 후속 사이클 영역. TOOL_REGISTRY 29.
+Stage 23 매듭 종결 (2026-05-18). ADR-0023 분기 X 영구 종결 결정 정착 (`<COMMIT_HASH>`) + 학습 35 정착. 분기 Y 정착 + 분기 X 영구 종결 — ADR-0023 본문 영역 분기 X/Y/Z 3분 본문 영구 baseline. TOOL_REGISTRY 29.
+
+#### Stage 23 — ADR-0023 분기 X 영구 종결 결정 (2026-05-18)
+
+본 사이클 본질 — Stage 22 효과 측정 본문 baseline 영역에서 분기 X "응답 자체 산출 0" 본질 본 결정 영역 어긋남 정합 확인 + 분기 X 영구 종결 결정 사이클 (학습 #27 정합).
+
+산출:
+- ADR-0023 line 64 결정 본문 정정 + line 86-90 "분기 X 영구 종결 근거" section 정정
+- `verifications/2026-05-18-adr-0023-branch-x-decision.md` 신설 (42 line) — 결정 baseline 영구 보존 (학습 #9 정합)
+
+핵심 분류:
+- 결정 α (영구 종결) 채택 — 정보 차단 본질 7부 D-2 어긋남 / 분기 Y 효과 측정 baseline 정합 / W triple 출력 결정 본질 어긋남
+- 결정 β (보류 유지) 어긋남 — Stage 22 효과 측정 baseline 정착 완료, 사용자 측 피드백 영역 본문 자체 회수 정합
+- 결정 γ (진입 조건 신설) 어긋남 — watchlist 사전 검증 = 사용자 측 의사결정 영역 (사경인 영역 외) 별 본질
+
+사상 정합 (7부 D-2):
+- W triple 출력 결정 본질 = "정보 노출 + 사용자 판단 양도" — 분기 X "정보 차단" 본 결정 영역 어긋남
+- 분기 Y verdict null + prices/inputs/note 본문 유지 = 사용자 측 RIM 적용 영역 외 종목 직접 식별 정합
+
+코드 변경 0. β-i 가드 무관. 단테 변화 0 (241 유지).
+
+학습 35 정착:
+- **학습 35 — Q&A entry prompt 영역 한 답변 본문 사전 식별 가드 정밀화**: 학습 34 본문 ("Q&A 답변 본질 평가 영역") 정밀화. entry prompt 작성 시 Q 본문 영역 한 답변 본문 외 강한 본질 영역 가능성 사전 식별 정합. 본 사이클 Q1 (분기 X 변형 본문) + Q2 (결정 γ "별 영역" 정정) + Q3 (line 62-64 결정 본문 정정 영역 추가) 3건 본 세션 entry prompt 영역 외 강한 본질 정착 — 학습 34 "답변 본질 평가" 본문에서 "entry prompt 영역 사전 식별" 영역 정밀화 정합
+
+다음 단계 후보:
+- **ADR-0023 K 보정 정책** — ROE < K 9건 K 산식 재검토 (학습 29 정정 영역 외 후속)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30 본문)
+- **ADR-0020/0021/0022** — 학습 25/26/24 정착 (별경로)
+- **§10.15 KSIC 9차/10차 정책 결정** (별경로)
+- **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 
 #### Stage 22 — ADR-0023 효과 측정 (2026-05-18)
 

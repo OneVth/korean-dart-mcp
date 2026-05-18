@@ -61,7 +61,7 @@ W10 = equity + (excess × 1.0) / (1 + K − 1.0)  → sell = W10 / shares
 
 ## 결정
 
-**분기 Y + 분기 Z 결합 채택. 분기 X 보류 (후속 사이클 영역).**
+**분기 Y + 분기 Z 결합 채택. 분기 X 영구 종결 (정보 차단 본질, 7부 D-2 어긋남).**
 
 ### 분기 Y (구현 영역, phase 2 별 사이클)
 
@@ -83,11 +83,11 @@ W10 = equity + (excess × 1.0) / (1 + K − 1.0)  → sell = W10 / shares
 - **inputs 본문 노출 정합** — handler 응답 `inputs.avg_roe` + `inputs.required_return_K` 본문이 사용자가 ROE vs K 직접 식별 가능 영역.
 - **type 시스템 정합** (학습 #26) — verdict null 반환은 기존 SrimVerdict | null 본문 정합. INVERTED enum 신설은 type 본질 변화.
 
-### 분기 X 보류 근거
+### 분기 X 영구 종결 근거
 
-- 사용자 측 본질 큰 변화 — 18(iii) baseline 9건 prices null 전환.
-- 분기 Y 정착 후 사용자 측 피드백 받아 결정 정합.
-- 후속 사이클 영역 (Stage 22+ 후보).
+- **정보 차단 본질, 7부 D-2 어긋남** — 분기 X = `calculateSrim` 진입 가드 → 9건 응답 자체 산출 0. 사용자가 ROE/K 본문 영역에서 RIM 적용 영역 외 종목 직접 식별 차단. 7부 D-2 "초과이익 양수 종목 발견" 본질 정합 영역에서 "정보 노출 + 사용자 판단 양도" 본질 어긋남.
+- **분기 Y 효과 측정 baseline 정합** — Stage 22 효과 측정 (`verifications/2026-05-18-adr-0023-effect.md`) 9건 발동 verdict null + prices/inputs/note 본문 유지 정합. 사용자 측 ROE/K 직접 추적 본문 영역 정착 완료 — 분기 X 본질 본 baseline 본문 영역에서 어긋남.
+- **W triple 출력 결정 본질 어긋남** — 7부 D-2 W=0.8/0.9/1.0 triple 출력 결정 본질 (사용자 보수 보정 본문) = "정보 노출 + 사용자 판단 양도". 분기 X "정보 차단" 본질 본 결정 영역 어긋남.
 
 ### 분기 Z 채택 근거
 
