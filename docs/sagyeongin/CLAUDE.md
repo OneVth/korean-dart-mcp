@@ -91,11 +91,11 @@
 - [x] Stage 21 phase 2 구현 (2026-05-17): `feat/stage21-phase2-srim-invariant-guard` merge `b58079e` — ADR-0023 분기 Y 구현 정착. `judgeSrimVerdict` invariant 가드 (`prices.buy > prices.sell → null`) + `srim.ts` note 본문 reason 분기 (`srim_inverted_roe_below_K` vs `prices ≤ 0`) + 테스트 5건 신설 (calculateSrim ROE<K 산출 + judgeSrimVerdict 가드 basis="fair"/"buy" + 통합 + 정상 분포 회귀 가드). 3 파일 변경 (+57/-1), 241/241 tests PASS. β-i 가드 유지. 단테 +5 = 241 (TOOL_REGISTRY 29, 사경인 14, 2026-05-17)
 - [x] Stage 22 ADR-0023 효과 측정 (2026-05-18): main 직접 `ec76332` — `verifications/2026-05-18-adr-0023-effect.md` 신설 (117 line) + ADR-0023 본문 "## 효과 측정" section 신설 (cross-reference 한 줄). 18(iii) baseline 10건 가드 발동 분류 (9건 발동 verdict null + 1건 미발동 아이디피 BUY 유지) + 9건 발동 예상 응답 변화 본문 + 특기 케이스 2건 (씨유테크 sell 직전 / LX세미콘 분포 압축) + 검증 본문 (정적 분析 + INVERTED_INPUT 테스트 cover). 결정 a (results §T1 갱신) 0 (baseline 영구 보존 가드) / 결정 b 부분 (ADR cross-reference 한 줄, ADR 비대화 가드) / 결정 c 정합 (verifications 신설). 코드 변경 0. β-i 가드 무관. 학습 32~34 정착. 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
 - [x] Stage 23 ADR-0023 분기 X 영구 종결 결정 (2026-05-18): main 직접 `3d8fd24` — ADR-0023 line 64 결정 본문 정정 ("분기 X 보류" → "분기 X 영구 종결") + line 86-90 section header 정정 ("분기 X 보류 근거" → "분기 X 영구 종결 근거") + bullet 3건 정정 (정보 차단 본질 7부 D-2 어긋남 / 분기 Y 효과 측정 baseline 정합 / W triple 출력 결정 본질 어긋남). `verifications/2026-05-18-adr-0023-branch-x-decision.md` 신설 (42 line) — 결정 baseline 영구 보존 (학습 #9 정합). 결정 사이클 본질 (학습 #27 정합) — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 35 정착 (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
-- [x] Stage 24 학습 36 정착 (2026-05-18): main 직접 `<COMMIT_HASH>` — `docs/sagyeongin/templates/delegation-checklist.md` 신설 (85 line, 운영 가드 본문) + CLAUDE.md Stage 24 subsection 신설 (역사 기록 본문) + 학습 36 정착 (베이스라인 가드 + cleanup 동반 가드 2건 분리). 결정 γ + α 통합 (운영 가드 + 역사 기록 분리). 결정 사이클 본질 (학습 #27 정합) — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
+- [x] Stage 24 학습 36 정착 (2026-05-18): main 직접 `097805c` — `docs/sagyeongin/templates/delegation-checklist.md` 신설 (85 line, 운영 가드 본문) + CLAUDE.md Stage 24 subsection 신설 (역사 기록 본문) + 학습 36 정착 (베이스라인 가드 + cleanup 동반 가드 2건 분리). 결정 γ + α 통합 (운영 가드 + 역사 기록 분리). 결정 사이클 본질 (학습 #27 정합) — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
 
 ### 현재 작업 단계
 
-Stage 24 매듭 종결 (2026-05-18). 학습 36 정착 (`<COMMIT_HASH>`) — 위임 명세 baseline 산식 정밀화 (베이스라인 가드 + cleanup 동반 가드 2건 분리) + `docs/sagyeongin/templates/delegation-checklist.md` 신설 (운영 가드 본문). TOOL_REGISTRY 29.
+Stage 24 매듭 종결 (2026-05-18). 학습 36 정착 (`097805c`) — 위임 명세 baseline 산식 정밀화 (베이스라인 가드 + cleanup 동반 가드 2건 분리) + `docs/sagyeongin/templates/delegation-checklist.md` 신설 (운영 가드 본문). TOOL_REGISTRY 29.
 
 #### Stage 24 — 학습 36 정착 (위임 명세 baseline 산식 정밀화) (2026-05-18)
 
