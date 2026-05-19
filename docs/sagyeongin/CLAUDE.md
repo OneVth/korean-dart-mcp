@@ -92,10 +92,11 @@
 - [x] Stage 22 ADR-0023 효과 측정 (2026-05-18): main 직접 `ec76332` — `verifications/2026-05-18-adr-0023-effect.md` 신설 (117 line) + ADR-0023 본문 "## 효과 측정" section 신설 (cross-reference 한 줄). 18(iii) baseline 10건 가드 발동 분류 (9건 발동 verdict null + 1건 미발동 아이디피 BUY 유지) + 9건 발동 예상 응답 변화 본문 + 특기 케이스 2건 (씨유테크 sell 직전 / LX세미콘 분포 압축) + 검증 본문 (정적 분析 + INVERTED_INPUT 테스트 cover). 결정 a (results §T1 갱신) 0 (baseline 영구 보존 가드) / 결정 b 부분 (ADR cross-reference 한 줄, ADR 비대화 가드) / 결정 c 정합 (verifications 신설). 코드 변경 0. β-i 가드 무관. 학습 32~34 정착. 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
 - [x] Stage 23 ADR-0023 분기 X 영구 종결 결정 (2026-05-18): main 직접 `3d8fd24` — ADR-0023 line 64 결정 본문 정정 ("분기 X 보류" → "분기 X 영구 종결") + line 86-90 section header 정정 ("분기 X 보류 근거" → "분기 X 영구 종결 근거") + bullet 3건 정정 (정보 차단 본질 7부 D-2 어긋남 / 분기 Y 효과 측정 baseline 정합 / W triple 출력 결정 본질 어긋남). `verifications/2026-05-18-adr-0023-branch-x-decision.md` 신설 (42 line) — 결정 baseline 영구 보존 (학습 #9 정합). 결정 사이클 본질 (학습 #27 정합) — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 35 정착 (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
 - [x] Stage 24 학습 36 정착 (2026-05-18): main 직접 `097805c` — `docs/sagyeongin/templates/delegation-checklist.md` 신설 (85 line, 운영 가드 본문) + CLAUDE.md Stage 24 subsection 신설 (역사 기록 본문) + 학습 36 정착 (베이스라인 가드 + cleanup 동반 가드 2건 분리). 결정 γ + α 통합 (운영 가드 + 역사 기록 분리). 결정 사이클 본질 (학습 #27 정합) — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
+- [x] Stage 25 ADR-0024 K 본질 baseline 정착 (2026-05-19): main 직접 3 commit `60f1cd7` ADR-0024 신설 (73 line) + `da817f1` verifications baseline 신설 (71 line, `verifications/2026-05-19-adr-0024-K-baseline.md`) + `70c786f` adr/README 인덱스 0024 line 추가 (87→88). ADR-0023 cause 영역 (K 본질 + 9건 분포 본질 분기) baseline 영구 정착. K = 주주 요구수익률 (자본비용) + 구현 proxy BBB- 5Y. 9건 분포 (b) K 부적정 거부 — spec §10.5 + wikidocs.net/94787 + 사경인 책 직접 정합. ROE 측정 정밀화 → ADR-0025 후보 cross-reference. phase 1 결정 사이클 — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 #32 정착 (Bash 직접 wc -l 가드, Explore agent 신뢰 불가) (TOOL_REGISTRY 29, 사경인 14, 2026-05-19)
 
 ### 현재 작업 단계
 
-Stage 24 매듭 종결 (2026-05-18). 학습 36 정착 (`097805c`) — 위임 명세 baseline 산식 정밀화 (베이스라인 가드 + cleanup 동반 가드 2건 분리) + `docs/sagyeongin/templates/delegation-checklist.md` 신설 (운영 가드 본문). TOOL_REGISTRY 29.
+Stage 25 매듭 종결 (2026-05-19). ADR-0024 K 본질 baseline 영구 정착 (3 commit `60f1cd7`/`da817f1`/`70c786f`) — ADR-0023 cause 영역 (K = 주주 요구수익률 + BBB- 5Y proxy / 보정 0 / ADR-0025 후보 cross-reference). 학습 #32 정착 (Bash 직접 wc -l 가드, Explore agent 신뢰 불가). TOOL_REGISTRY 29.
 
 #### Stage 24 — 학습 36 정착 (위임 명세 baseline 산식 정밀화) (2026-05-18)
 
@@ -120,6 +121,37 @@ Stage 24 매듭 종결 (2026-05-18). 학습 36 정착 (`097805c`) — 위임 명
 - **ADR-0023 K 보정 정책** — ROE < K 9건 K 산식 재검토 (학습 29 정정 영역 외 후속)
 - **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30 본문)
 - **ADR-0020/0021/0022** — 학습 25/26/24 정착 (별경로)
+- **§10.15 KSIC 9차/10차 정책 결정** (별경로)
+- **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
+
+#### Stage 25 — ADR-0024 K 본질 baseline 정착 (2026-05-19)
+
+본 사이클 본질 — ADR-0023 cause 영역 (K 본질 정의 + 9건 분포 본질 분기 + 보정 정책 결정) baseline 영구 정착. phase 1 결정 사이클 단독 (학습 #29 정합) — 코드 변경 0.
+
+산출 (main 직접 3 commit):
+- `60f1cd7` `docs/sagyeongin/adr/0024-srim-K-essence-baseline.md` 신설 (73 line) — K 본질 + 구현 proxy + 9건 분포 본질 분기 결판
+- `da817f1` `verifications/2026-05-19-adr-0024-K-baseline.md` 신설 (71 line) — Stage 18(iii) baseline 10건 ROE 평균 6.064% vs K 10.54% (K 1.74배) 직접 산출 + (b) K 부적정 거부 baseline 영구 보존
+- `70c786f` `docs/sagyeongin/adr/README.md` 인덱스 0024 line 추가 (87→88) — ADR 작성 절차 #3 정합
+
+핵심 분류:
+- K 산식 (a) BBB- 5Y 단독 유지 채택 — spec §10.5 line 611 + wikidocs.net/94787 + 사경인 책 직접 정합. 본질 = 주주 요구수익률 (자본비용) / 구현 proxy = BBB- 5Y 채권 수익률. 두 층위 분리 정합
+- 보정 정책 (0) 보정 0 채택 — (b) K 부적정 거부 / (i) K 직접 정정 거부 (사경인 본문 어긋남) / (iii) verdict 별 산식 거부 (ADR-0023 우회)
+- (c) ROE 측정 정밀화 → ADR-0025 후보 cross-reference — 7부 E "순환주 ROE 과거 고점 × 60~70%" 본문 직접 근거. 별 결정 사이클
+
+학습 #32 정착 (Stage 25 누적):
+- **baseline wc -l 검증 — Bash 직접 실행 가드 (Explore agent 신뢰 불가)** — Claude Code Explore agent (`subagent_type=Explore`)는 Read 도구 기반 line count 집계 → wc -l과 본질 다른 값 반환 가능. baseline wc -l 검증은 반드시 Bash 직접 실행 필수. Stage 25 본 사이클 3건 모두 부정확 (ADR-0023 73 vs 실측 111, README 88 vs 실측 87, spec 897 vs 실측 1172) → 위임 명세 halt 발동 → 보류 진입 → Bash 직접 실측 재검증 → 정합 확인 후 재진행. 학습 #36 (베이스라인 가드, 명세 작성 측) 직접 보완 — 본 학습 = 측정 측 가드. paired guard 정합.
+
+cleanup 동반 가드 (학습 #36 정합 — 본 사이클 외 별 cleanup):
+- 학습 #32~#37 (CLAUDE.md 영역 정착 부재, entry prompt 영역 #38은 본 CLAUDE.md 영역 #32 정합) — 별 cleanup 사이클 영역
+- adr/README 0015~0023 인덱스 9건 누락 — 별 cleanup 사이클
+- entry prompt verifications baseline 117 line 가정 / 실측 116 line (-1) — 별 cleanup 사이클
+
+코드 변경 0. β-i 가드 무관. 단테 변화 0 (241 유지).
+
+다음 단계 후보:
+- **별 cleanup 사이클** — 학습 #32~#37 (entry prompt 번호) CLAUDE.md 정착 + adr/README 0015~0023 9건 일괄 정착 + entry prompt 사후 정정 (학습 번호 재정렬 본질)
+- **ADR-0025 신설** — ROE 측정 정밀화 (직전 분기 단독 vs 4분기 가중평균 vs 순환주 60~70% 보정) 결정 사이클 (7부 E line 211 직접 근거)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30 본문)
 - **§10.15 KSIC 9차/10차 정책 결정** (별경로)
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 
@@ -994,6 +1026,10 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 30. **사전 산수 검증 → 위임 명세 → Claude Code 재검증 3중 가드 본질 정합** — 학습 #3 ("line count 산수 사전 검증") 본문 본질 확장. Stage 21 phase 2에서 INVERTED_INPUT 본문 산수 (excess -5B / W08 86.67B / W09 77.5B / W10 50B / buy 86_666.67 / fair 77_500 / sell 50_000) 본 세션이 `node -e` 사전 검증 → 위임 명세 본문에 산수 정착 → Claude Code 진입 직후 재검증 → 빌드/테스트 PASS. 3중 가드 본질 — 산수 본문 본 세션/명세/실행 3 영역 정합 확인 시 산수 어긋남 가드 정합. 단순 line count 가드 본문 영역에서 *공식 산출값* 본문 영역으로 본질 확장.
 
 31. **srim invariant 가드 본문 단일 정합 — `buy > sell` 본문 본질 정합** — `_lib/srim-calc.ts` srim 공식 본질상 excess income 부호만으로 분포 결정 (W=0.8/0.9/1.0 분모 (1+K-W) 단조성 정합). ROE < K (excess 음수) → 항상 `buy > fair > sell` 분포 전체 역전. `buy > fair` 단독 + sell 정상 케이스는 srim 공식 본질상 불가. invariant 가드 본문 `prices.buy > prices.sell` 단일 본문이 분포 역전 본질 cover 정합 — `buy > fair || fair > sell` 본문 본문 잉여. 후속 사이클 ADR-0023 분기 X (`calculateSrim` 진입 가드) 진입 시 본 본질 정합 영역.
+
+#### Stage 25 누적 (2026-05-19)
+
+32. **baseline wc -l 검증 — Bash 직접 실행 가드 (Explore agent 신뢰 불가)** — Claude Code Explore agent (`subagent_type=Explore`)는 Read 도구 기반 line count 집계 — 파일 일부만 읽거나 집계 오류 발생 가능 → wc -l과 본질 다른 값 반환. baseline wc -l 검증은 반드시 Bash 직접 실행 필수. Stage 25 본 사이클 3건 모두 부정확 (ADR-0023 73 vs 실측 111, README 88 vs 실측 87, spec 897 vs 실측 1172) → 위임 명세 halt 발동 → 보류 진입 → Bash 직접 실측 재검증 → 정합 확인 후 재진행. 학습 #36 (베이스라인 가드, 명세 작성 측 가드) 직접 보완 — 본 학습 = 측정 측 가드. paired guard 정합. **반복 금지.**
 
 ## 의사결정 시 주의
 
