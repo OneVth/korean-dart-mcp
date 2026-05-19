@@ -68,6 +68,7 @@
 | [0012](./0012-scan-execute-split-and-resume.md) | scan_execute 분할 실행 + 사용자 명시 재개 | Accepted | 2026-05-03 | 옵션 A — corp 단위 + daily limit 80% checkpoint + 사용자 명시 resume_from |
 | [0013](./0013-srim-null-on-invalid.md) | srim 비정상 입력/계산 케이스 처리 | Accepted | 2026-05-03 | 옵션 B — verdict null + prices null + note (srim-calc.ts 4건). 외부 K 실패는 throw 유지 |
 | [0014](./0014-scan-execute-checkpoint-storage.md) | scan_execute checkpoint 저장 위치 — settings vs transient state 분리 | Accepted | 2026-05-04 | 옵션 Y — scan_checkpoints.sqlite 별도 신설. ADR-0007은 settings에 한정으로 분기 갱신 |
+| [0024](./0024-srim-K-essence-baseline.md) | srim K 본질 baseline (자본비용 + BBB- 5Y proxy) | Accepted | 2026-05-19 | K 본질 = 주주의 요구수익률 / 구현 proxy = BBB- 5Y / 보정 0 / ADR-0025 후보 cross-reference |
 
 ## 상태 정의
 
