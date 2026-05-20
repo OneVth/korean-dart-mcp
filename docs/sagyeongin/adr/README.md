@@ -68,6 +68,12 @@
 | [0012](./0012-scan-execute-split-and-resume.md) | scan_execute 분할 실행 + 사용자 명시 재개 | Accepted | 2026-05-03 | 옵션 A — corp 단위 + daily limit 80% checkpoint + 사용자 명시 resume_from |
 | [0013](./0013-srim-null-on-invalid.md) | srim 비정상 입력/계산 케이스 처리 | Accepted | 2026-05-03 | 옵션 B — verdict null + prices null + note (srim-calc.ts 4건). 외부 K 실패는 throw 유지 |
 | [0014](./0014-scan-execute-checkpoint-storage.md) | scan_execute checkpoint 저장 위치 — settings vs transient state 분리 | Accepted | 2026-05-04 | 옵션 Y — scan_checkpoints.sqlite 별도 신설. ADR-0007은 settings에 한정으로 분기 갱신 |
+| [0015](./0015-external-api-burst-policy.md) | 외부 API burst 차단 통합 정책 (DART + naver/KIS rating) | Accepted | 2026-05-09 | A2 fetch failed retry + B1 corp_code shuffle + C1 naver/KIS wrapper + D1 즉시 종결 (코드 변경 0) 통합 |
+| [0016](./0016-corp-meta-cache.md) | corp_meta cache — induty_code/corp_cls per-corp_code 영구 cache | Accepted | 2026-05-11 | 사경인 영역 corp-meta-cache.ts 신설 + lazy + eager 병행 + modify_date invalidate |
+| [0017](./0017-dart-burst-rate-limit.md) | DART burst limit 정책 — inter-call delay 정착 | Accepted | 2026-05-12 | RateLimitedDartClient inter-call delay 200ms 정착 (성공 호출 후) |
+| [0018](./0018-dart-html-response-block.md) | DART HTML 응답 (302 redirect) → DartRateLimitError 변환 정책 | Accepted | 2026-05-14 | wrapper getJson SyntaxError catch → DartRateLimitError(status=html_response_block) throw |
+| [0019](./0019-scan-execute-daily-limit-precheck.md) | scan_execute 진입 시 daily_limit_usage_pct 사전 가드 | Accepted | 2026-05-14 | scan_execute fresh 분기 진입 직후 daily_limit_usage_pct > 100 → DailyLimitPreCheckError throw |
+| [0023](./0023-srim-inverted-roe-below-K.md) | srim 분포 역전 (ROE < K) verdict invariant 가드 | Accepted | 2026-05-17 | 분기 Y judgeSrimVerdict buy>sell invariant 가드 null + 분기 Z 학습 #29 origin 재정의, 분기 X 폐기 |
 | [0024](./0024-srim-K-essence-baseline.md) | srim K 본질 baseline (자본비용 + BBB- 5Y proxy) | Accepted | 2026-05-19 | K 본질 = 주주의 요구수익률 / 구현 proxy = BBB- 5Y / 보정 0 / ADR-0025 후보 cross-reference |
 
 ## 상태 정의
