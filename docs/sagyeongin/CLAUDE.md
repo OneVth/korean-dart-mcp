@@ -93,10 +93,41 @@
 - [x] Stage 23 ADR-0023 분기 X 영구 종결 결정 (2026-05-18): main 직접 `3d8fd24` — ADR-0023 line 64 결정 본문 정정 ("분기 X 보류" → "분기 X 영구 종결") + line 86-90 section header 정정 ("분기 X 보류 근거" → "분기 X 영구 종결 근거") + bullet 3건 정정 (정보 차단 본질 7부 D-2 어긋남 / 분기 Y 효과 측정 baseline 정합 / W triple 출력 결정 본질 어긋남). `verifications/2026-05-18-adr-0023-branch-x-decision.md` 신설 (42 line) — 결정 baseline 영구 보존 (학습 #9 정합). 결정 사이클 본질 (학습 #27 정합) — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 35 정착 (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
 - [x] Stage 24 학습 36 정착 (2026-05-18): main 직접 `097805c` — `docs/sagyeongin/templates/delegation-checklist.md` 신설 (85 line, 운영 가드 본문) + CLAUDE.md Stage 24 subsection 신설 (역사 기록 본문) + 학습 36 정착 (베이스라인 가드 + cleanup 동반 가드 2건 분리). 결정 γ + α 통합 (운영 가드 + 역사 기록 분리). 결정 사이클 본질 (학습 #27 정합) — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
 - [x] Stage 25 ADR-0024 K 본질 baseline 정착 (2026-05-19): main 직접 3 commit `60f1cd7` ADR-0024 신설 (73 line) + `da817f1` verifications baseline 신설 (71 line, `verifications/2026-05-19-adr-0024-K-baseline.md`) + `70c786f` adr/README 인덱스 0024 line 추가 (87→88). ADR-0023 cause 영역 (K 본질 + 9건 분포 본질 분기) baseline 영구 정착. K = 주주 요구수익률 (자본비용) + 구현 proxy BBB- 5Y. 9건 분포 (b) K 부적정 거부 — spec §10.5 + wikidocs.net/94787 + 사경인 책 직접 정합. ROE 측정 정밀화 → ADR-0025 후보 cross-reference. phase 1 결정 사이클 — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 #32 정착 (Bash 직접 wc -l 가드, Explore agent 신뢰 불가) (TOOL_REGISTRY 29, 사경인 14, 2026-05-19)
+- [x] Stage 26 별 cleanup 사이클 (2026-05-20): main 직접 3 commit `af6a384` (CLAUDE.md 학습 #33~#38 정착, +18 line, 1049→1067) + `5ae393c` (adr/README 인덱스 0015~0019 + 0023 정착, +6 line, 88→94, 0024 line 71→77 shift) + 본 매듭 commit (Stage 26 sub-section + 학습 #39 신설, +35 line, 1067→1102). 정착 부재 3건 일괄 처리 — CLAUDE.md 학습 #32~#37 entry prompt 영역 정착 부재 + adr/README 인덱스 6건 누락 (0015~0019 5건 + 0023 1건, 0020~0022 부재) + entry prompt verifications 117→116 어긋남 (다음 entry prompt 작성 시 정착, fork 외부 영역). cleanup 본질 사이클 신 카테고리 — 학습 #39 정착 직접 근거 (paired guard #37 명세 측 ↔ #39 매듭 측). 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-20)
 
 ### 현재 작업 단계
 
-Stage 25 매듭 종결 (2026-05-19). ADR-0024 K 본질 baseline 영구 정착 (3 commit `60f1cd7`/`da817f1`/`70c786f`) — ADR-0023 cause 영역 (K = 주주 요구수익률 + BBB- 5Y proxy / 보정 0 / ADR-0025 후보 cross-reference). 학습 #32 정착 (Bash 직접 wc -l 가드, Explore agent 신뢰 불가). TOOL_REGISTRY 29.
+Stage 26 매듭 종결 (2026-05-20). 별 cleanup 사이클 — 정착 부재 3건 일괄 처리 (CLAUDE.md 학습 #33~#38 정착 `af6a384` + adr/README 인덱스 0015~0019 + 0023 정착 `5ae393c` + 본 매듭 sub-section + 학습 #39 신설). cleanup 본질 사이클 신 카테고리 — 학습 #39 (paired guard #37 명세 측 ↔ #39 매듭 측). TOOL_REGISTRY 29.
+
+#### Stage 26 — 별 cleanup 사이클 (정착 부재 3건 일괄 처리) (2026-05-20)
+
+본 사이클 본질 — Stage 25 매듭 검증 영역에서 식별된 정착 부재 3건 일괄 처리 사이클. 학습 #37 cleanup 동반 가드 본문 영역 외 cleanup 본질 사이클 신 카테고리 — 학습 #39 신설 직접 근거.
+
+산출 (main 직접 3 commit):
+- `af6a384` commit 1 — CLAUDE.md 학습 #33~#38 정착 (Stage 22~24 누적 사후 정착, +18 line, 1049→1067)
+- `5ae393c` commit 2 — adr/README.md 인덱스 0015~0019 + 0023 정착 (+6 line, 88→94, 0024 line 71→77 shift)
+- 본 매듭 commit — Stage 26 마일스톤 + sub-section + 학습 #39 신설 (+35 line, 1067→1102)
+
+핵심 분류:
+- 정착 본질 (b) 두 본질 채택 — CLAUDE.md 학습 영역 + ADR 인덱스 영역 분리 commit. entry prompt verifications 117→116 어긋남 영역 본 사이클 외 (fork 외부 영역, 다음 entry prompt 작성 시 정착)
+- 학습 번호 (i) 정합 채택 — entry prompt #32~#37 본문이 CLAUDE.md #33~#38 정착, Stage 25 #32 영역 유지 (`ee6e779` commit body 학습 #32 ref 정합)
+- commit 영역 (γ-1) 정합 채택 — 학습 정착 → ADR 정착 → 매듭 + 학습 #39 신설 순서
+- 정착 영역 (S) 정합 채택 — CLAUDE.md 영역 번호 순서 정합 우선 (학습 #32 line 1032 직후 #33~#38), 시간 순서는 header `(사후 정착 2026-05-20)` 명시
+- 분포 본질 — ADR 실재 6건 (0015~0019 + 0023), entry prompt "9건"은 번호 범위 (0020~0022 부재) — 학습 #38 본문 직접 baseline
+
+학습 #39 정착 (Stage 26 누적):
+- **cleanup 본질 사이클 신 카테고리 (paired guard #37 명세 측 ↔ #39 매듭 측)** — 매 매듭 영역에서 학습 누적 정착 + ADR 인덱스 정착 자체 가드. 누락 시 누적 → cleanup 본질 사이클 진입. Stage 22~24 누적 6건 부채 (entry prompt 영역 학습 #32~#37 정착, CLAUDE.md 영역 정착 부재) + Stage 9~21 phase 2 ADR 6건 누락 (0015~0019 + 0023 인덱스 정착 부재) + Stage 25 사후 검증 영역에서 식별 본질 직접 근거. **반복 금지.**
+
+cleanup 동반 가드 (학습 #37 정합 — 본 사이클 외 별 cleanup):
+- entry prompt verifications baseline 117 line 가정 / 실측 116 line (-1) — 다음 entry prompt 작성 시 정착 (본 사이클 외, fork 외부 영역)
+
+코드 변경 0. β-i 가드 무관. 단테 변화 0 (241 유지).
+
+다음 단계 후보:
+- **ADR-0025 신설** — ROE 측정 정밀화 (직전 분기 단독 vs 4분기 가중평균 vs 순환주 60~70% 보정) 결정 사이클 (7부 E line 211 직접 근거)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30 본문)
+- **§10.15 KSIC 9차/10차 정책 결정** (별경로)
+- **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 
 #### Stage 24 — 학습 36 정착 (위임 명세 baseline 산식 정밀화) (2026-05-18)
 
@@ -1048,6 +1079,10 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 37. **위임 명세 baseline 산식 정밀화 + cleanup 동반 가드** — 위임 명세 baseline 산식 사전 검증 + 실행 영역 cleanup 동반 가드. 위임 명세 작성 시 (1) baseline `wc -l` 직접 grep + (2) 변경 산식 사전 검증 + (3) cleanup 동반 가능성 사전 명시 + (4) cleanup 허용 범위 ±2 line 명시. Stage 24 본 사이클 위임 명세 산식 어긋남 3건 식별 (baseline wc -l 가정 2건 + cleanup 동반 1건) → 본 가드 정착. `templates/delegation-checklist.md` 운영 가드 본문 정합. **반복 금지.**
 
 38. **사전 baseline 분포 분석 가드 + 분기 본질 정착** — Q&A 답변 본질 사전 baseline 분포 분석 가드. entry prompt 본문 분포 가정 (예: "9건") 영역에서 실재 분포 (예: 6건) 사전 분석 후 분기 본질 정착. Stage 26 본 cleanup 사이클에서 ADR 6건 실재 (0015~0019 5건 + 0023 1건, "9건"은 번호 범위, 0020~0022 부재) 직접 식별 — 본 가드 정착 직접 근거. 학습 #37 (위임 명세 baseline 산식 정밀화) paired guard.
+
+#### Stage 26 누적 (2026-05-20)
+
+39. **cleanup 본질 사이클 신 카테고리 — 매듭 측 paired guard (#37 명세 측 ↔ #39 매듭 측)** — 매 매듭 영역에서 학습 누적 정착 + ADR 인덱스 정착 자체 가드. 매듭 사후 검증 영역에서 누락 식별 → 별 cleanup 사이클 진입. Stage 26 본 cleanup 사이클 직접 근거 (Stage 22~24 누적 6건 부채 — entry prompt 영역 학습 #32~#37 정착 + CLAUDE.md 영역 정착 부재 / Stage 9~21 phase 2 ADR 6건 누락 — 0015~0019 + 0023 인덱스 정착 부재 / Stage 25 사후 검증 영역에서 식별 본질). 학습 #37 (위임 명세 baseline 산식 정밀화, 명세 측) paired guard. **반복 금지.**
 
 ## 의사결정 시 주의
 
