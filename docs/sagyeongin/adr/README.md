@@ -75,6 +75,7 @@
 | [0019](./0019-scan-execute-daily-limit-precheck.md) | scan_execute 진입 시 daily_limit_usage_pct 사전 가드 | Accepted | 2026-05-14 | scan_execute fresh 분기 진입 직후 daily_limit_usage_pct > 100 → DailyLimitPreCheckError throw |
 | [0023](./0023-srim-inverted-roe-below-K.md) | srim 분포 역전 (ROE < K) verdict invariant 가드 | Accepted | 2026-05-17 | 분기 Y judgeSrimVerdict buy>sell invariant 가드 null + 분기 Z 학습 #29 origin 재정의, 분기 X 폐기 |
 | [0024](./0024-srim-K-essence-baseline.md) | srim K 본질 baseline (자본비용 + BBB- 5Y proxy) | Accepted | 2026-05-19 | K 본질 = 주주의 요구수익률 / 구현 proxy = BBB- 5Y / 보정 0 / ADR-0025 후보 cross-reference |
+| [0025](./0025-roe-measurement-cyclical-correction.md) | ROE 측정 정밀화 — 순환주 보정 본질 + 자동 구현 부재 | Accepted | 2026-05-21 | 차원 1 (c) 순환주 보정 인정 / 차원 2 (c-iv) 자동 식별 부재 / 차원 3 (c-β) 자동 보정 부재 / ADR-0023 cross-reference 동일 분리 본질 |
 
 ## 상태 정의
 
