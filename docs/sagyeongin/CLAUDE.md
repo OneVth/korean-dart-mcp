@@ -1031,6 +1031,24 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 
 32. **baseline wc -l 검증 — Bash 직접 실행 가드 (Explore agent 신뢰 불가)** — Claude Code Explore agent (`subagent_type=Explore`)는 Read 도구 기반 line count 집계 — 파일 일부만 읽거나 집계 오류 발생 가능 → wc -l과 본질 다른 값 반환. baseline wc -l 검증은 반드시 Bash 직접 실행 필수. Stage 25 본 사이클 3건 모두 부정확 (ADR-0023 73 vs 실측 111, README 88 vs 실측 87, spec 897 vs 실측 1172) → 위임 명세 halt 발동 → 보류 진입 → Bash 직접 실측 재검증 → 정합 확인 후 재진행. 학습 #36 (베이스라인 가드, 명세 작성 측 가드) 직접 보완 — 본 학습 = 측정 측 가드. paired guard 정합. **반복 금지.**
 
+#### Stage 22 누적 (2026-05-18, 사후 정착 2026-05-20)
+
+33. **환경 grep 사전 가드** — 매 사이클 진입 0단계 영역에서 baseline 환경 직접 grep 가드. fork clone → baseline checkout → `wc -l` + `ls` + `grep` 직접 회수 → entry prompt 예상치 정합 확인. Stage 22 본 가드 정착 사후 Stage 23~25 0단계 진입 정합. 학습 #37 (위임 명세 baseline 산식 정밀화) paired guard — 사전 환경 grep (측정 측) + 위임 명세 baseline 산식 (작성 측) paired step.
+
+34. **보고 양식 명세 정밀화 — 단일 파일 line 수 vs diff stat 분리 + 사후 빈줄 산식** — 보고 양식에서 단일 파일 line 수 (`wc -l` 산출) vs diff stat 변경 수 (additions/deletions) 본질 분리. 단일 line 수 = baseline 검증 정합, diff stat = 변경 검증 정합. 사후 빈줄 산식 별 명시 — 빈줄 추가/삭제 line 수 영향 산정. Stage 22 본 사이클에서 baseline 산식 어긋남 직접 발견 → 본 가드 정착.
+
+35. **Q&A 답변 본질 평가 영역** — Q&A entry prompt 추천 답변 vs Onev 답변에서 강한 본질 사전 식별. Onev 답변이 entry prompt 추천 외 강한 본질 1건 이상 포함 시 추천 재평가 + 위임 명세 반영. Stage 22 본 사이클 Q1/Q3에서 Onev 답변 강한 본질 식별 → 본 가드 정착. 학습 #36 (Q&A entry prompt 한 답변 사전 식별 가드 정밀화) 본문 직접 baseline.
+
+#### Stage 23 누적 (2026-05-18, 사후 정착 2026-05-20)
+
+36. **Q&A entry prompt 한 답변 사전 식별 가드 정밀화** — entry prompt 본문 Q1~Q4 답변 영역에서 한 답변 사전 식별. entry prompt Q 본문이 본 사이클 추천 외 강한 본질 가능성 사전 식별 가드. 학습 #35 본문 (Q&A 답변 본질 평가 영역) 확장. Stage 23 본 사이클 Q&A 4건 모두 강한 본질 정합 식별 → 본 가드 정착.
+
+#### Stage 24 누적 (2026-05-18, 사후 정착 2026-05-20)
+
+37. **위임 명세 baseline 산식 정밀화 + cleanup 동반 가드** — 위임 명세 baseline 산식 사전 검증 + 실행 영역 cleanup 동반 가드. 위임 명세 작성 시 (1) baseline `wc -l` 직접 grep + (2) 변경 산식 사전 검증 + (3) cleanup 동반 가능성 사전 명시 + (4) cleanup 허용 범위 ±2 line 명시. Stage 24 본 사이클 위임 명세 산식 어긋남 3건 식별 (baseline wc -l 가정 2건 + cleanup 동반 1건) → 본 가드 정착. `templates/delegation-checklist.md` 운영 가드 본문 정합. **반복 금지.**
+
+38. **사전 baseline 분포 분석 가드 + 분기 본질 정착** — Q&A 답변 본질 사전 baseline 분포 분석 가드. entry prompt 본문 분포 가정 (예: "9건") 영역에서 실재 분포 (예: 6건) 사전 분석 후 분기 본질 정착. Stage 26 본 cleanup 사이클에서 ADR 6건 실재 (0015~0019 5건 + 0023 1건, "9건"은 번호 범위, 0020~0022 부재) 직접 식별 — 본 가드 정착 직접 근거. 학습 #37 (위임 명세 baseline 산식 정밀화) paired guard.
+
 ## 의사결정 시 주의
 
 새 결정이 필요한 상황을 마주하면 다음을 따른다.
