@@ -94,10 +94,42 @@
 - [x] Stage 24 학습 36 정착 (2026-05-18): main 직접 `097805c` — `docs/sagyeongin/templates/delegation-checklist.md` 신설 (85 line, 운영 가드 본문) + CLAUDE.md Stage 24 subsection 신설 (역사 기록 본문) + 학습 36 정착 (베이스라인 가드 + cleanup 동반 가드 2건 분리). 결정 γ + α 통합 (운영 가드 + 역사 기록 분리). 결정 사이클 본질 (학습 #27 정합) — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-18)
 - [x] Stage 25 ADR-0024 K 본질 baseline 정착 (2026-05-19): main 직접 3 commit `60f1cd7` ADR-0024 신설 (73 line) + `da817f1` verifications baseline 신설 (71 line, `verifications/2026-05-19-adr-0024-K-baseline.md`) + `70c786f` adr/README 인덱스 0024 line 추가 (87→88). ADR-0023 cause 영역 (K 본질 + 9건 분포 본질 분기) baseline 영구 정착. K = 주주 요구수익률 (자본비용) + 구현 proxy BBB- 5Y. 9건 분포 (b) K 부적정 거부 — spec §10.5 + wikidocs.net/94787 + 사경인 책 직접 정합. ROE 측정 정밀화 → ADR-0025 후보 cross-reference. phase 1 결정 사이클 — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 #32 정착 (Bash 직접 wc -l 가드, Explore agent 신뢰 불가) (TOOL_REGISTRY 29, 사경인 14, 2026-05-19)
 - [x] Stage 26 별 cleanup 사이클 (2026-05-20): main 직접 3 commit `af6a384` (CLAUDE.md 학습 #33~#38 정착, +18 line, 1049→1067) + `5ae393c` (adr/README 인덱스 0015~0019 + 0023 정착, +6 line, 88→94, 0024 line 71→77 shift) + 본 매듭 commit (Stage 26 sub-section + 학습 #39 신설, +35 line, 1067→1102). 정착 부재 3건 일괄 처리 — CLAUDE.md 학습 #32~#37 entry prompt 영역 정착 부재 + adr/README 인덱스 6건 누락 (0015~0019 5건 + 0023 1건, 0020~0022 부재) + entry prompt verifications 117→116 어긋남 (다음 entry prompt 작성 시 정착, fork 외부 영역). cleanup 본질 사이클 신 카테고리 — 학습 #39 정착 직접 근거 (paired guard #37 명세 측 ↔ #39 매듭 측). 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-20)
+- [x] Stage 27 ADR-0025 신설 — ROE 측정 정밀화 (2026-05-21): main 직접 3 commit `f5886cd` ADR-0025 신설 (137 line) + adr/README 인덱스 0025 line 추가 (94→95) + `a668491` verifications baseline 신설 (100 line, `verifications/2026-05-21-adr-0025-roe-measurement.md`) + 본 매듭 commit (Stage 27 sub-section + 학습 #40 + #41 + #42 신설). ADR-0024 cross-reference (line 39/53/62) 영역 ROE 측정 정밀화 별 ADR 정착. 3 차원 분리 본질 — 차원 1 (c) 순환주 보정 인정 / 차원 2 (c-iv) 자동 식별 부재 / 차원 3 (c-β) 자동 보정 부재. 7부 E line 211 "수동 판단 영역" + line 113 "합리화 거부" 직접 baseline. ADR-0023 cross-reference 동일 분리 본질 ("정보 노출 + 사용자 판단 양도") 누적 2건 — 학습 정착 보류 (사후 사이클 잔존). phase 1 결정 사이클 — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 #40 + #41 + #42 정착 (TOOL_REGISTRY 29, 사경인 14, 2026-05-21)
 
 ### 현재 작업 단계
 
-Stage 26 매듭 종결 (2026-05-20). 별 cleanup 사이클 — 정착 부재 3건 일괄 처리 (CLAUDE.md 학습 #33~#38 정착 `af6a384` + adr/README 인덱스 0015~0019 + 0023 정착 `5ae393c` + 본 매듭 sub-section + 학습 #39 신설). cleanup 본질 사이클 신 카테고리 — 학습 #39 (paired guard #37 명세 측 ↔ #39 매듭 측). TOOL_REGISTRY 29.
+Stage 27 ADR-0025 신설 종결 (2026-05-21). ROE 측정 정밀화 결판 — 3 차원 분리 본질 (차원 1 (c) 순환주 보정 인정 / 차원 2 (c-iv) 자동 식별 부재 / 차원 3 (c-β) 자동 보정 부재). 7부 E line 211 "수동 판단 영역" + line 113 "합리화 거부" 직접 baseline. ADR-0023 cross-reference 동일 분리 본질 누적 2건 — 학습 정착 보류 (사후 잔존). 학습 #40 + #41 + #42 정착. TOOL_REGISTRY 29.
+
+#### Stage 27 — ADR-0025 신설 (ROE 측정 정밀화) (2026-05-21)
+
+본 사이클 본질 — ADR-0024 cross-reference (line 39/53/62) 영역 ROE 측정 정밀화 별 ADR 본문 baseline. Stage 18(iii) 분포 역전 9건 (cyclical 산업 trough 가능성) 본문 영역 ROE 측정 본질 자체 별 baseline 정착.
+
+산출 (main 직접 3 commit):
+- `f5886cd` commit 1 — ADR-0025 본문 신설 (137 line, `docs/sagyeongin/adr/0025-roe-measurement-cyclical-correction.md`) + adr/README 인덱스 0025 line 추가 (94→95)
+- `a668491` commit 2 — verifications baseline 신설 (100 line, `verifications/2026-05-21-adr-0025-roe-measurement.md`)
+- 본 매듭 commit — Stage 27 마일스톤 + sub-section + 학습 #40 + #41 + #42 신설
+
+핵심 분류:
+- 측정 본질 (차원 1) = (c) 순환주 보정 인정 — 7부 E line 211 직접 baseline (section 명칭 자체가 "E. 정밀 분석 (수동 판단 영역)")
+- 자동 식별 (차원 2) = (c-iv) 부재 채택 — 현 baseline 도구 신호 (`avg_roe` + `K` + verdict null reason) 잔존. 자동 식별 *신호 노출만* 사후 사이클 baseline 잔존 (ADR-0023 분기 Y 정합 영역)
+- 자동 보정 (차원 3) = (c-β) 부재 채택 — 7부 E line 113 "툴이 ... 정당화" 본질 직접 baseline. 자동 보정 = 합리화 도구 본질
+- ADR-0023 cross-reference 동일 분리 본질 baseline 누적 2건 — "도구가 측정 도구일 뿐, 가공/보정/차단 도구 본질 거부, 정보 노출 + 사용자 판단 양도가 사상 정합". 학습 정착 보류 (학습 #37 패턴 3 사례 누적 사후 정착 잔존)
+
+학습 #40 + #41 + #42 정착 (Stage 27 누적):
+- 학습 #40 — 학습 #37 "±2 line 허용 범위" 경계값 본질 분리 (paired guard #37 내부 정밀화)
+- 학습 #41 — Claude Code halt 사후 정정 single commit 정합 가드 (신 카테고리)
+- 학습 #42 — entry prompt 분류 본문 자체 사전 검증 가드 (본 사이클 4회차 baseline 누적 직접 정합, 학습 #37 paired guard)
+
+본 사이클 cleanup 동반 부재. 정착 부재 2건 (ref 어긋남 학습 30 / §10.15) Stage 28 cleanup 사이클 분리 보존.
+
+다음 단계 후보:
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 ref 어긋남 영역 정정 본문)
+- **§10.X KSIC 9차/10차 정책 결정** (§ ref 어긋남 영역 정정 본문)
+- **Stage 28 cleanup 사이클** — ref 어긋남 2건 (학습 30 / §10.X) 일괄 정정
+- **자동 식별 신호 노출 사이클** — KSIC / ROE CV / `calculateWeightedAvgRoe` method handler 노출 (ADR-0023 분기 Y 정합)
+- **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
+
+코드 변경 0. β-i 가드 무관. 단테 변화 0 (241 유지).
 
 #### Stage 26 — 별 cleanup 사이클 (정착 부재 3건 일괄 처리) (2026-05-20)
 
@@ -124,7 +156,6 @@ cleanup 동반 가드 (학습 #37 정합 — 본 사이클 외 별 cleanup):
 코드 변경 0. β-i 가드 무관. 단테 변화 0 (241 유지).
 
 다음 단계 후보:
-- **ADR-0025 신설** — ROE 측정 정밀화 (직전 분기 단독 vs 4분기 가중평균 vs 순환주 60~70% 보정) 결정 사이클 (7부 E line 211 직접 근거)
 - **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30 본문)
 - **§10.15 KSIC 9차/10차 정책 결정** (별경로)
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
@@ -1083,6 +1114,14 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 #### Stage 26 누적 (2026-05-20)
 
 39. **cleanup 본질 사이클 신 카테고리 — 매듭 측 paired guard (#37 명세 측 ↔ #39 매듭 측)** — 매 매듭 영역에서 학습 누적 정착 + ADR 인덱스 정착 자체 가드. 매듭 사후 검증 영역에서 누락 식별 → 별 cleanup 사이클 진입. Stage 26 본 cleanup 사이클 직접 근거 (Stage 22~24 누적 6건 부채 — entry prompt 영역 학습 #32~#37 정착 + CLAUDE.md 영역 정착 부재 / Stage 9~21 phase 2 ADR 6건 누락 — 0015~0019 + 0023 인덱스 정착 부재 / Stage 25 사후 검증 영역에서 식별 본질). 학습 #37 (위임 명세 baseline 산식 정밀화, 명세 측) paired guard. **반복 금지.**
+
+#### Stage 27 누적 (2026-05-21)
+
+40. **학습 #37 "±2 line 허용 범위" 경계값 본질 분리** — 위임 명세 baseline 산식 정밀화 본문 영역 경계값 본질 정확 baseline. 정확 ±2 line 영역 = halt 발동 + 정정 진입 정합 baseline. 본 사이클 산정 본문 영역 commit 1 (137 line vs 사전 산정 ~143 line, 오차 -6, ±2 영역 외) + commit 2 (100 line vs 사전 산정 ~80 line, 오차 +20, ±2 영역 외) baseline — 본 가드 적용 영역. paired guard #37 내부 정밀화 본질. **반복 금지.**
+
+41. **Claude Code halt 사후 정정 single commit 정합 가드** — Claude Code halt 발동 사후 정정 본문 영역 force-push 부재 + single commit 정합 baseline. 본 baseline 영역 매듭 commit hash baseline (예: Stage 26 `4aeb108`) 본 영역 baseline 직접 정합. force-push 본질 영역 외 (force-push = stale working tree + push 재구성 본질 위험). **반복 금지.**
+
+42. **entry prompt 분류 본문 자체 사전 검증 가드** — entry prompt 본문 분류/가정 본문 자체 사전 본문 검증 baseline. 본 사이클 4회차 baseline 누적 ((1) (a)/(b)/(c) 상호 배타 가정 어긋남 — 순환주 한정 본질 식별 부재 / (2) (c-i)~(c-iv) 단일 차원 가정 어긋남 — 자동 식별 vs 자동 보정 분리 부재 / (3) "Stage 25 패턴 정합" 본문 어긋남 — adr/README Stage 26 cleanup 정착 baseline / (4) 사전 산정 line 수 산식 어긋남 — ADR/verifications ±2 영역 외) 직접 baseline. 학습 #37 (baseline 산식 사전 검증) paired guard 본질 영역 — entry prompt 분류 본문도 동일 사전 검증 가드 baseline. **반복 금지.**
 
 ## 의사결정 시 주의
 
