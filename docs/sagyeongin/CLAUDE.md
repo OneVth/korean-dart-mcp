@@ -120,11 +120,11 @@ Stage 27 ADR-0025 신설 종결 (2026-05-21). ROE 측정 정밀화 결판 — 3 
 - 학습 #41 — Claude Code halt 사후 정정 single commit 정합 가드 (신 카테고리)
 - 학습 #42 — entry prompt 분류 본문 자체 사전 검증 가드 (본 사이클 4회차 baseline 누적 직접 정합, 학습 #37 paired guard)
 
-본 사이클 cleanup 동반 부재. 정착 부재 2건 (ref 어긋남 학습 30 / §10.15) Stage 28 cleanup 사이클 분리 보존.
+본 사이클 cleanup 동반 부재. 정착 부재 2건 (학습 신설 baseline + spec §N 신설 baseline) Stage 28 cleanup 사이클 분리 보존.
 
 다음 단계 후보:
-- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 ref 어긋남 영역 정정 본문)
-- **§10.X KSIC 9차/10차 정책 결정** (§ ref 어긋남 영역 정정 본문)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 신설 baseline)
+- **KSIC 9차/10차 정책 결정 (spec §N 신설 baseline)**
 - **Stage 28 cleanup 사이클** — ref 어긋남 2건 (학습 30 / §10.X) 일괄 정정
 - **자동 식별 신호 노출 사이클** — KSIC / ROE CV / `calculateWeightedAvgRoe` method handler 노출 (ADR-0023 분기 Y 정합)
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
@@ -156,8 +156,8 @@ cleanup 동반 가드 (학습 #37 정합 — 본 사이클 외 별 cleanup):
 코드 변경 0. β-i 가드 무관. 단테 변화 0 (241 유지).
 
 다음 단계 후보:
-- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30 본문)
-- **§10.15 KSIC 9차/10차 정책 결정** (별경로)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 신설 baseline)
+- **KSIC 9차/10차 정책 결정 (spec §N 신설 baseline)** (별경로)
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 
 #### Stage 24 — 학습 36 정착 (위임 명세 baseline 산식 정밀화) (2026-05-18)
@@ -181,9 +181,9 @@ cleanup 동반 가드 (학습 #37 정합 — 본 사이클 외 별 cleanup):
 
 다음 단계 후보:
 - **ADR-0023 K 보정 정책** — ROE < K 9건 K 산식 재검토 (학습 29 정정 영역 외 후속)
-- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30 본문)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 신설 baseline)
 - **ADR-0020/0021/0022** — 학습 25/26/24 정착 (별경로)
-- **§10.15 KSIC 9차/10차 정책 결정** (별경로)
+- **KSIC 9차/10차 정책 결정 (spec §N 신설 baseline)** (별경로)
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 
 #### Stage 25 — ADR-0024 K 본질 baseline 정착 (2026-05-19)
@@ -213,8 +213,8 @@ cleanup 동반 가드 (학습 #36 정합 — 본 사이클 외 별 cleanup):
 다음 단계 후보:
 - **별 cleanup 사이클** — 학습 #32~#37 (entry prompt 번호) CLAUDE.md 정착 + adr/README 0015~0023 9건 일괄 정착 + entry prompt 사후 정정 (학습 번호 재정렬 본질)
 - **ADR-0025 신설** — ROE 측정 정밀화 (직전 분기 단독 vs 4분기 가중평균 vs 순환주 60~70% 보정) 결정 사이클 (7부 E line 211 직접 근거)
-- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30 본문)
-- **§10.15 KSIC 9차/10차 정책 결정** (별경로)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 신설 baseline)
+- **KSIC 9차/10차 정책 결정 (spec §N 신설 baseline)** (별경로)
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 
 #### Stage 23 — ADR-0023 분기 X 영구 종결 결정 (2026-05-18)
@@ -241,9 +241,9 @@ cleanup 동반 가드 (학습 #36 정합 — 본 사이클 외 별 cleanup):
 
 다음 단계 후보:
 - **ADR-0023 K 보정 정책** — ROE < K 9건 K 산식 재검토 (학습 29 정정 영역 외 후속)
-- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30 본문)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 신설 baseline)
 - **ADR-0020/0021/0022** — 학습 25/26/24 정착 (별경로)
-- **§10.15 KSIC 9차/10차 정책 결정** (별경로)
+- **KSIC 9차/10차 정책 결정 (spec §N 신설 baseline)** (별경로)
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 
 #### Stage 22 — ADR-0023 효과 측정 (2026-05-18)
@@ -278,9 +278,9 @@ cleanup 동반 가드 (학습 #36 정합 — 본 사이클 외 별 cleanup):
 다음 단계 후보:
 - **ADR-0023 분기 X 진입 결정** — `calculateSrim` 진입 가드 (9건 응답 자체 사라짐 본질). 분기 Y 정착 후 사용자 측 피드백 영역
 - **ADR-0023 K 보정 정책** — ROE < K 9건 K 산식 재검토 (학습 29 정정 영역 외 후속)
-- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30 본문)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 신설 baseline)
 - **ADR-0020/0021/0022** — 학습 25/26/24 정착 (별경로)
-- **§10.15 KSIC 9차/10차 정책 결정** (별경로)
+- **KSIC 9차/10차 정책 결정 (spec §N 신설 baseline)** (별경로)
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 
 #### Stage 20 (iii)-redux — 보류 + 정착 두 사이클 (2026-05-17)
@@ -323,9 +323,9 @@ cleanup 동반 가드 (학습 #36 정합 — 본 사이클 외 별 cleanup):
 
 다음 단계 후보:
 - **ADR-0023 srim K 보정** — 고ROE 종목 fair > buy 역전 정책 (학습 29)
-- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 30)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 신설 baseline)
 - **ADR-0020 (fetch timeout) / ADR-0021 (fail-safe 누적 throw) / ADR-0022 (DART IP 차단 사전 가드)** — 학습 25/26/24 정착 (별경로)
-- **§10.15 KSIC 9차/10차 정책 결정** — KSIC 26 집중 evidence 활용 (별경로)
+- **KSIC 9차/10차 정책 결정 (spec §N 신설 baseline)** — KSIC 26 집중 evidence 활용 (별경로)
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 - **개별 도구 drill-in** — 씨유테크 sell 직전, 삼영전자공업 110.6% 등 후속
 - **V3 룰 1 트리거 cover** — 본 사이클 V3-2 (LX세미콘) 룰 1 미트리거 (null path 미cover) — 후속 18(iii) 재실행 또는 별개 사이클
