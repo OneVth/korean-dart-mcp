@@ -95,10 +95,11 @@
 - [x] Stage 25 ADR-0024 K 본질 baseline 정착 (2026-05-19): main 직접 3 commit `60f1cd7` ADR-0024 신설 (73 line) + `da817f1` verifications baseline 신설 (71 line, `verifications/2026-05-19-adr-0024-K-baseline.md`) + `70c786f` adr/README 인덱스 0024 line 추가 (87→88). ADR-0023 cause 영역 (K 본질 + 9건 분포 본질 분기) baseline 영구 정착. K = 주주 요구수익률 (자본비용) + 구현 proxy BBB- 5Y. 9건 분포 (b) K 부적정 거부 — spec §10.5 + wikidocs.net/94787 + 사경인 책 직접 정합. ROE 측정 정밀화 → ADR-0025 후보 cross-reference. phase 1 결정 사이클 — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 #32 정착 (Bash 직접 wc -l 가드, Explore agent 신뢰 불가) (TOOL_REGISTRY 29, 사경인 14, 2026-05-19)
 - [x] Stage 26 별 cleanup 사이클 (2026-05-20): main 직접 3 commit `af6a384` (CLAUDE.md 학습 #33~#38 정착, +18 line, 1049→1067) + `5ae393c` (adr/README 인덱스 0015~0019 + 0023 정착, +6 line, 88→94, 0024 line 71→77 shift) + 본 매듭 commit (Stage 26 sub-section + 학습 #39 신설, +35 line, 1067→1102). 정착 부재 3건 일괄 처리 — CLAUDE.md 학습 #32~#37 entry prompt 영역 정착 부재 + adr/README 인덱스 6건 누락 (0015~0019 5건 + 0023 1건, 0020~0022 부재) + entry prompt verifications 117→116 어긋남 (다음 entry prompt 작성 시 정착, fork 외부 영역). cleanup 본질 사이클 신 카테고리 — 학습 #39 정착 직접 근거 (paired guard #37 명세 측 ↔ #39 매듭 측). 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-20)
 - [x] Stage 27 ADR-0025 신설 — ROE 측정 정밀화 (2026-05-21): main 직접 3 commit `f5886cd` ADR-0025 신설 (137 line) + adr/README 인덱스 0025 line 추가 (94→95) + `a668491` verifications baseline 신설 (100 line, `verifications/2026-05-21-adr-0025-roe-measurement.md`) + 본 매듭 commit (Stage 27 sub-section + 학습 #40 + #41 + #42 신설). ADR-0024 cross-reference (line 39/53/62) 영역 ROE 측정 정밀화 별 ADR 정착. 3 차원 분리 본질 — 차원 1 (c) 순환주 보정 인정 / 차원 2 (c-iv) 자동 식별 부재 / 차원 3 (c-β) 자동 보정 부재. 7부 E line 211 "수동 판단 영역" + line 113 "합리화 거부" 직접 baseline. ADR-0023 cross-reference 동일 분리 본질 ("정보 노출 + 사용자 판단 양도") 누적 2건 — 학습 정착 보류 (사후 사이클 잔존). phase 1 결정 사이클 — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 #40 + #41 + #42 정착 (TOOL_REGISTRY 29, 사경인 14, 2026-05-21)
+- [x] Stage 28 cleanup 사이클 2회차 (ref 어긋남 정정) (2026-05-21): feat branch 2 commit `d419521` ref 어긋남 정정 (CLAUDE.md 정정 15건, sed 12건 + str_replace 3건, wc -l 변화 0) + 본 매듭 commit (Stage 28 sub-section + 학습 #43 신설). entry prompt 영역 "학습 30 본문" / "§10.15" ref 어긋남 본질 — 학습 30 본문 = 산수 검증 본문 (insider cluster_threshold 본문 부재) + spec §10.X 영역 §10.13 마지막 (§10.14~ 부재). cleanup 본질 정합 — ref 정정 본문 영역 "(학습 신설 baseline)" + "(spec §N 신설 baseline)" 직접 명시. cleanup 사이클 2회차 baseline (1회차 = Stage 26 정착 부재 3건 일괄 처리). 학습 #39 paired guard #37↔#39 *반복 baseline* 직접 적용. 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 #43 정착 (TOOL_REGISTRY 29, 사경인 14, 2026-05-21)
 
 ### 현재 작업 단계
 
-Stage 27 ADR-0025 신설 종결 (2026-05-21). ROE 측정 정밀화 결판 — 3 차원 분리 본질 (차원 1 (c) 순환주 보정 인정 / 차원 2 (c-iv) 자동 식별 부재 / 차원 3 (c-β) 자동 보정 부재). 7부 E line 211 "수동 판단 영역" + line 113 "합리화 거부" 직접 baseline. ADR-0023 cross-reference 동일 분리 본질 누적 2건 — 학습 정착 보류 (사후 잔존). 학습 #40 + #41 + #42 정착. TOOL_REGISTRY 29.
+Stage 28 cleanup 사이클 2회차 (ref 어긋남 정정) 종결 (2026-05-21). entry prompt 영역 "학습 30 본문" / "§10.15" ref 어긋남 정정 — 학습 30 본문 = 사전 산수 검증 본문 (insider cluster_threshold 부재) + §10.15 = spec 영역 §10.13 마지막 (§10.14~ 부재). cleanup 본질 정합 — "(학습 신설 baseline)" + "(spec §N 신설 baseline)" 직접 명시. cleanup 사이클 2회차 baseline (Stage 26 1회차 baseline 정합). 학습 #43 정착. TOOL_REGISTRY 29.
 
 #### Stage 27 — ADR-0025 신설 (ROE 측정 정밀화) (2026-05-21)
 
@@ -130,6 +131,35 @@ Stage 27 ADR-0025 신설 종결 (2026-05-21). ROE 측정 정밀화 결판 — 3 
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 
 코드 변경 0. β-i 가드 무관. 단테 변화 0 (241 유지).
+
+#### Stage 28 — cleanup 사이클 2회차 (ref 어긋남 정정) (2026-05-21)
+
+본 사이클 본질 — Stage 27 매듭 sub-section "다음 단계 후보" 영역 식별 ref 어긋남 2건 ("학습 30 본문" / "§10.15") 정정 사이클. cleanup 사이클 2회차 baseline (1회차 = Stage 26 정착 부재 3건 일괄 처리). 학습 #39 paired guard #37↔#39 *반복 baseline* 직접 적용.
+
+산출 (feat branch 2 commit):
+- `d419521` commit 1 — CLAUDE.md 정정 15건 (sed 12건 + str_replace 3건, 1141→1141 wc -l 변화 0)
+- 본 매듭 commit (commit 2) — Stage 28 sub-section + 학습 #43 신설 + 마일스톤 bullet 추가
+
+ref 어긋남 본질:
+- 학습 30 본문 = 산수 검증 본문 (insider cluster_threshold 본문 부재) — 정확 학습 N 회수 부재
+- §10.15 = spec 영역 §10.13 마지막 (§10.14~ 부재) — 정확 §N 회수 부재
+- cleanup 본질 정합 — ref 정정 본문 영역 "(학습 신설 baseline)" + "(spec §N 신설 baseline)" 직접 명시
+
+학습 #43 정착 (Stage 28 사이클 영역):
+- **cleanup 사이클 영역 ref 정정 대상 본문 *정착 부재* 가능성 사전 식별 가드** — 학습 #42 paired guard. cleanup 사이클 baseline ref 정정 대상 본문 영역 *정확 학습 N / spec §N 자체 부재 (정착 부재)* 가능성 사전 식별 + ref 정정 본문 영역 "(미정착 baseline 직접 명시)" 가드.
+
+보존 (메타 본문):
+- line 923 spec assumption mismatch 누적 본문
+- line 942 15단계 ADR-0015 사후 우선순위 본문
+
+코드 변경 0. β-i 가드 무관. 단테 변화 0 (241 유지).
+
+다음 단계 후보:
+- **학습 #44 신설 후보** — 위임 명세 sed pattern 영역 Windows CRLF + `/` 구분자 충돌 가드 (commit 1 영역 직접 식별 baseline, 별 사이클 baseline)
+- **philosophy 7부 C 재정정** — insider cluster_threshold 동시 vs 시간 분산 분리 (학습 신설 baseline)
+- **KSIC 9차/10차 정책 결정 (spec §N 신설 baseline)** (별경로)
+- **자동 식별 신호 노출 사이클** — KSIC / ROE CV / `calculateWeightedAvgRoe` method handler 노출 (ADR-0023 분기 Y 정합)
+- **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 
 #### Stage 26 — 별 cleanup 사이클 (정착 부재 3건 일괄 처리) (2026-05-20)
 
@@ -1122,6 +1152,8 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 41. **Claude Code halt 사후 정정 single commit 정합 가드** — Claude Code halt 발동 사후 정정 본문 영역 force-push 부재 + single commit 정합 baseline. 본 baseline 영역 매듭 commit hash baseline (예: Stage 26 `4aeb108`) 본 영역 baseline 직접 정합. force-push 본질 영역 외 (force-push = stale working tree + push 재구성 본질 위험). **반복 금지.**
 
 42. **entry prompt 분류 본문 자체 사전 검증 가드** — entry prompt 본문 분류/가정 본문 자체 사전 본문 검증 baseline. 본 사이클 4회차 baseline 누적 ((1) (a)/(b)/(c) 상호 배타 가정 어긋남 — 순환주 한정 본질 식별 부재 / (2) (c-i)~(c-iv) 단일 차원 가정 어긋남 — 자동 식별 vs 자동 보정 분리 부재 / (3) "Stage 25 패턴 정합" 본문 어긋남 — adr/README Stage 26 cleanup 정착 baseline / (4) 사전 산정 line 수 산식 어긋남 — ADR/verifications ±2 영역 외) 직접 baseline. 학습 #37 (baseline 산식 사전 검증) paired guard 본질 영역 — entry prompt 분류 본문도 동일 사전 검증 가드 baseline. **반복 금지.**
+
+43. **cleanup 사이클 영역 ref 정정 대상 본문 *정착 부재* 가능성 사전 식별 가드** — 학습 #42 (entry prompt 분류 본문 자체 사전 검증) paired guard. cleanup 사이클 baseline ref 정정 대상 본문 영역 *정확 학습 N / spec §N 자체 부재 (정착 부재)* 가능성 사전 식별 + ref 정정 본문 영역 "(미정착 baseline 직접 명시)" 가드. Stage 28 cleanup 사이클 2회차 영역 entry prompt 가정 "정확 학습 번호 회수 → 정정" + "정확 §N 회수 → 정정" 본문 영역 직접 어긋남 식별 — 학습 30 본문 = 산수 검증 본문 (insider cluster_threshold 부재), §10.15 = spec 영역 §10.13 마지막 (§10.14~ 부재). 본 baseline 영역 entry prompt 분류 본문 본 사이클 영역 직접 적용 (학습 #42) + 정정 대상 본문 자체 *spec/학습 본문 자체 정착 부재* 가능성 사전 회수 baseline. **반복 금지.**
 
 ## 의사결정 시 주의
 
