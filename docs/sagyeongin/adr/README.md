@@ -76,6 +76,7 @@
 | [0023](./0023-srim-inverted-roe-below-K.md) | srim 분포 역전 (ROE < K) verdict invariant 가드 | Accepted | 2026-05-17 | 분기 Y judgeSrimVerdict buy>sell invariant 가드 null + 분기 Z 학습 #29 origin 재정의, 분기 X 폐기 |
 | [0024](./0024-srim-K-essence-baseline.md) | srim K 본질 baseline (자본비용 + BBB- 5Y proxy) | Accepted | 2026-05-19 | K 본질 = 주주의 요구수익률 / 구현 proxy = BBB- 5Y / 보정 0 / ADR-0025 후보 cross-reference |
 | [0025](./0025-roe-measurement-cyclical-correction.md) | ROE 측정 정밀화 — 순환주 보정 본질 + 자동 구현 부재 | Accepted | 2026-05-21 | 차원 1 (c) 순환주 보정 인정 / 차원 2 (c-iv) 자동 식별 부재 / 차원 3 (c-β) 자동 보정 부재 / ADR-0023 cross-reference 동일 분리 본질 |
+| [0026](./0026-ksic-policy-baseline.md) | KSIC 정책 baseline (X1 채택 + 자릿수 혼재 + 대칭 매칭) | Accepted | 2026-05-22 | 차수 식별 부재 → X2 기각 / prefix 3자리 default (176 unique 소분류) / matchInduty 대칭 매칭 phase 2 / 2자리 record (44건, 1.1%) 미매칭 허용 / X3 보류 |
 
 ## 상태 정의
 
