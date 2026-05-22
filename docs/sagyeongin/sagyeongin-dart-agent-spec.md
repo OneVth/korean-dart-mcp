@@ -1066,6 +1066,52 @@ composite_score = (capex.opportunity_score ?? 0) - (cashflow.concern_score ?? 0)
 
 ---
 
+### 10.14 KSIC 정책 baseline
+
+`capex_signal` (§10.3) + `scan_preview` (§10.7) 영역 공유 utility — KSIC (Korean Standard Industrial Classification) 업종 코드 매칭 정책 baseline. 본 §가 single source of truth — §10.3 + §10.7 cross-reference 직접.
+
+상세 결정 근거: **ADR-0026**.
+
+#### 차수 정책 — 단일 차수 고정 부재
+
+DART API `induty_code` 차수 메타 미제공 — corp_meta cache (`induty_code`) = 회사 등록 당시 KSIC 코드 그대로 = KSIC 9차/10차 혼재. **차수 식별 자체 부재** → 9차/10차 매핑 테이블 (X2) 기각.
+
+#### 자릿수 정책 — 혼재 허용 + prefix 3자리 default
+
+corp_meta cache 실측 (회수 E, 3,964건, 2026-05-12):
+
+| 자릿수 | 항목 | 건수 | 비율 |
+|---|---|---|---|
+| 5 | 세세분류 | 2,050 | 51.7% |
+| 3 | 소분류 | 1,389 | 35.1% |
+| 4 | 세분류 | 481 | 12.1% |
+| 2 | 중분류 | 44 | 1.1% |
+
+→ `matchInduty(prefixLen=3)` default 채택 — prefix 3자리 unique 176개 (소분류 다양성 충분). `capex_signal` 7부 C 본질 ("케파 증설 vs 신규 분야 확장") 경계 정합.
+
+#### 매칭 알고리즘 — 대칭 prefix 매칭 (phase 2)
+
+자릿수 혼재 영역 비대칭 매칭 위험:
+
+| record A | record B | startsWith(A, B) | startsWith(B, A) |
+|---|---|---|---|
+| "21210" | "212" | false | **true** |
+| "212" | "21210" | true | false |
+
+→ `matchInduty(a, b, prefixLen=3)` **양방향 prefix 검증** 필요. 본 정밀화 = phase 2 (Stage 30 후속) 코드 변경.
+
+현 구현 (`startsWith` 단방향) + prefix 3자리 default 유지 — X1 baseline.
+
+#### 2자리 record corner case — 미매칭 허용
+
+44건 (1.1%) = prefix 3자리 매칭 시 불완전. MVP 영역 false negative 1.1% 흡수 — 별도 처리 overhead 회피.
+
+#### X3 (분포 도구 신설) — 보류
+
+`sagyeongin_industry_distribution_status` 신설 보류 — Stage 30+ 후속. `capex_signal` 활용 baseline (§10.3 `judgeExistingBusinessMatch` 정착) 후 필요성 식별 시 진입.
+
+---
+
 ## 11. 명시적 비목표
 
 이 도구가 **하지 않는 것**을 명시한다. 스코프 관리 실패(이전 dart-agent 중단의 근본 원인)를 방지한다.
