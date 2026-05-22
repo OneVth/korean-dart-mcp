@@ -1123,6 +1123,65 @@ return normA.slice(0, prefixLen) === normB.slice(0, prefixLen);
 
 ---
 
+## 10.16 DART tgastInhDecsn 응답 형식 명세 (Stage 30.0 신설)
+
+### 배경
+
+DART `tgastInhDecsn` (DS005 유형자산 양수 결정)의 실제 응답 필드명은 공식 API 문서와
+일부 불일치한다. Stage 30.0 회수 F (verifications/stage30/tgast-inh-decsn-raw-2026-05-22.json)
+를 통해 필드 실측 검증을 완료했다. 이 절은 검증된 schema를 단일 source로 기록한다.
+
+### 응답 schema
+
+```typescript
+interface DartListResp {
+  status: string;
+  message: string;
+  list?: DartListItem[];
+}
+
+interface DartListItem {
+  rcept_no?: string;
+  bddd?: string;               // 이사회 결의일 (날짜 표현 필드 — rcept_dt 없음)
+  // tgastInhDecsn 실제 응답 필드 (field-test 검증 완료):
+  inhdtl_inhprc?: string;      // 양수가액 (원 단위)
+  inhdtl_tast?: string;        // 자산총계 (원 단위, 자기자본 아님)
+  inhdtl_tast_vs?: string;     // 자산총계 대비 양수가액 비율 (%, 자기자본 대비 아님)
+  ast_sen?: string;            // 자산 구분 (예: "토지 및 건물")
+  inh_pp?: string;             // 양수 목적 (자유 텍스트)
+  inh_af?: string;             // 양수 후 기대 효과 (자유 텍스트)
+  [k: string]: string | undefined;
+}
+```
+
+### 핵심 필드 표
+
+| 필드명 | 의미 | 비고 |
+|---|---|---|
+| `ast_sen` | 자산 구분 | 회수 F: "토지 및 건물" 92.3% 단조 |
+| `inh_pp` | 양수 목적 | ADR-0027 keyword matching 주 판별 필드 |
+| `inh_af` | 양수 후 기대 효과 | `inh_pp` 보조 (사업다각화 등 blacklist 보강) |
+| `inhdtl_inhprc` | 양수가액 (원) | 금액 파싱: 쉼표 제거 후 Number() |
+| `inhdtl_tast` | 자산총계 (원) | **자기자본 아님** — 혼동 주의 |
+| `inhdtl_tast_vs` | 자산총계 대비 비율 (%) | **자기자본 대비 아님** — 사용 0 (§10.3 기준) |
+| `bddd` | 이사회 결의일 | `rcept_dt` 없음 — bddd 사용 |
+| `rcept_no` | 접수번호 | 공시 원문 링크 재구성 가능 |
+
+### 회수 F 분포 baseline 요약
+
+- 기간: 20260222 ~ 20260522 (3개월)
+- 상장사 전수: 3,967건 / 데이터 있는 corp: 13건 (0.33%)
+- `ast_sen` 분포: "토지 및 건물" 12건 (92.3%), "기계장치" 1건 (7.7%)
+- `inh_pp` 분류: whitelist 4건 / blacklist 2건 / null 7건
+
+### 후속 baseline
+
+- **Stage 30.1**: `judgeExistingBusinessMatch` 구현 정착 (whitelist/blacklist/null 분기)
+- **Stage 30.x**: 표본 확장 (기간 3개월 → 1~2년) + keyword 보강
+- **REIT 사전 솎아내기**: induty_code=68112 (한화리츠 분류) 사전 false 처리 후보
+
+---
+
 ## 11. 명시적 비목표
 
 이 도구가 **하지 않는 것**을 명시한다. 스코프 관리 실패(이전 dart-agent 중단의 근본 원인)를 방지한다.
