@@ -288,7 +288,12 @@ spec 룰 정의 영역 분리.
 **근거**: 6단계 묶음 2 capex-signal 구현 시 결정 (2026-05-01). field-test 응답 본문
 확인 후 사업분야 텍스트 형태 발견 시 정밀화. 의미 변경 0, 룰 알고리즘의 명시 보강.
 
-**상태**: pending
+**정착**: ADR-0027 (Stage 30.0) 흡수 baseline. `judgeExistingBusinessMatch` signature
+변경 (boolean → boolean | null) + whitelist (공장/R&D/양산) + blacklist (사업다각화/
+임대수익/투자수익) + null (사옥/업무공간 모호) 분기 baseline. 회수 F 13건 직접 근거
+(`verifications/stage30/tgast-inh-decsn-distribution-2026-05-22.md`).
+
+**상태**: 정착
 
 ---
 
@@ -306,7 +311,12 @@ spec 룰 정의 영역 분리.
 
 **근거**: 6단계 묶음 2 field-test 발견 (2026-05-01). 의미 변경 0, 구현 영역 명시.
 
-**상태**: pending
+**정착**: spec §10.16 (Stage 30.0 신설) 흡수 baseline. DartListItem schema 직접 명시
++ 핵심 필드 표 (ast_sen / inh_pp / inh_af / inhdtl_inhprc / inhdtl_tast /
+inhdtl_tast_vs / bddd / rcept_no) baseline. inhdtl_tast_vs = 자산총계 대비 비율
+(자기자본 아님 — 사용 0) 직접 baseline.
+
+**상태**: 정착
 
 ---
 
