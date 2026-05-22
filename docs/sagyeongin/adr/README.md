@@ -77,6 +77,7 @@
 | [0024](./0024-srim-K-essence-baseline.md) | srim K 본질 baseline (자본비용 + BBB- 5Y proxy) | Accepted | 2026-05-19 | K 본질 = 주주의 요구수익률 / 구현 proxy = BBB- 5Y / 보정 0 / ADR-0025 후보 cross-reference |
 | [0025](./0025-roe-measurement-cyclical-correction.md) | ROE 측정 정밀화 — 순환주 보정 본질 + 자동 구현 부재 | Accepted | 2026-05-21 | 차원 1 (c) 순환주 보정 인정 / 차원 2 (c-iv) 자동 식별 부재 / 차원 3 (c-β) 자동 보정 부재 / ADR-0023 cross-reference 동일 분리 본질 |
 | [0026](./0026-ksic-policy-baseline.md) | KSIC 정책 baseline (X1 채택 + 자릿수 혼재 + 대칭 매칭) | Accepted | 2026-05-22 | 차수 식별 부재 → X2 기각 / prefix 3자리 default (176 unique 소분류) / matchInduty 대칭 매칭 phase 2 / 2자리 record (44건, 1.1%) 미매칭 허용 / X3 보류 |
+| [0027](./0027-judge-existing-business-match-policy.md) | judgeExistingBusinessMatch 텍스트 매칭 정책 baseline | Accepted | 2026-05-22 | signature boolean → boolean \| null / whitelist (공장/R&D/양산/수요대응) + blacklist (임대수익/투자수익/사업다각화) + null (사옥/업무공간 모호) / induty cross-reference 보조 / ast_sen 단조 92.3% baseline → assetCategory keyword matching 부재 / 회수 F 13건 직접 근거 |
 
 ## 상태 정의
 
