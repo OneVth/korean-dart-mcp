@@ -96,10 +96,11 @@
 - [x] Stage 26 별 cleanup 사이클 (2026-05-20): main 직접 3 commit `af6a384` (CLAUDE.md 학습 #33~#38 정착, +18 line, 1049→1067) + `5ae393c` (adr/README 인덱스 0015~0019 + 0023 정착, +6 line, 88→94, 0024 line 71→77 shift) + 본 매듭 commit (Stage 26 sub-section + 학습 #39 신설, +35 line, 1067→1102). 정착 부재 3건 일괄 처리 — CLAUDE.md 학습 #32~#37 entry prompt 영역 정착 부재 + adr/README 인덱스 6건 누락 (0015~0019 5건 + 0023 1건, 0020~0022 부재) + entry prompt verifications 117→116 어긋남 (다음 entry prompt 작성 시 정착, fork 외부 영역). cleanup 본질 사이클 신 카테고리 — 학습 #39 정착 직접 근거 (paired guard #37 명세 측 ↔ #39 매듭 측). 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지) (TOOL_REGISTRY 29, 사경인 14, 2026-05-20)
 - [x] Stage 27 ADR-0025 신설 — ROE 측정 정밀화 (2026-05-21): main 직접 3 commit `f5886cd` ADR-0025 신설 (137 line) + adr/README 인덱스 0025 line 추가 (94→95) + `a668491` verifications baseline 신설 (100 line, `verifications/2026-05-21-adr-0025-roe-measurement.md`) + 본 매듭 commit (Stage 27 sub-section + 학습 #40 + #41 + #42 신설). ADR-0024 cross-reference (line 39/53/62) 영역 ROE 측정 정밀화 별 ADR 정착. 3 차원 분리 본질 — 차원 1 (c) 순환주 보정 인정 / 차원 2 (c-iv) 자동 식별 부재 / 차원 3 (c-β) 자동 보정 부재. 7부 E line 211 "수동 판단 영역" + line 113 "합리화 거부" 직접 baseline. ADR-0023 cross-reference 동일 분리 본질 ("정보 노출 + 사용자 판단 양도") 누적 2건 — 학습 정착 보류 (사후 사이클 잔존). phase 1 결정 사이클 — 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 #40 + #41 + #42 정착 (TOOL_REGISTRY 29, 사경인 14, 2026-05-21)
 - [x] Stage 28 cleanup 사이클 2회차 (ref 어긋남 정정) (2026-05-21): feat branch 2 commit `d419521` ref 어긋남 정정 (CLAUDE.md 정정 15건, sed 12건 + str_replace 3건, wc -l 변화 0) + 본 매듭 commit (Stage 28 sub-section + 학습 #43 신설). entry prompt 영역 "학습 30 본문" / "§10.15" ref 어긋남 본질 — 학습 30 본문 = 산수 검증 본문 (insider cluster_threshold 본문 부재) + spec §10.X 영역 §10.13 마지막 (§10.14~ 부재). cleanup 본질 정합 — ref 정정 본문 영역 "(학습 신설 baseline)" + "(spec §N 신설 baseline)" 직접 명시. cleanup 사이클 2회차 baseline (1회차 = Stage 26 정착 부재 3건 일괄 처리). 학습 #39 paired guard #37↔#39 *반복 baseline* 직접 적용. 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 #43 정착 (TOOL_REGISTRY 29, 사경인 14, 2026-05-21)
+- [x] Stage 29.5 ADR-0026 + spec §10.14 정정 사이클 (2026-05-22): fix branch 5 commit `fix/stage29-adr-0026-correction` — ADR-0026 §3/§부정/§후속 영향 정정 + spec §10.14 매칭 알고리즘 본문 정정 + CLAUDE.md 학습 #44 신설 + spec-pending-edits §10.3 건 1 정착 + 본 매듭 commit. Stage 29 phase 1 가정 어긋남 3건 직접 정정 — matchInduty (induty-extractor.ts lines 56-66) = slice === slice 양쪽 추출 = 이미 대칭 baseline ("startsWith 단방향 비대칭" 가정 어긋남) + judgeExistingBusinessMatch signature = (assetCategory, bsnsObjt, companyInduty) = 텍스트 + KSIC ("induty vs induty" 가정 어긋남) + Stage 30 phase 2 산출 적용 불가 → Stage 30 재정의 (γ 텍스트 매칭 키워드 누적). 학습 #44 신설 — ADR/spec 결정 사이클 raw view 가드, paired #38/#42 (정착/분류/결정 3 사이클 paired baseline). 코드 변경 0, β-i 가드 무관, 단테 변화 0 (241 유지). 학습 #44 정착 (TOOL_REGISTRY 29, 사경인 14, 2026-05-22)
 
 ### 현재 작업 단계
 
-Stage 28 cleanup 사이클 2회차 (ref 어긋남 정정) 종결 (2026-05-21). entry prompt 영역 "학습 30 본문" / "§10.15" ref 어긋남 정정 — 학습 30 본문 = 사전 산수 검증 본문 (insider cluster_threshold 부재) + §10.15 = spec 영역 §10.13 마지막 (§10.14~ 부재). cleanup 본질 정합 — "(학습 신설 baseline)" + "(spec §N 신설 baseline)" 직접 명시. cleanup 사이클 2회차 baseline (Stage 26 1회차 baseline 정합). 학습 #43 정착. TOOL_REGISTRY 29.
+Stage 29.5 ADR-0026 + spec §10.14 정정 사이클 종결 (2026-05-22). Stage 29 phase 1 가정 어긋남 3건 직접 정정 — matchInduty (induty-extractor.ts lines 56-66) = slice === slice 양쪽 추출 = 이미 대칭 baseline ("startsWith 단방향 비대칭" 가정 어긋남) + judgeExistingBusinessMatch signature = (assetCategory, bsnsObjt, companyInduty) = 텍스트 + KSIC ("induty vs induty" 가정 어긋남) + Stage 30 phase 2 산출 적용 불가 → Stage 30 재정의 (γ 텍스트 매칭 키워드 누적). 학습 #44 신설 (ADR/spec 결정 사이클 raw view 가드, paired #38/#42). TOOL_REGISTRY 29.
 
 #### Stage 27 — ADR-0025 신설 (ROE 측정 정밀화) (2026-05-21)
 
@@ -181,19 +182,52 @@ ref 어긋남 본질:
 - **X2** (9차/10차 매핑 테이블): 기각 — DART API 차수 식별 메타 미제공
 - **X3** (분포 도구 신설): 보류 — Stage 30+ 후속
 
-phase 1/2 분리: 본 사이클 = phase 1 (정책 문서화 + X1 baseline 확인). phase 2 (Stage 30) = `matchInduty` 대칭 매칭 정밀화 코드 변경 + `judgeExistingBusinessMatch` 정착.
+phase 1/2 분리: 본 사이클 = phase 1 (정책 문서화 + X1 baseline 확인). phase 2 (Stage 30) = ~~`matchInduty` 대칭 매칭 정밀화 코드 변경 + `judgeExistingBusinessMatch` 정착~~ Stage 29.5 정정 baseline 영역 본 본문 **재정의** (γ 텍스트 매칭 키워드 누적 사이클).
 
-학습 #44 (Windows CRLF + `/` 구분자 충돌 가드) — Stage 28 후보 영역 **보류** 유지. 별 사이클 baseline.
+학습 #44 (Windows CRLF + `/` 구분자 충돌 가드) — Stage 28 후보 영역 **보류** 유지 → **Stage 29.5 정정 baseline 영역 학습 #44 본질 변경** (ADR/spec 결정 사이클 raw view 가드 신설). CRLF 가드 = #45+ 후속 baseline.
 
 코드 변경 0. β-i 가드 무관. 단테 변화 0 (241 유지).
 
 다음 단계 후보:
-- **Stage 30 phase 2** — `matchInduty` 대칭 매칭 정밀화 + `judgeExistingBusinessMatch` 정착 (capex_signal 활용 baseline)
-- **학습 #44 신설** — Windows CRLF + `/` 구분자 충돌 가드 (별 사이클 baseline)
+- **Stage 29.5 정정 사이클** (직접 후속) — ADR-0026 + spec §10.14 정정 + 학습 #44 신설 + spec-pending-edits §10.3 건 1 cleanup
+- **Stage 30 재정의** — `judgeExistingBusinessMatch` 텍스트 매칭 키워드 누적 (DART tgastInhDecsn 응답 분포 field-test 의존)
 - **자동 식별 신호 노출 사이클** — KSIC / ROE CV / `calculateWeightedAvgRoe` method handler 노출
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정
 
-Ref: ADR-0026, spec §10.14, verifications/stage29/, feat/stage29-ksic-policy
+Ref: ADR-0026 (Stage 29.5 정정 baseline), spec §10.14, verifications/stage29/, feat/stage29-ksic-policy
+
+#### Stage 29.5 — ADR-0026 + spec §10.14 정정 사이클 (2026-05-22)
+
+본 사이클 본질 — Stage 29 phase 1 영역 ADR-0026 + spec §10.14 본문 작성 시 `matchInduty` + `judgeExistingBusinessMatch` raw 본문 사전 view 부재 → 가정 3건 어긋남 식별 → 정정 baseline. 코드 변경 0. 순수 문서 사이클.
+
+산출 5 commit (`fix/stage29-adr-0026-correction` → main `--no-ff`):
+- commit 1 — ADR-0026 정정 (§3 매칭 알고리즘 + §부정 + §후속 영향 본질 재정의)
+- commit 2 — spec §10.14 정정 (매칭 알고리즘 본문 현행 정합 표현)
+- commit 3 — CLAUDE.md 학습 #44 신설 (ADR/spec 결정 사이클 raw view 가드, paired #38/#42)
+- commit 4 — spec-pending-edits §10.3 건 1 cleanup (정착 baseline 정합)
+- 본 매듭 commit — CLAUDE.md Stage 29.5 sub-section + 마일스톤 bullet 추가
+
+가정 어긋남 3건 직접 식별:
+1. `matchInduty` (induty-extractor.ts lines 56-66) = `slice(0, prefixLen) === slice(0, prefixLen)` 양쪽 추출 = **이미 대칭 baseline** (Stage 29 phase 1 "startsWith 단방향 비대칭" 가정 어긋남)
+2. `judgeExistingBusinessMatch` (capex-signal.ts lines 121-131) signature = `(assetCategory, bsnsObjt, companyInduty) → boolean` = DART ast_sen + inh_pp 텍스트 + 회사 KSIC 매칭 baseline (Stage 29 phase 1 "induty vs induty 비교" 가정 어긋남)
+3. Stage 30 phase 2 산출 (matchInduty 정밀화 + extractIndutyCode/matchInduty 활용) baseline 적용 불가 → Stage 30 재정의 (γ 텍스트 매칭 키워드 누적 사이클 — DART 응답 분포 field-test 의존)
+
+학습 #44 신설 본질 — ADR/spec 결정 사이클 영역 활용 대상 함수의 (a) signature + (b) 본문 raw + (c) 호출부 사전 view 가드. paired #38 (사전 baseline 분포 분석, 정착 사이클) + #42 (entry prompt 분류 본문 사전 검증, 분류 사이클) 3중 가드 (정착/분류/결정 3 사이클 paired baseline).
+
+Stage 30 재정의 baseline:
+- 본질 = `judgeExistingBusinessMatch` 텍스트 매칭 정밀화 (ast_sen + inh_pp 영역 회사 KSIC 정합 판정)
+- field-test 의존 — DART tgastInhDecsn 응답 분포 회수 baseline 사전 사이클 필요
+- 키워드 누적 baseline — "명백한 신규 분야 키워드 발견 시 false" 본문 영역 키워드 사전 정착
+
+코드 변경 0. β-i 가드 무관. 단테 변화 0 (241 유지).
+
+다음 단계 후보:
+- **Stage 30 재정의 진입** — DART tgastInhDecsn 응답 분포 field-test → judgeExistingBusinessMatch 텍스트 매칭 정착
+- **학습 #45 후보** — Windows CRLF + `/` 구분자 충돌 가드 (Stage 28 보류 baseline)
+- **자동 식별 신호 노출 사이클** — KSIC / ROE CV / `calculateWeightedAvgRoe` method handler 노출
+- **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정
+
+Ref: ADR-0026 Stage 29.5 정정, spec §10.14 정정, 학습 #44 신설, spec-pending-edits §10.3 건 1 정착, fix/stage29-adr-0026-correction
 
 #### Stage 26 — 별 cleanup 사이클 (정착 부재 3건 일괄 처리) (2026-05-20)
 
