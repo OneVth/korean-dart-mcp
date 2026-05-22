@@ -263,6 +263,8 @@ spec 룰 정의 영역 분리.
 **근거**: 6단계 묶음 1 induty-extractor 구현 시 결정 (2026-05-01). 사용자 합의로
 3자리(소분류) 기본 채택. 의미 변경 0, 룰 정의의 명시 보강.
 
+**정착**: §10.14 흡수 (Stage 29, ADR-0026).
+
 **상태**: pending
 
 ---
@@ -524,20 +526,22 @@ reprt_code fallback (정책 ②) 불필요 — 데이터는 11011에 존재.
 | `included_industries: ["47"]` (KSIC 10차 소매업) | **0건** | KSIC 9차 소매업 코드 "52xx" 등록 다수 정황. startsWith("47") 매치 0 |
 | `excluded_industries: ["26"]` (15(a) 본격, 2026-05-09) | 659건 통과 (Stage 1 통과 후) | 13단계 KSIC 26 universe 294와 직접 비교 정합. *단 KSIC 9차 기준 전자부품 산업 corp이 다른 prefix로 등록되어 KSIC 26 모집단 자체가 불완전했을 가능성 — 13단계 결과 자체에도 해당 변수 존재* |
 
-### 정책 후보 (현 시점 결정 X)
+### 정책 후보 (원안)
 
 - **후보 X1** (현행 매칭 유지): startsWith 패턴 그대로. 9차/10차 변수는 측정 정확도 한계로 흡수.
 - **후보 X2** (KSIC 9차/10차 매핑 테이블 신설): 같은 산업의 9차/10차 코드 양쪽 매칭. 외부 매핑 source 필요 (통계청 KSIC 코드 매핑 자료 등). 인프라 부담.
 - **후보 X3** (DART corp_code DB의 induty_code 분포 사전 조사 후 universe 결정 도구 신설): `sagyeongin_industry_distribution_status` (가칭) 도구로 induty_code prefix 분포 + corp 카운트 노출. 사용자가 universe 결정 시 정황 입력.
 
-### 사용 시점
+### 결정 (Stage 29, ADR-0026)
 
-본 §10.15 정책 결정은 (c) 후속 단계에서 진입 — 도구 차원 결정 필요한 시점. 현 시점은 *데이터 누적*만.
+- **X1** (startsWith 현행 유지): **정착** — Stage 29, ADR-0026. 차수 무관 prefix 매칭 baseline.
+- **X2** (9차/10차 매핑 테이블 신설): **기각** — Stage 29, ADR-0026. DART API 차수 식별 메타 미제공으로 적용 불가.
+- **X3** (`sagyeongin_industry_distribution_status` 도구 신설): **보류** — Stage 30+ 후속. capex_signal 활용 baseline 후 필요성 식별 시 진입.
 
 발견: 15단계 (a) 사전 검증 영역 1 (2026-05-08), `feat/stage15a-pre-verify` HEAD `0855c94`.
-처리 영역: 미정 — (c) 후속 도구 결정 시점.
+처리: Stage 29 (ADR-0026, 2026-05-22).
 
-**상태**: pending (정책 결정 X, 데이터 누적만)
+**상태**: 결정 완료 (X1 정착 / X2 기각 / X3 보류)
 
 ---
 

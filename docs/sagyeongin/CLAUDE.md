@@ -161,6 +161,40 @@ ref 어긋남 본질:
 - **자동 식별 신호 노출 사이클** — KSIC / ROE CV / `calculateWeightedAvgRoe` method handler 노출 (ADR-0023 분기 Y 정합)
 - **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정 (후속)
 
+#### Stage 29 Phase 1 — KSIC 정책 결정 + spec §10.14 신설 (2026-05-22)
+
+본 사이클 본질 — MVP 우선순위 (ii) KSIC 9차/10차 정책 결정 문서화. 코드 변경 0. 순수 문서 사이클 (ADR + spec + verifications).
+
+산출 7 commit (feat/stage29-ksic-policy → main --no-ff):
+- `0dce404` — ADR-0026 신설 (KSIC 정책 baseline, X1/X2/X3 결정)
+- `993d932` — ADR README ADR-0026 index 추가
+- `db07cb0` — spec §10.14 신설 (KSIC 정책 단일 source)
+- `494cd2b` — spec §10.3 + §10.7 cross-reference 추가 (§10.14 참조)
+- `52d9d31` — spec-pending-edits §10.3 건 1 정착 + §10.15 결정 반영 (X1/X2/X3)
+- `a886ef0` — verifications/stage29/induty-distribution-2026-05-12.md 신설 (139줄)
+- 본 매듭 commit — CLAUDE.md Stage 29 매듭 sub-section
+
+회수 E baseline (3,964건, 2026-05-12): 5자리 51.7% / 3자리 35.1% / 4자리 12.1% / 2자리 1.1% — prefix 3자리 unique 176개.
+
+§10.15 후보 3건 결정:
+- **X1** (startsWith 현행 유지): 정착 — 차수 무관 prefix 매칭 baseline
+- **X2** (9차/10차 매핑 테이블): 기각 — DART API 차수 식별 메타 미제공
+- **X3** (분포 도구 신설): 보류 — Stage 30+ 후속
+
+phase 1/2 분리: 본 사이클 = phase 1 (정책 문서화 + X1 baseline 확인). phase 2 (Stage 30) = `matchInduty` 대칭 매칭 정밀화 코드 변경 + `judgeExistingBusinessMatch` 정착.
+
+학습 #44 (Windows CRLF + `/` 구분자 충돌 가드) — Stage 28 후보 영역 **보류** 유지. 별 사이클 baseline.
+
+코드 변경 0. β-i 가드 무관. 단테 변화 0 (241 유지).
+
+다음 단계 후보:
+- **Stage 30 phase 2** — `matchInduty` 대칭 매칭 정밀화 + `judgeExistingBusinessMatch` 정착 (capex_signal 활용 baseline)
+- **학습 #44 신설** — Windows CRLF + `/` 구분자 충돌 가드 (별 사이클 baseline)
+- **자동 식별 신호 노출 사이클** — KSIC / ROE CV / `calculateWeightedAvgRoe` method handler 노출
+- **분기 점검 사이클** — 시간 격증 후 (2026-08~) 신호 변화 측정
+
+Ref: ADR-0026, spec §10.14, verifications/stage29/, feat/stage29-ksic-policy
+
 #### Stage 26 — 별 cleanup 사이클 (정착 부재 3건 일괄 처리) (2026-05-20)
 
 본 사이클 본질 — Stage 25 매듭 검증 영역에서 식별된 정착 부재 3건 일괄 처리 사이클. 학습 #37 cleanup 동반 가드 본문 영역 외 cleanup 본질 사이클 신 카테고리 — 학습 #39 신설 직접 근거.
