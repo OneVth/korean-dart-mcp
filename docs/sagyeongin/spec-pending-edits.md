@@ -263,9 +263,11 @@ spec 룰 정의 영역 분리.
 **근거**: 6단계 묶음 1 induty-extractor 구현 시 결정 (2026-05-01). 사용자 합의로
 3자리(소분류) 기본 채택. 의미 변경 0, 룰 정의의 명시 보강.
 
-**정착**: §10.14 흡수 (Stage 29, ADR-0026).
+**정착**: §10.14 흡수 (Stage 29, ADR-0026 → Stage 29.5 정정 baseline). 현행
+`matchInduty` 본문 (induty-extractor.ts lines 56-66) = `slice === slice` 양쪽
+추출 = X1 + 대칭 매칭 + 2자리 미매칭 모두 이미 정착 baseline.
 
-**상태**: pending
+**상태**: 정착
 
 ---
 

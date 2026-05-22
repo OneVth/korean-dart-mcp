@@ -1093,18 +1093,25 @@ corp_meta cache 실측 (회수 E, 3,964건, 2026-05-12):
 
 → `matchInduty(prefixLen=3)` default 채택 — prefix 3자리 unique 176개 (소분류 다양성 충분). `capex_signal` 7부 C 본질 ("케파 증설 vs 신규 분야 확장") 경계 정합.
 
-#### 매칭 알고리즘 — 대칭 prefix 매칭 (phase 2)
+#### 매칭 알고리즘 — 대칭 prefix 매칭 (이미 정착, Stage 29.5 정정 baseline)
 
-자릿수 혼재 영역 비대칭 매칭 위험:
+자릿수 혼재 영역 비대칭 매칭 위험 가능성 (개념 baseline):
 
 | record A | record B | startsWith(A, B) | startsWith(B, A) |
 |---|---|---|---|
 | "21210" | "212" | false | **true** |
 | "212" | "21210" | true | false |
 
-→ `matchInduty(a, b, prefixLen=3)` **양방향 prefix 검증** 필요. 본 정밀화 = phase 2 (Stage 30 후속) 코드 변경.
+현행 `matchInduty` 본문 (induty-extractor.ts lines 56-66) = 양쪽 prefixLen 추출 후 정확 일치 (대칭 정합):
 
-현 구현 (`startsWith` 단방향) + prefix 3자리 default 유지 — X1 baseline.
+```typescript
+if (normA.length < prefixLen || normB.length < prefixLen) return false;
+return normA.slice(0, prefixLen) === normB.slice(0, prefixLen);
+```
+
+→ "21210" vs "212" 영역 양쪽 slice(0,3) = "212" === "212" → **true** (대칭). "212" vs "21" 영역 length 2 < 3 → **false** (§2자리 미매칭 정합).
+
+**현행 본문 = X1 baseline + 대칭 매칭 + 2자리 미매칭 모두 정착**. phase 2 코드 변경 부재 (Stage 29.5 정정 baseline).
 
 #### 2자리 record corner case — 미매칭 허용
 
