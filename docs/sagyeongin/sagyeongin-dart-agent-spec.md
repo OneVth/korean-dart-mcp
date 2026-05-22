@@ -536,6 +536,8 @@ Stage 6. dividend_check (7부 E) — 태그만
 
 **사경인 원칙**: "케파 증설은 긍정, 신규 분야 확장은 부정" — `existing_business_match` 판정이 핵심. KSIC 업종 코드 비교로 자동화.
 
+> KSIC 정책 상세 baseline: §10.14 참조.
+
 ---
 
 ### 10.4 `sagyeongin_srim`
@@ -742,6 +744,8 @@ Stage 6. dividend_check (7부 E) — 태그만
 **구현**: corp_code 덤프(서버 기동 시 로드) 단독 활용. company.json 호출은 11단계 영역 (`stage1_company_resolution` 단계). 8단계 자체 호출 영역 0.
 
 ADR-0010 영역 정합 — corp_code 덤프 5 컬럼에 `corp_cls` + `induty_code` 부재라 markets + KSIC 분기를 비용 노출 영역으로 처리 (옵션 D). `estimated_universe`는 market+name filter 후 over-estimate, `estimated_api_calls.stage1_company_resolution` 영역에서 분기 비용 합산 노출.
+
+> KSIC 정책 상세 baseline: §10.14 참조.
 
 ---
 
