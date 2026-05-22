@@ -1189,6 +1189,8 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 
 43. **cleanup 사이클 영역 ref 정정 대상 본문 *정착 부재* 가능성 사전 식별 가드** — 학습 #42 (entry prompt 분류 본문 자체 사전 검증) paired guard. cleanup 사이클 baseline ref 정정 대상 본문 영역 *정확 학습 N / spec §N 자체 부재 (정착 부재)* 가능성 사전 식별 + ref 정정 본문 영역 "(미정착 baseline 직접 명시)" 가드. Stage 28 cleanup 사이클 2회차 영역 entry prompt 가정 "정확 학습 번호 회수 → 정정" + "정확 §N 회수 → 정정" 본문 영역 직접 어긋남 식별 — 학습 30 본문 = 산수 검증 본문 (insider cluster_threshold 부재), §10.15 = spec 영역 §10.13 마지막 (§10.14~ 부재). 본 baseline 영역 entry prompt 분류 본문 본 사이클 영역 직접 적용 (학습 #42) + 정정 대상 본문 자체 *spec/학습 본문 자체 정착 부재* 가능성 사전 회수 baseline. **반복 금지.**
 
+44. **ADR/spec 결정 사이클 영역 활용 대상 함수 raw 본문 사전 view 가드** — 학습 #38 (사전 baseline 분포 분석) + 학습 #42 (entry prompt 분류 본문 사전 검증) paired guard 3중. ADR/spec 결정 사이클 baseline 영역 활용 대상 함수의 (a) signature + (b) 본문 raw + (c) 호출부 영역 사전 view 가드 baseline — 의사 코드 표현 / 가정 본문 baseline 정합 검증. Stage 29 phase 1 영역 ADR-0026 + spec §10.14 본문 작성 시 `matchInduty` (induty-extractor.ts lines 56-66) + `judgeExistingBusinessMatch` (capex-signal.ts lines 121-131) raw view 부재 → 가정 3건 어긋남 식별 직접 baseline ((1) matchInduty 현행 `slice === slice` 양쪽 추출 baseline 영역 "startsWith 단방향 비대칭" 가정 어긋남 / (2) judgeExistingBusinessMatch signature `(assetCategory, bsnsObjt, companyInduty) → boolean` 영역 "induty vs induty" 가정 어긋남 / (3) phase 2 산출 baseline 자체 적용 불가). 정착/분류/결정 3 사이클 paired guard (#38 정착 사이클 분포 / #42 entry prompt 분류 / #44 ADR/spec 결정) baseline. **반복 금지.**
+
 ## 의사결정 시 주의
 
 새 결정이 필요한 상황을 마주하면 다음을 따른다.
