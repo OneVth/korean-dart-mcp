@@ -1225,6 +1225,35 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 
 44. **ADR/spec 결정 사이클 영역 활용 대상 함수 raw 본문 사전 view 가드** — 학습 #38 (사전 baseline 분포 분석) + 학습 #42 (entry prompt 분류 본문 사전 검증) paired guard 3중. ADR/spec 결정 사이클 baseline 영역 활용 대상 함수의 (a) signature + (b) 본문 raw + (c) 호출부 영역 사전 view 가드 baseline — 의사 코드 표현 / 가정 본문 baseline 정합 검증. Stage 29 phase 1 영역 ADR-0026 + spec §10.14 본문 작성 시 `matchInduty` (induty-extractor.ts lines 56-66) + `judgeExistingBusinessMatch` (capex-signal.ts lines 121-131) raw view 부재 → 가정 3건 어긋남 식별 직접 baseline ((1) matchInduty 현행 `slice === slice` 양쪽 추출 baseline 영역 "startsWith 단방향 비대칭" 가정 어긋남 / (2) judgeExistingBusinessMatch signature `(assetCategory, bsnsObjt, companyInduty) → boolean` 영역 "induty vs induty" 가정 어긋남 / (3) phase 2 산출 baseline 자체 적용 불가). 정착/분류/결정 3 사이클 paired guard (#38 정착 사이클 분포 / #42 entry prompt 분류 / #44 ADR/spec 결정) baseline. **반복 금지.**
 
+45. **verifications artifact log 영역 `*.log` .gitignore force-add 정책 baseline** — verifications 영역 log artifact baseline 영역 `.gitignore` line 4 `*.log` baseline 직접 매치 → `git add` baseline 영역 직접 부재 → `git add -f` force-add 직접 필요. Stage 30.0 영역 `verifications/stage30/fetch-tgast-distribution-2026-05-22.log` baseline 영역 force-add 직접 발견. verifications artifact 영역 영구 보존 baseline (raw + 분석 + log 3종) 영역 정책 = force-add 직접 정합. 위임 명세 영역 verifications 영역 log 신설 시 `git add -f` 직접 명시 baseline. **반복 금지.**
+
+#### Stage 30.0 누적 (2026-05-22)
+
+본 γ 사전 사이클 영역 식별 baseline 3건 직접:
+
+- **학습 #44 paradox 재발 baseline** — 위임 명세 영역 회수 F 예상 (100~500건) vs 실측 (13건) 1/10 어긋남 직접. 자기자본 10%+ 의무공시 빈도 baseline 영역 raw view 부재 영역 사전 추정 어긋남. 학습 #44 paired guard 영역 (a) signature + (b) 본문 raw + (c) 호출부 + **(d) 사전 추정 N건 baseline 영역 raw view 부재 시 분포 회수 baseline** 직접 보강.
+
+- **학습 #28 직접 발현 baseline** — Stage 30.0 0단계 영역 로컬 HEAD `5f9c5e7` (Stage 28) vs origin/main `23d294a` (Stage 29.5) 영역 14 commit 뒤처짐 직접 식별. `git pull --ff-only origin main` baseline 영역 직접 동기화. 위임 명세 영역 사전 검증 baseline 영역 `git fetch origin` + `git log -1 origin/main` + 로컬 HEAD 정합 직접 명시 강화.
+
+- **ADR-0027 형식 baseline 영역 ADR-0026 영역 어긋남** — ADR-0027 본문 (상태 / 결정일 / 결정자 + 컨텍스트 + 옵션 + 결정 + 근거 + 결과) 영역 ADR-0026 (상태 / 일자 / Stage / 관련 + Context + Decision + Consequences + Verification + Ref) 영역 직접 어긋남. 의미 정합 + 사이클 영향 부재 (ADR 형식 다양성 baseline). 위임 명세 영역 ADR 형식 직접 명시 부재 → 학습 #44 paired guard 영역 ADR 형식 명시 사전 baseline 추가.
+
+추가 보강 baseline 1건:
+
+- **spec-pending-edits 건 4 (코스닥 편중) 사전 신설 발견** — Stage 30.0 위임 외 영역 사전 신설. 본 사이클 영향 부재 + Stage 30.x 인계 (REIT 사전 솎아내기 + 코스닥 중소 제조업 편중 정합).
+
+REIT (한화리츠 induty 68112) 분류 baseline 정합 직접 — ADR-0027 본문 영역 blacklist 분류 + 7부 A 사전 솎아내기 baseline 양립 정합. 도구 진입 후 호출 시 → blacklist false. 7부 A 사전 솎아내기 → 본 함수 호출 부재 (Stage 30.x 인계).
+
+#### Stage 30.1 baseline 인계
+
+사이클 본질: `judgeExistingBusinessMatch` 본문 정착 + `classifySignal` 호출부 정착 + 단위 테스트.
+
+코드 변경 영역:
+- `src/tools/sagyeongin/capex-signal.ts` (lines 116-131 `judgeExistingBusinessMatch` 본문 정밀화 + line 152 호출부 null 흡수 + line 226 영역 `companyInduty` corp_meta cache lookup)
+- `src/tools/sagyeongin/_lib/` (단위 테스트 + keyword 정착 baseline)
+- 단테 누적 직접 (Stage 30.0 영역 0 → Stage 30.1 영역 직접)
+
+진입 조건: ADR-0027 + spec §10.16 baseline 직접 정합. 회수 F 13건 baseline 영역 keyword 후보 직접 활용. Stage 30.x 표본 확장 baseline 영역 별 사이클.
+
 ## 의사결정 시 주의
 
 새 결정이 필요한 상황을 마주하면 다음을 따른다.
