@@ -32,7 +32,11 @@ import { z } from "zod";
 import { defineTool } from "../_helpers.js";
 import type { ToolDef, ToolCtx } from "../_helpers.js";
 import { extractEquityCurrent } from "./_lib/financial-extractor.js";
-// 묶음 1 `matchInduty`는 미래 정밀화 영역 산출 (현재 호출 영역 0).
+import {
+  matchBlacklist,
+  matchNullPattern,
+  matchWhitelist,
+} from "./_lib/existing-business-keywords.js";
 
 interface Signal {
   signal: string;
@@ -42,7 +46,7 @@ interface Signal {
     amount: number;
     equity_ratio: number;
     category: string;
-    existing_business_match: boolean;
+    existing_business_match: boolean | null;
     dart_reference: string;
   };
   interpretation_notes: string[];
@@ -112,22 +116,42 @@ function parseRatio(v: string | undefined): number | null {
   return n > 1 ? n / 100 : n;
 }
 
-// 기존 사업 일치 판정 — MVP 한정 보수적 휴리스틱.
-// DART 응답에 KSIC 코드 직접 부재 가능 — ast_sen / inh_pp 텍스트와
-// 회사 사업 텍스트 비교. 정확 매칭은 spec-pending-edits §10.3 후속 영역.
-//
-// 휴리스틱: 텍스트 형태 미확정 영역이라 보수적 default true (긍정 분기 우선).
-// false 분기는 명확한 신규 분야 키워드 발견 시만 — field-test 응답 본문 확인 후 정밀화.
-function judgeExistingBusinessMatch(
-  assetCategory: string,
-  bsnsObjt: string,
-  companyInduty: string,
-): boolean {
-  // 응답 형태 미확정 — 묶음 2 field-test 후 정밀화
-  // 현재는 보수적 default true (의심 시 긍정 분기 — 7부 C 본질 정합)
-  // 명백한 신규 분야 키워드 발견 시 false (field-test 후 키워드 누적)
-  const _ = { assetCategory, bsnsObjt, companyInduty };
-  return true;
+/**
+ * 기존 사업 일치 판정 — 7부 C 본질 ("케파 증설 vs 신규 분야").
+ *
+ * 분기 chain (ADR-0027 + Stage 30.1 calibration):
+ *   1. blacklist 매칭 → false (비본업/신규 분야 명시)
+ *   2. whitelist + null pattern 동시 매칭 → null (혼합 목적, ADR-0027 §null 3)
+ *   3. whitelist 매칭 → true (본 사업 확장 명시)
+ *   4. null pattern 매칭 → null (판단 불가 명시)
+ *   5. default → null (판단 불가)
+ *
+ * @param text — ast_sen + inh_pp 합본 (공백 구분)
+ * @param induty_code — 산업 분류 코드 (보조, Stage 30.x 활용 예정)
+ * @returns true (케파 증설 추정) / false (비본업 추정) / null (판단 불가)
+ *
+ * Ref: ADR-0027, spec §10.16, 회수 F 13건 (verifications/stage30/)
+ */
+export function judgeExistingBusinessMatch(
+  text: string,
+  _induty_code?: string,
+): boolean | null {
+  if (!text || !text.trim()) return null;
+
+  // 1. blacklist 우선
+  if (matchBlacklist(text)) return false;
+
+  // 2. mixed case — whitelist + null pattern 동시 (혼합 목적 → null)
+  if (matchWhitelist(text) && matchNullPattern(text)) return null;
+
+  // 3. whitelist 단독
+  if (matchWhitelist(text)) return true;
+
+  // 4. null pattern 단독
+  if (matchNullPattern(text)) return null;
+
+  // 5. default
+  return null;
 }
 
 // 단일 공시 항목 → 시그널 분기 (3 시그널 중 1개 또는 null).
@@ -149,13 +173,17 @@ function classifySignal(
 
   const assetCategory = item.ast_sen ?? "";
   const bsnsObjt = item.inh_pp ?? "";
-  const existingMatch = judgeExistingBusinessMatch(assetCategory, bsnsObjt, companyInduty);
+  const text = [assetCategory, bsnsObjt].filter(Boolean).join(" ");
+  const existingMatch = judgeExistingBusinessMatch(text, companyInduty);
 
   let signalName: string;
   if (equityRatio >= 0.10) {
-    signalName = existingMatch
-      ? "major_capex_existing_business"
-      : "major_capex_unrelated_diversification";
+    // ADR-0027 §결과: false(블랙리스트 명시)만 unrelated, null(판단 불가/mixed)→existing (7부 C 긍정 발굴)
+    if (existingMatch === false) {
+      signalName = "major_capex_unrelated_diversification";
+    } else {
+      signalName = "major_capex_existing_business";
+    }
   } else if (equityRatio >= 0.05) {
     signalName = "minor_capex";
   } else {
