@@ -178,9 +178,12 @@ function classifySignal(
 
   let signalName: string;
   if (equityRatio >= 0.10) {
-    signalName = existingMatch
-      ? "major_capex_existing_business"
-      : "major_capex_unrelated_diversification";
+    // ADR-0027 §결과: false(블랙리스트 명시)만 unrelated, null(판단 불가/mixed)→existing (7부 C 긍정 발굴)
+    if (existingMatch === false) {
+      signalName = "major_capex_unrelated_diversification";
+    } else {
+      signalName = "major_capex_existing_business";
+    }
   } else if (equityRatio >= 0.05) {
     signalName = "minor_capex";
   } else {
