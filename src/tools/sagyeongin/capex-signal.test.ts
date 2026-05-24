@@ -102,3 +102,37 @@ test("corner case: whitelist 단독 (null pattern 미포함) → true", () => {
 test("corner case: default (키워드 없음) → null", () => {
   assert.strictEqual(judgeExistingBusinessMatch("부지 취득"), null);
 });
+
+// signalName 분기 검증 (ADR-0027 §결과 null 흡수 정책)
+// classifySignal 미 export → mapToSignalName 인라인 헬퍼로 분기 정책 직접 검증
+
+function mapToSignalName(existingMatch: boolean | null): string {
+  if (existingMatch === false) return "major_capex_unrelated_diversification";
+  return "major_capex_existing_business";
+}
+
+test("signalName: null → major_capex_existing_business (ADR-0027 §결과 null 흡수)", () => {
+  assert.strictEqual(mapToSignalName(null), "major_capex_existing_business");
+});
+
+test("signalName: false → major_capex_unrelated_diversification", () => {
+  assert.strictEqual(mapToSignalName(false), "major_capex_unrelated_diversification");
+});
+
+test("signalName: true → major_capex_existing_business", () => {
+  assert.strictEqual(mapToSignalName(true), "major_capex_existing_business");
+});
+
+test("회수 F #11 인콘 — null + signalName: existing_business (ADR-0027 §null 3)", () => {
+  const text = "토지 및 건물 R&D센터 건립 및 신사옥 확보";
+  const existingMatch = judgeExistingBusinessMatch(text, "468");
+  assert.strictEqual(existingMatch, null);
+  assert.strictEqual(mapToSignalName(existingMatch), "major_capex_existing_business");
+});
+
+test("회수 F #12 한화리츠 — false + signalName: unrelated_diversification", () => {
+  const text = "토지 및 건물 부동산 임대를 통한 수익 창출";
+  const existingMatch = judgeExistingBusinessMatch(text, "68112");
+  assert.strictEqual(existingMatch, false);
+  assert.strictEqual(mapToSignalName(existingMatch), "major_capex_unrelated_diversification");
+});
