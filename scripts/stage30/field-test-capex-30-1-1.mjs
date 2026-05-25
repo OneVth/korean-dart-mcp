@@ -83,7 +83,9 @@ let passCount = 0;
 let failCount = 0;
 let noSignalCount = 0;
 
-for (const fix of FIXTURES) {
+for (let i = 0; i < FIXTURES.length; i++) {
+  const fix = FIXTURES[i];
+  if (i > 0) await new Promise((res) => setTimeout(res, 250)); // ADR-0015 burst 회피
   console.log(`\n[${fix.corp_name}] (${fix.corp_code}, induty=${fix.induty})`);
   let r;
   try {
