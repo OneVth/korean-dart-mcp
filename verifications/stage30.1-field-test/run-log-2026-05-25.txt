@@ -1,0 +1,61 @@
+
+[영화테크] (00659976, induty=3033)
+  verdict=SIGNAL_DETECTED, score=80, signals=1
+    ▸ major_capex_existing_business: 13.4% 시설투자 — 토지 및 건물 | ebm=true(whitelist) | ratio=13.4%
+
+[아이언디바이스] (01706794, induty=26112)
+  verdict=SIGNAL_DETECTED, score=80, signals=1
+    ▸ major_capex_existing_business: 52.7% 시설투자 — 토지 및 건물 | ebm=null(absorbed) | ratio=52.7%
+
+[오아] (01428948, induty=47320)
+  verdict=SIGNAL_DETECTED, score=80, signals=1
+    ▸ major_capex_existing_business: 52.4% 시설투자 — 토지 및 건물 | ebm=null(absorbed) | ratio=52.4%
+
+[리브스메드] (01385005, induty=27112)
+  verdict=SIGNAL_DETECTED, score=80, signals=1
+    ▸ major_capex_existing_business: 17.3% 시설투자 — 토지 및 건물 | ebm=true(whitelist) | ratio=17.3%
+
+[아이엠티] (01546101, induty=29299)
+  verdict=SIGNAL_DETECTED, score=80, signals=1
+    ▸ major_capex_existing_business: 29.5% 시설투자 — 토지 및 건물 | ebm=true(whitelist) | ratio=29.5%
+
+[에코글로우] (00896753, induty=204)
+  verdict=SIGNAL_DETECTED, score=80, signals=1
+    ▸ major_capex_existing_business: 48.5% 시설투자 — 토지 및 건물 | ebm=null(absorbed) | ratio=48.5%
+
+[미쥬] (01547933, induty=141)
+  verdict=SIGNAL_DETECTED, score=80, signals=1
+    ▸ major_capex_existing_business: 54.8% 시설투자 — 토지 및 건물 | ebm=null(absorbed) | ratio=54.8%
+
+[DS단석] (00108612, induty=204)
+  verdict=SIGNAL_DETECTED, score=80, signals=1
+    ▸ major_capex_existing_business: 42.9% 시설투자 — 토지 및 건물 | ebm=null(absorbed) | ratio=42.9%
+
+[성호전자] (00317210, induty=26291)
+  verdict=SIGNAL_DETECTED, score=-40, signals=1
+    ▸ major_capex_unrelated_diversification: 59.1% 시설투자 — 토지 및 건물 | ebm=false(blacklist) | ratio=59.1%
+
+[두산테스나] (00563545, induty=739)
+  verdict=SIGNAL_DETECTED, score=160, signals=2
+    ▸ major_capex_existing_business: 47.0% 시설투자 — 기계장치 | ebm=true(whitelist) | ratio=47.0%
+    ▸ major_capex_existing_business: 43.7% 시설투자 — 기계장치 | ebm=true(whitelist) | ratio=43.7%
+
+[인콘] (00475976, induty=468)
+  verdict=SIGNAL_DETECTED, score=80, signals=1
+    ▸ major_capex_existing_business: 55.7% 시설투자 — 토지 및 건물 | ebm=null(absorbed) | ratio=55.7%
+  ✓ KEY CASE PASS
+
+[한화리츠] (01669226, induty=68112)
+  verdict=SIGNAL_DETECTED, score=-40, signals=1
+    ▸ major_capex_unrelated_diversification: 50.3% 시설투자 — 토지 및 건물 | ebm=false(blacklist) | ratio=50.2%
+  ✓ KEY CASE PASS
+
+[에이아이코리아] (01307593, induty=29271)
+  verdict=SIGNAL_DETECTED, score=80, signals=1
+    ▸ major_capex_existing_business: 16.0% 시설투자 — 토지 및 건물 | ebm=null(absorbed) | ratio=16.0%
+
+[SAVED] D:\_project\korean-dart-mcp\verifications\stage30.1\field-test-capex-30-1-1-2026-05-25.json
+
+=== Stage 30.1.1 field-test-capex-30-1-1 결과 ===
+  전체: 13건 | PASS: 13 | FAIL: 0 | NO_SIGNAL: 0
+  KEY CASE (인콘 + 한화리츠): 전체 PASS ✓

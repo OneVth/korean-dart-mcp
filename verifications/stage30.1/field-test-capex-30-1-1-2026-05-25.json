@@ -1,0 +1,245 @@
+{
+  "date": "2026-05-25",
+  "results": [
+    {
+      "corp_code": "00659976",
+      "corp_name": "영화테크",
+      "induty": "3033",
+      "expected_judge": "true",
+      "key_case": false,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": 80,
+      "signals": [
+        {
+          "signal": "major_capex_existing_business",
+          "description": "13.4% 시설투자 — 토지 및 건물",
+          "existing_business_match": true,
+          "equity_ratio": 0.1337
+        }
+      ],
+      "key_fail": null
+    },
+    {
+      "corp_code": "01706794",
+      "corp_name": "아이언디바이스",
+      "induty": "26112",
+      "expected_judge": "null",
+      "key_case": false,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": 80,
+      "signals": [
+        {
+          "signal": "major_capex_existing_business",
+          "description": "52.7% 시설투자 — 토지 및 건물",
+          "existing_business_match": null,
+          "equity_ratio": 0.5268
+        }
+      ],
+      "key_fail": null
+    },
+    {
+      "corp_code": "01428948",
+      "corp_name": "오아",
+      "induty": "47320",
+      "expected_judge": "null",
+      "key_case": false,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": 80,
+      "signals": [
+        {
+          "signal": "major_capex_existing_business",
+          "description": "52.4% 시설투자 — 토지 및 건물",
+          "existing_business_match": null,
+          "equity_ratio": 0.5239
+        }
+      ],
+      "key_fail": null
+    },
+    {
+      "corp_code": "01385005",
+      "corp_name": "리브스메드",
+      "induty": "27112",
+      "expected_judge": "true",
+      "key_case": false,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": 80,
+      "signals": [
+        {
+          "signal": "major_capex_existing_business",
+          "description": "17.3% 시설투자 — 토지 및 건물",
+          "existing_business_match": true,
+          "equity_ratio": 0.1727
+        }
+      ],
+      "key_fail": null
+    },
+    {
+      "corp_code": "01546101",
+      "corp_name": "아이엠티",
+      "induty": "29299",
+      "expected_judge": "true",
+      "key_case": false,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": 80,
+      "signals": [
+        {
+          "signal": "major_capex_existing_business",
+          "description": "29.5% 시설투자 — 토지 및 건물",
+          "existing_business_match": true,
+          "equity_ratio": 0.2946
+        }
+      ],
+      "key_fail": null
+    },
+    {
+      "corp_code": "00896753",
+      "corp_name": "에코글로우",
+      "induty": "204",
+      "expected_judge": "null",
+      "key_case": false,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": 80,
+      "signals": [
+        {
+          "signal": "major_capex_existing_business",
+          "description": "48.5% 시설투자 — 토지 및 건물",
+          "existing_business_match": null,
+          "equity_ratio": 0.4847
+        }
+      ],
+      "key_fail": null
+    },
+    {
+      "corp_code": "01547933",
+      "corp_name": "미쥬",
+      "induty": "141",
+      "expected_judge": "null",
+      "key_case": false,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": 80,
+      "signals": [
+        {
+          "signal": "major_capex_existing_business",
+          "description": "54.8% 시설투자 — 토지 및 건물",
+          "existing_business_match": null,
+          "equity_ratio": 0.5481
+        }
+      ],
+      "key_fail": null
+    },
+    {
+      "corp_code": "00108612",
+      "corp_name": "DS단석",
+      "induty": "204",
+      "expected_judge": "null",
+      "key_case": false,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": 80,
+      "signals": [
+        {
+          "signal": "major_capex_existing_business",
+          "description": "42.9% 시설투자 — 토지 및 건물",
+          "existing_business_match": null,
+          "equity_ratio": 0.4291
+        }
+      ],
+      "key_fail": null
+    },
+    {
+      "corp_code": "00317210",
+      "corp_name": "성호전자",
+      "induty": "26291",
+      "expected_judge": "false",
+      "key_case": false,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": -40,
+      "signals": [
+        {
+          "signal": "major_capex_unrelated_diversification",
+          "description": "59.1% 시설투자 — 토지 및 건물",
+          "existing_business_match": false,
+          "equity_ratio": 0.5905
+        }
+      ],
+      "key_fail": null
+    },
+    {
+      "corp_code": "00563545",
+      "corp_name": "두산테스나",
+      "induty": "739",
+      "expected_judge": "true",
+      "key_case": false,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": 160,
+      "signals": [
+        {
+          "signal": "major_capex_existing_business",
+          "description": "47.0% 시설투자 — 기계장치",
+          "existing_business_match": true,
+          "equity_ratio": 0.4697
+        },
+        {
+          "signal": "major_capex_existing_business",
+          "description": "43.7% 시설투자 — 기계장치",
+          "existing_business_match": true,
+          "equity_ratio": 0.4367
+        }
+      ],
+      "key_fail": null
+    },
+    {
+      "corp_code": "00475976",
+      "corp_name": "인콘",
+      "induty": "468",
+      "expected_judge": "null(mixed)",
+      "key_case": true,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": 80,
+      "signals": [
+        {
+          "signal": "major_capex_existing_business",
+          "description": "55.7% 시설투자 — 토지 및 건물",
+          "existing_business_match": null,
+          "equity_ratio": 0.5566
+        }
+      ],
+      "key_fail": null
+    },
+    {
+      "corp_code": "01669226",
+      "corp_name": "한화리츠",
+      "induty": "68112",
+      "expected_judge": "false",
+      "key_case": true,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": -40,
+      "signals": [
+        {
+          "signal": "major_capex_unrelated_diversification",
+          "description": "50.3% 시설투자 — 토지 및 건물",
+          "existing_business_match": false,
+          "equity_ratio": 0.5025
+        }
+      ],
+      "key_fail": null
+    },
+    {
+      "corp_code": "01307593",
+      "corp_name": "에이아이코리아",
+      "induty": "29271",
+      "expected_judge": "null",
+      "key_case": false,
+      "verdict": "SIGNAL_DETECTED",
+      "opportunity_score": 80,
+      "signals": [
+        {
+          "signal": "major_capex_existing_business",
+          "description": "16.0% 시설투자 — 토지 및 건물",
+          "existing_business_match": null,
+          "equity_ratio": 0.16
+        }
+      ],
+      "key_fail": null
+    }
+  ]
+}
