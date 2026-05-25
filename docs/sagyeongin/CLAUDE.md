@@ -1229,6 +1229,23 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 
 46. **commit 메시지 vs 코드 mismatch — 사후 검증 우선** — 위임 명세 영역 phase 분리 가드 명시 (예: "null 흡수 = phase 2 인계") baseline + Claude Code 실행 영역 commit 메시지 가드 흡수 baseline + 실제 코드 가드 위반 본문 정착 — 3중 mismatch 패턴. 발생 사례: Stage 30.1 phase 1 commit 2 (97d87a1) 메시지 "null 흡수 로직 = phase 2 인계" 명시 + 실제 코드 `existingMatch ? "major_capex_existing_business" : "major_capex_unrelated_diversification"` ternary 정착 (null → false 흡수 완료) mismatch. 근본 원인: build/test pass 본질 우선 → type error 회피 영역 ternary 본문 추가 → commit 메시지 가드 본문 보존. **적용**: (1) 위임 명세 phase 분리 가드 = 코드 본문 직접 검증 baseline 필수. (2) 사후 검증 step 영역 호출부 분기 본질 (a) type narrowing / (b) default true / (c) ternary 직접 식별 + paste. (3) mismatch 식별 시 사후 정정 사이클 (Stage 30.1 phase 2 결판 흡수). 학습 #29 (paired guard 결정 ↔ 실행 분리) 보강 — phase 분리 가드 영역 코드 본문 직접 검증 step 추가. Ref: ADR-0027, Stage 30.1 phase 1 사후 검증, 학습 #29. **반복 금지.**
 
+47. **단테 누적 본문 실측 정합 본질** — 위임 명세 영역 단테 누적 본문 (예: "Stage 30.1 누적 597") 작성 시 사전 추정 diff stat (예: "+63/-19") vs 실제 clone diff 실측 (예: "+50/-22") mismatch 패턴.
+
+    **발생 사례** — Stage 30.1 final clone diff 검증:
+    - CLAUDE.md 기록 — capex-signal.ts +63/-19, 합계 +375/-19
+    - clone diff 실측 — capex-signal.ts +50/-22, 합계 +362/-22
+    - 차이 — capex-signal.ts 영역 -13/+3 (사전 추정 vs phase 2 commit `6fb2560` 실측 mismatch)
+
+    **근본 원인**: phase 1 검증 step 영역 diff stat (+63/-19) = phase 1 한정. phase 2 commit `6fb2560` (ternary → if-else) 추가 변경 본문 미반영. 매듭 commit 작성 시 phase 1 diff stat 흡수 + phase 2 영역 변경 미반영.
+
+    **적용**:
+    1. 매듭 commit 단테 표 본문 = 실측 clone diff 직접 paste (사전 추정 외).
+    2. `git diff --stat <baseline>..<merge>` 직접 실행 + 결과 paste 필수.
+    3. 사전 추정 흡수 baseline 시 final clone diff 검증 step 영역 mismatch 식별 + 사후 정정 single commit (학습 #41 정합).
+    4. 단테 정의 본문 (net vs insertions-only) 매듭 commit 영역 명시 — 누적 수치 mismatch 회피.
+
+    **Ref**: Stage 30.1 final clone diff 검증, 학습 #41 (사후 정정 single commit + force-push 외), 학습 #46 (commit 메시지 vs 코드 mismatch). **반복 금지.**
+
 #### Stage 30.0 누적 (2026-05-22)
 
 본 γ 사전 사이클 영역 식별 baseline 3건 직접:
@@ -1293,13 +1310,13 @@ phase 3 (main 직접, 2 commit):
 
 | 영역 | 변경 |
 |---|---|
-| `src/tools/sagyeongin/capex-signal.ts` | +63/-19 (정밀화 + 호출부 정정) |
+| `src/tools/sagyeongin/capex-signal.ts` | +50/-22 (정밀화 + 호출부 정정) |
 | `src/tools/sagyeongin/_lib/existing-business-keywords.ts` | +77 (신설) |
 | `src/tools/sagyeongin/_lib/existing-business-keywords.test.ts` | +97 (신설) |
 | `src/tools/sagyeongin/capex-signal.test.ts` | +138 (신설 + 정정) |
-| 총 | +375/-19 |
+| 총 | +362/-22 |
 
-Stage 30.0 누적 241 → Stage 30.1 누적 **597** (src/ 변경).
+Stage 30.0 누적 241 → Stage 30.1 누적 **581** (src/ 변경, 실측 정합, net). ※ 사전 추정 +375/-19 vs 실측 +362/-22 — 학습 #47 참조.
 
 ##### TOOL_REGISTRY
 
