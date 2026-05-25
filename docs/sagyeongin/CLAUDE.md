@@ -1337,6 +1337,28 @@ Stage 30.0 누적 241 → Stage 30.1 누적 **581** (src/ 변경, 실측 정합,
 
 Stage 30.0 12+ → Stage 30.1 **14+** (+2: signature 3→2 params + blacklist 임대 미기재).
 
+#### § MVP funnel — 사용자 설계 의도
+
+본 fork = batch screening → 관심 종목 선별 → 단일 종목 분석 4단계 funnel 본질.
+
+**한 번에 한 종목씩 작업 외** — 사용자 선호 섹션 (induty) 등록 → 섹션 전수조사 → 대화 funnel → 단일 종목 분석.
+
+상세 본문: [`mvp-funnel.md`](./mvp-funnel.md)
+
+##### 4단계 funnel 요약
+
+| # | 단계 | 도구 매핑 | 7부 정합 |
+|---|---|---|---|
+| 1 | 취향 설정 | `sagyeongin_user_preference` (M1, Stage 30.2) | 7부 A |
+| 2 | 섹션 전수조사 | `sagyeongin_scan_execute` + induty 필터 (M2 인계) | 7부 A+B+C |
+| 3 | 대화 funnel | MCP client + 사경인 도구 (M3 인계) | 7부 C+D+E |
+| 4 | 단일 종목 분석 | `sagyeongin_watchlist_check` + 통합 (M4 인계) | 7부 전체 |
+
+##### Stage 사이클 인계
+
+- Stage 30.2 = M1 정착 (`sagyeongin_user_preference`)
+- Stage 30.3+ = M2~M4 결판 (M1 실측 사용 사후, 학습 #8 정합)
+
 ## 의사결정 시 주의
 
 새 결정이 필요한 상황을 마주하면 다음을 따른다.

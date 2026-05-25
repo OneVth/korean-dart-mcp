@@ -1,0 +1,57 @@
+# MVP funnel — 사용자 설계 의도
+
+## 배경
+
+본 fork (`OneVth/korean-dart-mcp`) = 사경인 7부 투자 철학 기반 한국 주식 screening MCP server. 사용자 설계 의도 = **한 번에 한 종목씩 작업 외** — batch screening → watchlist 좁히기 → 단일 종목 분석 4단계 funnel.
+
+## 4단계 funnel
+
+| # | 단계 | 내용 | 도구 매핑 |
+|---|---|---|---|
+| 1 | **취향 설정** | 사용자 선호 / 비선호 induty (KSIC) 등록 — whitelist + blacklist | `sagyeongin_user_preference` (Stage 30.2 신설 예정) |
+| 2 | **섹션 전수조사** | induty whitelist 매칭 corp 전수 → screening (killer/cashflow/capex/insider/srim/dividend 단계별 매칭) | `sagyeongin_scan_execute` (induty 필터 추가 인계) |
+| 3 | **대화 funnel** | Claude 영역 단계별 대화 + 사경인 도구 호출 + 관심 종목 선별 | MCP client (Claude Desktop 등) 책임. 도구 = 산출 한정 |
+| 4 | **단일 종목 분석** | 관심 종목 정밀 분석 — watchlist_check + 사경인 도구 통합 호출 | `sagyeongin_watchlist_check` + 기존 도구 sequential |
+
+## 단계별 책임 분리
+
+| 단계 | MCP 도구 책임 | Claude (LLM) 책임 |
+|---|---|---|
+| 1 | preference 저장 + 회수 | 사용자 입력 induty 정합 검증 |
+| 2 | screening 산출 (corp 분포 + 도구 결과) | 산출 해석 + 단계별 매칭 |
+| 3 | 단계별 도구 호출 (single corp) | 대화 진행 + 사용자 의도 회수 + 선별 |
+| 4 | watchlist_check + 사경인 도구 호출 | 통합 해석 + 투자 판단 보조 |
+
+## 7부 정합
+
+| 단계 | 7부 정합 |
+|---|---|
+| 1 | **7부 A (사전 솎아내기)** — induty 영역 제외 / 선호 본질 |
+| 2 | **7부 A + B + C** — killer (A) + cashflow (B) + capex (C) 영역 전수 매칭 |
+| 3 | **7부 C + D + E** — capex (C) + srim (D) + dividend (E) 영역 단계별 대화 |
+| 4 | **7부 전체** — watchlist_check 통합 + 단일 corp 정밀 |
+
+## MVP 단계 분리
+
+| MVP | 본질 |
+|---|---|
+| **M1** | 1단계 정착 — `sagyeongin_user_preference` 도구 신설 + persistence |
+| M2 | 1+2단계 — M1 + scan_execute induty 필터 추가 |
+| M3 | 1+2+3단계 — M2 + 대화 funnel 사용 패턴 정착 (Claude client 영역) |
+| M4 | 전체 — M3 + 단일 종목 분석 정밀화 |
+
+## 사이클 인계
+
+| Stage | MVP 단계 | 본질 |
+|---|---|---|
+| Stage 30.2 (ε) | **M1** | `sagyeongin_user_preference` 도구 신설 |
+| Stage 30.3+ | M2~M4 | M1 실측 사용 사후 결판 (학습 #8 정합 — 사전 추정 외 실측 baseline) |
+
+## 학습 정합
+
+- **학습 #8**: 명세 가정 vs 실측 어긋남. M1 단독 정착 + 실사용 → M2 결판 본질 = 사전 추정 외 실측 우선 정합.
+- **학습 #3**: calibration 철학 + 코드 균형. 각 사이클 entry prompt 영역 MVP 본질 + 도구 본질 양쪽 검증.
+
+---
+
+Ref: 사용자 설계 의도 (Stage 30.2 entry 진입 사전 식별), spec § 사용자 선호 (신설 인계), 7부 A/B/C/D/E, 학습 #3 + #8.
