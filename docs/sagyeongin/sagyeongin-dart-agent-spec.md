@@ -120,7 +120,7 @@ MVP는 MCP 서버로만 제공한다. CLI는 korean-dart-mcp가 이미 `bin` 엔
 
 ---
 
-## 5. 도구 목록 전체 (총 15개)
+## 5. 도구 목록 전체 (총 16개)
 
 ### 5.1 사경인 신규 도구 (10개)
 
@@ -139,7 +139,7 @@ MVP는 MCP 서버로만 제공한다. CLI는 korean-dart-mcp가 이미 `bin` 엔
 | `sagyeongin_scan_execute` | 배치 Phase 2 | 시장 스캔 실제 실행 |
 | `sagyeongin_watchlist_check` | 배치 | 관심 종목 분기 점검 |
 
-### 5.2 관리 도구 (2개)
+### 5.2 관리 도구 (3개)
 
 관심 종목과 스캔 프리셋을 관리:
 
@@ -147,6 +147,7 @@ MVP는 MCP 서버로만 제공한다. CLI는 korean-dart-mcp가 이미 `bin` 엔
 |---|---|
 | `sagyeongin_update_watchlist` | 관심 종목 추가/제거/조회 |
 | `sagyeongin_update_scan_preset` | 스캔 프리셋 저장/수정 |
+| `sagyeongin_user_preference` | 사용자 선호 induty whitelist/blacklist persistence — 사전 솎아내기 baseline (M1) |
 
 ### 5.3 korean-dart-mcp 재사용 (3개, 사경인 파이프라인 포함)
 
@@ -1120,6 +1121,55 @@ return normA.slice(0, prefixLen) === normB.slice(0, prefixLen);
 #### X3 (분포 도구 신설) — 보류
 
 `sagyeongin_industry_distribution_status` 신설 보류 — Stage 30+ 후속. `capex_signal` 활용 baseline (§10.3 `judgeExistingBusinessMatch` 정착) 후 필요성 식별 시 진입.
+
+---
+
+### 10.15 `sagyeongin_user_preference` — 사용자 선호 induty persistence
+
+**철학 정합**: 7부 A 사전 솎아내기 — 사용자 선호 induty whitelist (우선 영역) + blacklist (제외 영역) persistence. 실제 솎아내기 = M2 (`scan_execute` induty 필터) 영역 흡수.
+
+**MVP funnel 영역**: M1 (4단계 funnel 1단계 = 취향 설정).
+
+#### Input (Zod)
+
+| 영역 | type | 본질 |
+|---|---|---|
+| `action` | enum `"get"` / `"add"` / `"remove"` | 동작 분기 |
+| `induty_code` | string optional | KSIC 영역 induty code (add/remove 영역 필수) |
+| `induty_list` | enum `"whitelist"` / `"blacklist"` optional | 대상 list (add/remove 영역 필수) |
+
+#### Output
+
+```typescript
+interface UserPreference {
+  induty_whitelist: string[];
+  induty_blacklist: string[];
+  updated_at: string | null; // ISO8601
+}
+```
+
+#### action 본질
+
+| action | 본질 |
+|---|---|
+| `get` | 전체 preference 반환 — default (`{ induty_whitelist: [], induty_blacklist: [], updated_at: null }`) 또는 정착 본문 |
+| `add` | 대상 list 영역 `induty_code` 등록 (idempotent — 중복 시 변경 외). 동일 `induty_code` 양쪽 list 동시 등록 허용 (store 영역 단순 storage — 사용 영역 blacklist 우선 정합) |
+| `remove` | 대상 list 영역 `induty_code` 제거 (idempotent — 부재 시 변경 외) |
+
+#### Persistence
+
+- 파일 위치: `~/.sagyeongin-dart/user-preference.json`
+- env var: `SAGYEONGIN_CONFIG_DIR` (config-store 영역 공유)
+- 원자적 write: `.tmp` + `rename` 패턴 (config-store follow)
+- runtime schema validation 6건 (object 외 / induty_whitelist 누락+type / induty_blacklist 누락+type / updated_at)
+
+#### 구현
+
+- 도구: `src/tools/sagyeongin/user-preference.ts`
+- store: `src/tools/sagyeongin/_lib/user-preference-store.ts`
+- test: `_lib` 단위 12건 + 도구 exported helper 6건 = 18건
+
+**Ref**: Stage 30.2 매듭 (2026-05-26), MVP funnel M1, 7부 A 사전 솎아내기.
 
 ---
 

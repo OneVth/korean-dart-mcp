@@ -8,7 +8,7 @@
 
 | # | 단계 | 내용 | 도구 매핑 |
 |---|---|---|---|
-| 1 | **취향 설정** | 사용자 선호 / 비선호 induty (KSIC) 등록 — whitelist + blacklist | `sagyeongin_user_preference` (Stage 30.2 신설 예정) |
+| 1 | **취향 설정** | 사용자 선호 / 비선호 induty (KSIC) 등록 — whitelist + blacklist | `sagyeongin_user_preference` **(Stage 30.2 정착 — 2026-05-26)** |
 | 2 | **섹션 전수조사** | induty whitelist 매칭 corp 전수 → screening (killer/cashflow/capex/insider/srim/dividend 단계별 매칭) | `sagyeongin_scan_execute` (induty 필터 추가 인계) |
 | 3 | **대화 funnel** | Claude 영역 단계별 대화 + 사경인 도구 호출 + 관심 종목 선별 | MCP client (Claude Desktop 등) 책임. 도구 = 산출 한정 |
 | 4 | **단일 종목 분석** | 관심 종목 정밀 분석 — watchlist_check + 사경인 도구 통합 호출 | `sagyeongin_watchlist_check` + 기존 도구 sequential |
@@ -35,7 +35,7 @@
 
 | MVP | 본질 |
 |---|---|
-| **M1** | 1단계 정착 — `sagyeongin_user_preference` 도구 신설 + persistence |
+| **M1** | 1단계 정착 — `sagyeongin_user_preference` 도구 신설 + persistence: `~/.sagyeongin-dart/user-preference.json` (정착 2026-05-26) |
 | M2 | 1+2단계 — M1 + scan_execute induty 필터 추가 |
 | M3 | 1+2+3단계 — M2 + 대화 funnel 사용 패턴 정착 (Claude client 영역) |
 | M4 | 전체 — M3 + 단일 종목 분석 정밀화 |
@@ -44,7 +44,7 @@
 
 | Stage | MVP 단계 | 본질 |
 |---|---|---|
-| Stage 30.2 (ε) | **M1** | `sagyeongin_user_preference` 도구 신설 |
+| Stage 30.2 (ε) | **M1** | `sagyeongin_user_preference` 도구 정착 — 완료 (2026-05-26). M2 결판 baseline: M1 실측 사용 사후 사용자 결판 |
 | Stage 30.3+ | M2~M4 | M1 실측 사용 사후 결판 (학습 #8 정합 — 사전 추정 외 실측 baseline) |
 
 ## 학습 정합

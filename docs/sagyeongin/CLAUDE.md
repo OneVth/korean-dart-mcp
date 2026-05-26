@@ -1246,6 +1246,39 @@ ADR-0015 효과 측정 4건 중 D1 fail-fast만 정합 동작 검증. B1 부분 
 
     **Ref**: Stage 30.1 final clone diff 검증, 학습 #41 (사후 정정 single commit + force-push 외), 학습 #46 (commit 메시지 vs 코드 mismatch). **반복 금지.**
 
+48. **사전 추정 indexing 오류 risk — 이전 세션 분석 직접 view 강제**
+
+    **baseline**: Stage 30.2 사이클 영역 본 학습 발견. 사용자 entry prompt 영역 사전 식별 본문 (TOOL_REGISTRY 29 / persistence 위치 `data/` / 사경인 도구 14 등) = 사전 추정. 실측 정합 (TOOL_REGISTRY 29 정합이나 persistence 영역 기존 `~/.sagyeongin-dart/` 패턴 정합 — `data/` 신설 외) 일부 어긋남 식별.
+
+    **본질**: 이전 세션 분석 / entry prompt 영역 / 사용자 사전 식별 본문 = 사전 추정 risk 정합. 위임 명세 작성 사전 raw 직접 view (cat 또는 git show) 강제 — indexing 사전 추정 외.
+
+    **적용**: `mvp-funnel.md` 직접 view + `config-store.ts` raw view + `capex-signal.ts` raw view + 사경인 도구 list 직접 회수 + spec heading list 직접 회수 영역.
+
+    **Ref**: Stage 30.2 0단계 회수 (persistence 위치 정정), 묶음 1/2 사전 anchor 회수 위임 영역.
+
+49. **묶음 별 사전 anchor 회수 위임 패턴 정착**
+
+    **baseline**: Stage 30.2 묶음 1 + 묶음 2 양쪽 영역 사전 anchor 회수 위임 단독 사이클 정착.
+
+    **본질**: 묶음 본격 위임 명세 작성 사전 별 회수 위임 단독 사이클 — raw view + 패턴 follow + signature + 호출부 + 활용 대상 모듈 raw 단독 회수 단계. 사전 추정 indexing 오류 차단 (학습 #48) + 본격 명세 정합 anchor 정합.
+
+    **적용 순차**:
+    1. 사전 anchor 회수 위임 명세 (READ_ONLY) → 사용자 paste 보고
+    2. 본격 위임 명세 (WRITE) → 사용자 paste 보고
+    3. 사후 검증 위임 명세 (READ_ONLY) → 사용자 paste 보고
+
+    **Ref**: Stage 30.2 묶음 1 사전 anchor 회수 (`config-store.ts` 패턴), 묶음 2 사전 anchor 회수 (`capex-signal.ts` + `sagyeongin/index.ts` + integration test 패턴).
+
+50. **매듭 영역 학습 정착 강제 — 학습 #48 미정착 재발 차단**
+
+    **baseline**: Stage 30.2 매듭 사전 anchor 회수 영역 학습 #48 CLAUDE.md 미정착 발견. 위임 명세 다수 참조 ("학습 #48 정합") vs 영구 문서 정착 외.
+
+    **본질**: 학습 신설 사후 매듭 영역 CLAUDE.md 학습 누적 영역 강제 정착. 매듭 commit 영역 학습 누적 영역 update 항목 강제 검증 — 영구 문서 정착 외 사이클 종료 차단.
+
+    **적용**: 매듭 위임 명세 영역 § 학습 누적 영역 update 항목 명시 강제. 매듭 사후 검증 영역 학습 영역 grep 정합 검증 강제.
+
+    **Ref**: Stage 30.2 매듭 영역 학습 #48 미정착 발견.
+
 #### Stage 30.0 누적 (2026-05-22)
 
 본 γ 사전 사이클 영역 식별 baseline 3건 직접:
@@ -1336,6 +1369,33 @@ Stage 30.0 누적 241 → Stage 30.1 누적 **581** (src/ 변경, 실측 정합,
 ##### spec-assumption mismatch counter
 
 Stage 30.0 12+ → Stage 30.1 **14+** (+2: signature 3→2 params + blacklist 임대 미기재).
+
+#### Stage 30.2 (ε MVP M1 사이클) — `sagyeongin_user_preference` 도구 정착 (2026-05-26)
+
+**Stage 30.1.1 baseline 인계** — δ field-test 완결 `e38df5c` + MVP funnel 영구 문서화 `19cf035` 사후 본 사이클 진입.
+
+**사이클 본질**: MVP funnel M1 (4단계 funnel 중 1단계 = 취향 설정) 정착. 7부 A 사전 솎아내기 정합 — 사용자 선호 induty whitelist/blacklist persistence 단독 도구 신설.
+
+**묶음 1** (`feat/stage-30-2-user-preference` 머지 `eab998a`):
+- `src/tools/sagyeongin/_lib/user-preference-store.ts` 신설 — `loadUserPreference` / `saveUserPreference` / `addInduty` / `removeInduty` 4 export 함수 + `UserPreference` + `IndutyList` type
+- `_lib/config-store.ts` 패턴 follow — `getConfigDir()` 재사용 + `SAGYEONGIN_CONFIG_DIR` env var 흡수 + `.tmp` 원자적 write
+- runtime schema validation 6건 흡수 (object 외 / induty_whitelist 누락+type / induty_blacklist 누락+type / updated_at)
+- 단위 테스트 12건 (node:test + `SAGYEONGIN_CONFIG_DIR=tmpDir` 격리)
+
+**묶음 2** (`feat/stage-30-2-user-preference-tool` 머지 `b45e66f`):
+- `src/tools/sagyeongin/user-preference.ts` 신설 — `userPreferenceTool` + `handleUserPreference` exported helper
+- Zod Input — `action` enum 3건 (get / add / remove) + `induty_list` enum 2건 (whitelist / blacklist) + `induty_code` optional
+- `sagyeongin/index.ts` 영역 import + 배열 push 2줄 추가 (`src/tools/index.ts` 변경 외 — `...sagyeonginTools` spread 영역 자동 등록)
+- exported helper test 6건 (capex-signal.test.ts 패턴 follow)
+
+**TOOL_REGISTRY**: 29 → 30 (사경인 14 → 15)
+
+**어긋남 식별 3건**:
+- 묶음 1 — schema validation 5건 vs 6건 카운트 명세 summary 영역 명시 오류 (본문 영역 6건 정합 — 코드 정합)
+- 묶음 1 — `config-store.ts` 영역 `getConfigDir` export 추가 1줄 (위임 명세 영역 부재 본문 — `_lib/user-preference-store.ts` 영역 재사용 정합)
+- 묶음 2 — `IndutyList` import 영역 제외 (handler 미사용 — TypeScript unused warning 회피 — 동작 무관)
+
+**M2 결판 baseline**: M1 단독 정착 사후 사용자 사용 실측 사후 결판 — M2 (`scan_execute` induty 필터 추가) vs 즉시 M2 진입 결판.
 
 #### § MVP funnel — 사용자 설계 의도
 
