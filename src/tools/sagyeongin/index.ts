@@ -22,6 +22,7 @@ import { watchlistCheckTool } from "./watchlist-check.js";
 import { scanExecuteTool } from "./scan-execute.js";
 import { corpCodeStatusTool } from "./corp-code-status.js";
 import { corpMetaRefreshTool } from "./corp-meta-refresh.js";
+import { userPreferenceTool } from "./user-preference.js";
 
 export const sagyeonginTools: ToolDef[] = [
   updateWatchlistTool,
@@ -38,4 +39,5 @@ export const sagyeonginTools: ToolDef[] = [
   scanExecuteTool,
   corpCodeStatusTool,
   corpMetaRefreshTool, // 16(c) 묶음 2 — ADR-0016
+  userPreferenceTool,
 ];
