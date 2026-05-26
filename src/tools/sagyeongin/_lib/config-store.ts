@@ -85,7 +85,7 @@ const DEFAULT_CONFIG: SagyeonginConfig = {
   },
 };
 
-function getConfigDir(): string {
+export function getConfigDir(): string {
   return process.env.SAGYEONGIN_CONFIG_DIR ?? path.join(os.homedir(), ".sagyeongin-dart");
 }
 
