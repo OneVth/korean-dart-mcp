@@ -1,7 +1,7 @@
 # 사경인식 DART 에이전트 — 기능 명세 문서
 
-**버전**: v0.6 (§10.12 재작성 — chg_rsn_filter 폐기 → majorstock 부호 + ADR-0011 도입)
-**작성일**: 2026-04-24 (v0.1), 마지막 갱신 2026-05-03 (v0.6)
+**버전**: v0.7 (§10.7 stage1_company_resolution 본문 정정 — corp_meta cache 차감 영역 명시)
+**작성일**: 2026-04-24 (v0.1), 마지막 갱신 2026-05-27 (v0.7)
 **수정 이력**:
 - v0.1 (2026-04-24): 초안
 - v0.2 (2026-04-24): K값 처리 방식 수정 — 하드코딩 제거, `sagyeongin_required_return` 도구 신설 (wikidocs.net/94787 근거)
@@ -9,6 +9,7 @@
 - v0.4 (2026-04-28): §10.10/§10.11 action별 동작 명세 추가. config-store 설계 ADR-0007 도입 (B1 corp_code → name 자동 조회 / D1 add 중복 throw / E1 update_tags 부분 갱신 / F2 remove 멱등 / G1 preset update 부분 patch / H1 active preset 삭제 throw).
 - v0.5 (2026-05-02): §10.7 estimated_universe 의미 over-estimate 분기 명시 + estimated_api_calls.stage1_company_resolution 항목 추가 + 본문 "기업개황 캐시" 표현 정정. ADR-0010 도입 (옵션 D — 8단계 자체 0 호출 + corp_cls + induty_code 분기 비용 노출 영역).
 - v0.6 (2026-05-03): 9단계 사전 검증 (1차 elestock + 2차 majorstock) 결과 chg_rsn 계열 필드 부재 실측. §10.12 전면 재작성 — chg_rsn_filter 폐기, 신규 도구 `sagyeongin_insider_signal` (majorstock stkqy_irds 부호 기반) 도입. §5.1 사경인 도구 9→10, §5.3 `insider_signal` 수정 0 (재사용만), §4 line 109 매핑 표 정정. ADR-0011 도입, ADR-0001 β-iii Superseded.
+- v0.7 (2026-05-27): §10.7 `estimated_api_calls.stage1_company_resolution` 본문 정정 — corp_meta cache (ADR-0016) 적중분 차감 영역 명시. `estimateApiCalls` opts.cacheHitCount 인자 영역 명시.
 
 **참조 문서**: 
 - `sakyeongin_philosophy.md` — 사상 토대
@@ -729,8 +730,9 @@ Stage 6. dividend_check (7부 E) — 태그만
   estimated_universe: number,  // market+name filter 적용 후 over-estimate
                                // (corp_cls + induty_code 분기는 11단계 영역)
   estimated_api_calls: {
-    stage1_company_resolution: number,  // universe × 1 (company.json 단일 호출,
-                                        // corp_cls + induty_code 합산 영역)
+    stage1_company_resolution: number,  // (universe − cacheHits) × 1 (corp_meta cache 적중분
+                                        // 차감, ADR-0016. company.json 단일 호출, corp_cls +
+                                        // induty_code 합산 영역. opts.cacheHitCount 영역)
     stage2_killer: number,              // resolved universe × ~3
     stage3_srim: number,                // (× killer_pass) × ~4
     stage4_5_6_tags: number,            // (× killer_pass × srim_pass) × ~7
