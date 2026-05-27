@@ -27,6 +27,7 @@ import {
   type ListedCompany,
   type FilterConfig,
 } from "./_lib/scan-helpers.js";
+import { corpMetaSizeForUniverse } from "./_lib/corp-meta-cache.js";
 
 const Input = z.object({
   preset: z.string().optional(),
@@ -89,7 +90,9 @@ export const scanPreviewTool = defineTool({
     const estimatedUniverse = filtered.length;
 
     // 4. estimated_api_calls 산출
-    const apiCalls = estimateApiCalls(estimatedUniverse);
+    const apiCalls = estimateApiCalls(estimatedUniverse, {
+      cacheHitCount: corpMetaSizeForUniverse(filtered.map((c) => c.corp_code)),
+    });
 
     // 5. daily_limit_usage_pct 산출
     const usagePct = calculateDailyLimitUsagePct(apiCalls.total);

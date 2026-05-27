@@ -65,6 +65,7 @@ import { kisLimited } from "./required-return.js";
 import { sagyeonginInsiderSignalTool } from "./insider-signal.js";
 import { dividendCheckTool } from "./dividend-check.js";
 import { loadConfig } from "./_lib/config-store.js";
+import { corpMetaSizeForUniverse } from "./_lib/corp-meta-cache.js";
 import { classifySkipReason } from "./_lib/skip-reason.js";
 
 /** daily limit 80% — ADR-0012 checkpoint 저장 임계. */
@@ -717,7 +718,9 @@ export const scanExecuteTool = defineTool({
       };
       const allListed = loadListedCompanies();
       const filtered = filterUniverse(allListed, filterConfig);
-      const estimate = estimateApiCalls(filtered.length);
+      const estimate = estimateApiCalls(filtered.length, {
+        cacheHitCount: corpMetaSizeForUniverse(filtered.map((c) => c.corp_code)),
+      });
       const usagePct = calculateDailyLimitUsagePct(estimate.total);
       if (usagePct > 100) {
         throw new DailyLimitPreCheckError({
