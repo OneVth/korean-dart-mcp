@@ -87,19 +87,24 @@ export interface ApiCallEstimate {
  * pure 함수 — estimated_api_calls 산출.
  *
  * 분기 본질:
- * - stage1_company_resolution: universe × 1 (corp_cls + induty_code 합산 — company.json 단일 호출)
- * - stage2_killer: universe × 3 (4단계 killer-check 호출 영역)
+ * - stage1_company_resolution: (universe − cacheHits) × 1 (corp_meta cache 적중분 차감 — ADR-0016)
+ * - stage2_killer: universe × 3 (4단계 killer-check 호출 영역, 재무 API — cache 불가)
  * - stage3_srim: (universe × killerPassRate) × 4 (3단계 srim 호출 영역)
  * - stage4_5_6_tags: (universe × killerPassRate × srimPassRate) × 7 (5·6·7단계 합산 호출 영역)
  *
+ * opts.cacheHitCount: corpMetaSizeForUniverse() 결과 공급 — stage1 only 차감.
  * Math.round 적용 — 정수 영역 자연.
  */
 export function estimateApiCalls(
   universeCount: number,
-  killerPassRate: number = KILLER_PASS_RATE_DEFAULT,
-  srimPassRate: number = SRIM_PASS_RATE_DEFAULT,
+  opts?: { cacheHitCount?: number; killerPassRate?: number; srimPassRate?: number },
 ): ApiCallEstimate {
-  const stage1 = universeCount * STAGE1_CALLS_PER_COMPANY;
+  const cacheHits = Math.min(opts?.cacheHitCount ?? 0, universeCount);
+  const effectiveUniverse = universeCount - cacheHits;
+  const killerPassRate = opts?.killerPassRate ?? KILLER_PASS_RATE_DEFAULT;
+  const srimPassRate = opts?.srimPassRate ?? SRIM_PASS_RATE_DEFAULT;
+
+  const stage1 = effectiveUniverse * STAGE1_CALLS_PER_COMPANY;
   const stage2 = universeCount * STAGE2_CALLS_PER_COMPANY;
   const killerPassed = universeCount * killerPassRate;
   const stage3 = killerPassed * STAGE3_CALLS_PER_COMPANY;

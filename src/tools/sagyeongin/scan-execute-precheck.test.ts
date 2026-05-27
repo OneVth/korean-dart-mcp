@@ -57,4 +57,10 @@ describe("ADR-0019: usage_pct 계산", () => {
     const pct = calculateDailyLimitUsagePct(estimate.total);
     assert.ok(pct < 30, `500 universe usage_pct=${pct}`);
   });
+
+  test("ADR-0016 cache hit 반영 — 3607 universe + cache 3500 → stage1 차감", () => {
+    const estimate = estimateApiCalls(3607, { cacheHitCount: 3500 });
+    assert.equal(estimate.stage1_company_resolution, 107);
+    assert.equal(estimate.stage2_killer, 3607 * 3);
+  });
 });

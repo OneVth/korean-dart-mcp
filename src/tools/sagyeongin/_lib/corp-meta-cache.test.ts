@@ -18,6 +18,7 @@ import {
   setCorpMeta,
   invalidateCorpMeta,
   corpMetaSize,
+  corpMetaSizeForUniverse,
   invalidateStale,
   type CorpMetaCacheRecord,
 } from "./corp-meta-cache.js";
@@ -169,6 +170,22 @@ describe("invalidateStale", () => {
     }
     assert.equal(invalidateStale(map), 10);
     assert.equal(corpMetaSize(), 40);
+  });
+});
+
+describe("corpMetaSizeForUniverse", () => {
+  test("빈 배열 → 0 (edge case 가드)", () => {
+    assert.equal(corpMetaSizeForUniverse([]), 0);
+  });
+
+  test("3건 저장, universe 2건만 포함 → 2", () => {
+    setCorpMeta(makeRecord("00126380"));
+    setCorpMeta(makeRecord("00164742"));
+    setCorpMeta(makeRecord("00258801"));
+    assert.equal(
+      corpMetaSizeForUniverse(["00126380", "00164742", "99999999"]),
+      2,
+    );
   });
 });
 
