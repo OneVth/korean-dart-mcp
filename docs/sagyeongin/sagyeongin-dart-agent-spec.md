@@ -724,6 +724,7 @@ Stage 6. dividend_check (7부 E) — 태그만
   filter_summary: {
     markets: string[],
     included_industries: string[] | null,
+    excluded_industries: string[],          // KSIC list 본문 (default preset 인지 강화)
     excluded_industries_count: number,
     excluded_name_patterns: string[],
   },
