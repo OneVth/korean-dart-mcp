@@ -94,11 +94,19 @@ test("estimateApiCalls: 분기 합산 정합", () => {
 });
 
 test("estimateApiCalls: custom pass rate 영역", () => {
-  const result = estimateApiCalls(1000, 1.0, 1.0);
+  const result = estimateApiCalls(1000, { killerPassRate: 1.0, srimPassRate: 1.0 });
   // 모든 종목 통과 영역 — stage2 = 3000, stage3 = 4000, stage4_5_6 = 7000
   assert.equal(result.stage2_killer, 3000);
   assert.equal(result.stage3_srim, 4000);
   assert.equal(result.stage4_5_6_tags, 7000);
+});
+
+test("estimateApiCalls: cacheHitCount 차감 — stage1 only", () => {
+  // universe 1000, cache 200 적중 → effectiveUniverse 800 → stage1 = 800
+  const result = estimateApiCalls(1000, { cacheHitCount: 200 });
+  assert.equal(result.stage1_company_resolution, 800);
+  // stage2~6은 full universe 기준 불변
+  assert.equal(result.stage2_killer, 3000);
 });
 
 test("calculateDailyLimitUsagePct: 0 calls → 0%", () => {

@@ -152,6 +152,30 @@ export function corpMetaSize(): number {
 }
 
 /**
+ * universe 내 cache 적중 수 조회.
+ *
+ * corpCodes 중 corp_meta에 존재하는 개수를 반환.
+ * ADR-0019 estimateApiCalls cacheHitCount 공급 용도.
+ *
+ * 빈 배열 → 0 (IN 절 빈 SQL 오류 차단 가드).
+ */
+export function corpMetaSizeForUniverse(corpCodes: string[]): number {
+  if (corpCodes.length === 0) return 0;
+  const db = openDb();
+  try {
+    const placeholders = corpCodes.map(() => "?").join(",");
+    const row = db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM corp_meta WHERE corp_code IN (${placeholders})`,
+      )
+      .get(...(corpCodes as [string, ...string[]])) as { n: number };
+    return row.n;
+  } finally {
+    db.close();
+  }
+}
+
+/**
  * modify_date 갱신 corp 일괄 삭제.
  *
  * 입력: corp_code → 현재 dump의 modify_date 매핑.
