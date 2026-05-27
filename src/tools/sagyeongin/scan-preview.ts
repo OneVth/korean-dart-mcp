@@ -29,6 +29,25 @@ import {
 } from "./_lib/scan-helpers.js";
 import { corpMetaSizeForUniverse } from "./_lib/corp-meta-cache.js";
 
+export type FilterSummary = {
+  markets: Array<"KOSPI" | "KOSDAQ">;
+  included_industries: string[] | null;
+  excluded_industries: string[];
+  excluded_industries_count: number;
+  excluded_name_patterns: string[];
+};
+
+export function buildFilterSummary(merged: ScanPreset): FilterSummary {
+  const excluded = merged.excluded_industries ?? [];
+  return {
+    markets: merged.markets ?? [],
+    included_industries: merged.included_industries ?? null,
+    excluded_industries: excluded,
+    excluded_industries_count: excluded.length,
+    excluded_name_patterns: merged.excluded_name_patterns ?? [],
+  };
+}
+
 const Input = z.object({
   preset: z.string().optional(),
   markets: z.array(z.enum(["KOSPI", "KOSDAQ"])).optional(),
@@ -104,12 +123,7 @@ export const scanPreviewTool = defineTool({
     }));
 
     // 7. filter_summary 영역
-    const filterSummary = {
-      markets: merged.markets ?? [],
-      included_industries: merged.included_industries ?? null,
-      excluded_industries_count: (merged.excluded_industries ?? []).length,
-      excluded_name_patterns: merged.excluded_name_patterns ?? [],
-    };
+    const filterSummary = buildFilterSummary(merged);
 
     return {
       preset_used: presetName,
