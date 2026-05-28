@@ -1,7 +1,7 @@
 /**
  * industry-merge 단위 테스트.
  *
- * 영역 본질:
+ * 케이스:
  * - union (excluded 경로): 제외 범위 확대 + dedup
  * - override (included 경로): prefList 우선 / 빈 prefList → preset 유지
  */
