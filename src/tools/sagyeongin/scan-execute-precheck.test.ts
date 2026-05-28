@@ -31,6 +31,9 @@ describe("ADR-0019: DailyLimitPreCheckError class", () => {
     assert.match(err.message, /daily limit \(20000/);
     assert.match(err.message, /usage 163\.2%/);
     assert.match(err.message, /current universe: 3607/);
+    assert.match(err.message, /excluded_name_patterns only/);
+    assert.match(err.message, /within-limit execution/);
+    assert.doesNotMatch(err.message, /Narrow universe via included_industries/);
   });
 });
 

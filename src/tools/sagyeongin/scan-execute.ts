@@ -87,8 +87,10 @@ export class DailyLimitPreCheckError extends Error {
   }) {
     super(
       `scan_execute pre-check failed — estimated calls (${info.estimated_calls}) ` +
-        `exceeds daily limit (${info.daily_limit}, usage ${info.usage_pct}%). ` +
-        `Narrow universe via included_industries filter (current universe: ${info.universe_count}).`,
+        `exceed daily limit (${info.daily_limit}, usage ${info.usage_pct}%); ` +
+        `current universe: ${info.universe_count}. ` +
+        `Pre-check universe reflects excluded_name_patterns only; ` +
+        `induty/included_industries preferences apply to within-limit execution, not pre-check.`,
     );
     this.name = "DailyLimitPreCheckError";
     this.estimated_calls = info.estimated_calls;
