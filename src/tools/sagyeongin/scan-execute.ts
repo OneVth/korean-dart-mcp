@@ -65,6 +65,8 @@ import { kisLimited } from "./required-return.js";
 import { sagyeonginInsiderSignalTool } from "./insider-signal.js";
 import { dividendCheckTool } from "./dividend-check.js";
 import { loadConfig } from "./_lib/config-store.js";
+import { loadUserPreference } from "./_lib/user-preference-store.js";
+import { mergeIndustries } from "./_lib/industry-merge.js";
 import { corpMetaSizeForUniverse } from "./_lib/corp-meta-cache.js";
 import { classifySkipReason } from "./_lib/skip-reason.js";
 
@@ -230,7 +232,7 @@ function isIndustryMatch(
   return true;
 }
 
-async function resolveInput(
+export async function resolveInput(
   args: z.infer<typeof InputSchema>,
 ): Promise<ResolvedInput> {
   const config = await loadConfig();
@@ -239,10 +241,15 @@ async function resolveInput(
   if (!preset) {
     throw new Error(`scan_preset not found: "${presetName}"`);
   }
+  const pref = await loadUserPreference();
   return {
     markets: args.markets ?? preset.markets,
-    included_industries: args.included_industries ?? preset.included_industries,
-    excluded_industries: args.excluded_industries ?? preset.excluded_industries,
+    included_industries:
+      args.included_industries
+      ?? mergeIndustries(preset.included_industries, pref.induty_whitelist, "override"),
+    excluded_industries:
+      args.excluded_industries
+      ?? mergeIndustries(preset.excluded_industries, pref.induty_blacklist, "union"),
     excluded_name_patterns:
       args.excluded_name_patterns ?? preset.excluded_name_patterns,
     min_opportunity_score: args.min_opportunity_score,
