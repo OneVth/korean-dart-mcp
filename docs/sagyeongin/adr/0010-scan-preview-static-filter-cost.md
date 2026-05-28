@@ -58,3 +58,7 @@ spec §10.7 영향 영역 (별도 spec commit으로 반영):
 **미래 변경 시 영향**:
 - 11단계 ADR-0009 결정 시 stage1_company_resolution 캐시 영역 본질 (24h TTL? scan_execute 안 in-memory? 영구 SQLite 누적?) 통합 검토 영역
 - 기업개황 캐시 영역 본격 도입 시 (옵션 B 후속 채택 가능성) 옵션 D는 자연 흡수 — `stage1_company_resolution` 영역이 캐시 hit 시 0 반환 영역 자연
+
+## 개정 (2026-05-29, ADR-0028)
+
+옵션 D의 "estimated_universe = induty 미적용 over-estimate"는 corp_meta cache(ADR-0016) 도입 전 전제였다. ADR-0028로 개정 — cache-hit 분은 캐시된 induty_code로 필터 적용, cache-miss 분만 over-estimate 유지. estimated_universe / daily_limit_usage_pct 의미가 "name-filter 후"에서 "name-filter + cache-hit induty 적용 후"로 바뀐다. 상세 = ADR-0028.
