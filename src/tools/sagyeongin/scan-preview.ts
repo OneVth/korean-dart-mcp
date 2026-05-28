@@ -24,6 +24,7 @@ import {
   filterUniverse,
   estimateApiCalls,
   calculateDailyLimitUsagePct,
+  DAILY_LIMIT,
   type ListedCompany,
   type FilterConfig,
 } from "./_lib/scan-helpers.js";
@@ -46,6 +47,19 @@ export function buildFilterSummary(merged: ScanPreset): FilterSummary {
     excluded_industries_count: excluded.length,
     excluded_name_patterns: merged.excluded_name_patterns ?? [],
   };
+}
+
+export function buildLimitNotes(args: {
+  usage_pct: number;
+  total_calls: number;
+  universe: number;
+}): string[] {
+  if (args.usage_pct <= 100) return [];
+  return [
+    `일일 한도 초과 — 추정 호출 ${args.total_calls}건이 한도(${DAILY_LIMIT})의 ${args.usage_pct}%. ` +
+      `현 universe ${args.universe}. 이 입력은 scan_execute에서 사전 차단됨. ` +
+      `pre-check universe는 excluded_name_patterns에만 반응 (induty 취향은 한도 안쪽 실행에만 적용).`,
+  ];
 }
 
 const Input = z.object({
@@ -124,6 +138,11 @@ export const scanPreviewTool = defineTool({
 
     // 7. filter_summary 영역
     const filterSummary = buildFilterSummary(merged);
+    const interpretationNotes = buildLimitNotes({
+      usage_pct: usagePct,
+      total_calls: apiCalls.total,
+      universe: estimatedUniverse,
+    });
 
     return {
       preset_used: presetName,
@@ -132,6 +151,7 @@ export const scanPreviewTool = defineTool({
       estimated_api_calls: apiCalls,
       daily_limit_usage_pct: usagePct,
       sample_companies: sampleCompanies,
+      interpretation_notes: interpretationNotes,
     };
   },
 });
