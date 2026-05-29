@@ -41,6 +41,7 @@ import {
   filterUniverse,
   isMarketMatch,
   isIndustryMatch,
+  splitUniverseByCacheAndFilter,
   estimateApiCalls,
   calculateDailyLimitUsagePct,
   shuffleWithSeed,
@@ -69,7 +70,6 @@ import { dividendCheckTool } from "./dividend-check.js";
 import { loadConfig } from "./_lib/config-store.js";
 import { loadUserPreference } from "./_lib/user-preference-store.js";
 import { mergeIndustries } from "./_lib/industry-merge.js";
-import { corpMetaSizeForUniverse } from "./_lib/corp-meta-cache.js";
 import { classifySkipReason } from "./_lib/skip-reason.js";
 
 /** daily limit 80% — ADR-0012 checkpoint 저장 임계. */
@@ -90,9 +90,9 @@ export class DailyLimitPreCheckError extends Error {
     super(
       `scan_execute pre-check failed — estimated calls (${info.estimated_calls}) ` +
         `exceed daily limit (${info.daily_limit}, usage ${info.usage_pct}%); ` +
-        `current universe: ${info.universe_count}. ` +
-        `Pre-check universe reflects excluded_name_patterns only; ` +
-        `induty/included_industries preferences apply to within-limit execution, not pre-check.`,
+        `current universe: ${info.universe_count} (after name + cache-hit induty filter). ` +
+        `Cache-miss companies counted with conservative pass assumption. ` +
+        `Use corp_meta_refresh to warm cache for more precise estimate.`,
     );
     this.name = "DailyLimitPreCheckError";
     this.estimated_calls = info.estimated_calls;
@@ -699,14 +699,21 @@ export const scanExecuteTool = defineTool({
       // 신규 scan
       resolved = await resolveInput(args);
 
-      // ADR-0019: daily limit 사전 가드
+      // ADR-0019 + ADR-0028 B1: daily limit 사전 가드 (cache 기반 2-phase 추정)
       const filterConfig: FilterConfig = {
         excluded_name_patterns: resolved.excluded_name_patterns,
       };
       const allListed = loadListedCompanies();
       const filtered = filterUniverse(allListed, filterConfig);
-      const estimate = estimateApiCalls(filtered.length, {
-        cacheHitCount: corpMetaSizeForUniverse(filtered.map((c) => c.corp_code)),
+      const split = splitUniverseByCacheAndFilter(filtered, {
+        markets: resolved.markets,
+        included: resolved.included_industries,
+        excluded: resolved.excluded_industries,
+      });
+      const universeAfterCacheFilter =
+        split.matched_cached_count + split.cache_miss_count;
+      const estimate = estimateApiCalls(universeAfterCacheFilter, {
+        cacheHitCount: split.matched_cached_count,
       });
       const usagePct = calculateDailyLimitUsagePct(estimate.total);
       if (usagePct > 100) {
@@ -714,7 +721,7 @@ export const scanExecuteTool = defineTool({
           estimated_calls: estimate.total,
           daily_limit: DAILY_LIMIT,
           usage_pct: usagePct,
-          universe_count: filtered.length,
+          universe_count: universeAfterCacheFilter,
         });
       }
 
