@@ -1,9 +1,12 @@
 /**
- * scan-execute pre-check (ADR-0019) 단위 테스트.
+ * scan-execute pre-check (ADR-0019 + ADR-0028 B1) 단위 테스트.
  *
  * Node built-in test runner. mock 기반 — 실 DART 호출 0 (ADR-0003).
  *
- * Ref: ADR-0019, 18단계 진단 매듭 fb2a4d7
+ * Stage 32 결선: universe_count 의미 = H'+M (name + cache-hit induty 필터 후).
+ * 메시지 본문 ADR-0028 B2 정합 (warm 권고 동반).
+ *
+ * Ref: ADR-0019, ADR-0028, 18단계 진단 매듭 fb2a4d7
  */
 
 import { describe, test } from "node:test";
@@ -31,8 +34,10 @@ describe("ADR-0019: DailyLimitPreCheckError class", () => {
     assert.match(err.message, /daily limit \(20000/);
     assert.match(err.message, /usage 163\.2%/);
     assert.match(err.message, /current universe: 3607/);
-    assert.match(err.message, /excluded_name_patterns only/);
-    assert.match(err.message, /within-limit execution/);
+    assert.match(err.message, /name \+ cache-hit induty filter/);
+    assert.match(err.message, /conservative pass assumption/);
+    assert.match(err.message, /corp_meta_refresh/);
+    assert.doesNotMatch(err.message, /excluded_name_patterns only/);
     assert.doesNotMatch(err.message, /Narrow universe via included_industries/);
   });
 });

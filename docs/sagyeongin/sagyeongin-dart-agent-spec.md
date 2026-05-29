@@ -729,30 +729,45 @@ Stage 6. dividend_check (7부 E) — 태그만
     excluded_industries_count: number,
     excluded_name_patterns: string[],
   },
-  estimated_universe: number,  // market+name filter 적용 후 over-estimate
-                               // (corp_cls + induty_code 분기는 11단계 영역)
+  estimated_universe: number,  // name-filter 후 universe (의미 불변 = backward-safe).
+                               // ADR-0028 개정 전 over-estimate 의미 보존 — 기존 소비자(funnel
+                               // 대화 흐름) 무파손.
+  estimated_universe_after_cache_filter: number,  // ADR-0028 B1 additive 신 필드.
+                                                  // cache-hit ∧ induty 통과(H') + cache-miss(M,
+                                                  // 보수적 통과 가정) = H'+M. 추정·차단의 실 기준.
+  cache_coverage: number,        // ADR-0028 B1 additive 신 필드. H/U 비율 (0~100, 소수 1자리).
+                                 // 이 추정의 신뢰 영역 — cache cold 시 lever 무력 영역 사용자 판단 자료.
   estimated_api_calls: {
-    stage1_company_resolution: number,  // (universe − cacheHits) × 1 (corp_meta cache 적중분
-                                        // 차감, ADR-0016. company.json 단일 호출, corp_cls +
-                                        // induty_code 합산 영역. opts.cacheHitCount 영역)
-    stage2_killer: number,              // resolved universe × ~3
+    stage1_company_resolution: number,  // cache-miss(M) × 1 — cache-hit ∧ induty 통과(H')는 차감.
+                                        // ADR-0028 결선 후 (H'+M − H') × 1 = M × 1.
+    stage2_killer: number,              // (H'+M) × ~3
     stage3_srim: number,                // (× killer_pass) × ~4
     stage4_5_6_tags: number,            // (× killer_pass × srim_pass) × ~7
     total: number,
   },
-  daily_limit_usage_pct: number,  // 20,000 중 몇 % 사용 예상
+  daily_limit_usage_pct: number,  // 20,000 중 몇 % 사용 예상 (기준 = estimated_universe_after_cache_filter)
   sample_companies: Array<{corp_code: string, corp_name: string}>,
                                   // 앞 10개 (정렬 기준은 spec-pending-edits 영역)
-  interpretation_notes?: string[] // 한도 초과 시 사실 진술 배열 (> 100% 시 1건, 평시 빈 배열)
-                                  // Stage 30.4.1 additive — scan_execute pre-check throw 조건 정합
+  interpretation_notes?: string[] // 사실 진술 배열. 두 트리거 독립:
+                                  // (a) usage_pct > 100 → 한도 초과 1건
+                                  // (b) cache miss ratio > CACHE_COVERAGE_WARM_THRESHOLD_PCT(50%)
+                                  //     → warm 권고 1건 (corp_meta_refresh, 1회 ~3,963 호출, 한도 내)
+                                  // 둘 다 트리거 시 2건 동시 가능. 평시 빈 배열.
 }
 ```
 
-**구현**: corp_code 덤프(서버 기동 시 로드) 단독 활용. company.json 호출은 11단계 영역 (`stage1_company_resolution` 단계). 8단계 자체 호출 영역 0.
+**구현**: corp_code 덤프(서버 기동 시 로드) + corp_meta cache(ADR-0016) 단독 활용. company.json 호출은 11단계 영역 (`stage1_company_resolution` 단계). 8단계 자체 호출 영역 0.
 
-ADR-0010 영역 정합 — corp_code 덤프 5 컬럼에 `corp_cls` + `induty_code` 부재라 markets + KSIC 분기를 비용 노출 영역으로 처리 (옵션 D). `estimated_universe`는 market+name filter 후 over-estimate, `estimated_api_calls.stage1_company_resolution` 영역에서 분기 비용 합산 노출.
+ADR-0028 B1 (옵션 B) 정합 — `splitUniverseByCacheAndFilter`로 name-filter universe(U)를 cache 분할:
+- cache-hit ∧ `isMarketMatch` ∧ `isIndustryMatch` 통과 → H' (추정 universe 포함, stage1 호출 0)
+- cache-hit ∧ 필터 탈락 → H'' (전 stage 기여 0)
+- cache-miss → M (induty 미상, 보수적 통과 가정, stage1 호출 1)
 
-> KSIC 정책 상세 baseline: §10.14 참조.
+추정 = `estimateApiCalls(H'+M, {cacheHitCount: H'})`. `estimated_universe`(U)는 의미·타입 불변 — backward-safe. `estimated_universe_after_cache_filter`(H'+M)와 `cache_coverage`(H/U)는 additive 신 필드. 한도 차단(`> 100`) 기준 = `estimated_universe_after_cache_filter`.
+
+cache cold 시(M/U > 50%) `interpretation_notes`에 `corp_meta_refresh` 선행 권고 1줄 추가 (사실 진술만, 평가어 0) — warm 1회 ~3,963 호출(한도 내) 후 induty 필터가 0 호출. 임계 상수 = `CACHE_COVERAGE_WARM_THRESHOLD_PCT`(50%, `_lib/scan-helpers.ts` 단일 출처).
+
+> KSIC 정책 상세 baseline: §10.14 참조. ADR-0010 영역 본문은 ADR-0028 개정 section 참조.
 
 ---
 

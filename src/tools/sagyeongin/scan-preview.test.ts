@@ -61,22 +61,133 @@ test("case 5: excluded_name_patterns 지정 — string[] 회수 정합", () => {
   assert.deepEqual(result.excluded_industries, []);
 });
 
-test("buildLimitNotes: usage 163.2% 초과 — note 1건 + lever 명시", () => {
-  const notes = buildLimitNotes({ usage_pct: 163.2, total_calls: 32636, universe: 3607 });
+test("buildLimitNotes: usage 163.2% 초과 + cache_miss 0 — 한도 1건 (warm 0)", () => {
+  const notes = buildLimitNotes({
+    usage_pct: 163.2,
+    total_calls: 32636,
+    estimated_universe_after_cache_filter: 3607,
+    cache_miss_count: 0,
+    estimated_universe: 3607,
+  });
   assert.equal(notes.length, 1);
   assert.match(notes[0], /한도 초과/);
-  assert.match(notes[0], /excluded_name_patterns/);
   assert.match(notes[0], /3607/);
 });
 
-test("buildLimitNotes: usage 100% 경계 — [] 반환 (> 100 아님)", () => {
-  assert.deepEqual(buildLimitNotes({ usage_pct: 100, total_calls: 20000, universe: 2200 }), []);
+test("buildLimitNotes: usage 100% 경계 + cache_miss 0 — [] 반환", () => {
+  assert.deepEqual(
+    buildLimitNotes({
+      usage_pct: 100,
+      total_calls: 20000,
+      estimated_universe_after_cache_filter: 2200,
+      cache_miss_count: 0,
+      estimated_universe: 2200,
+    }),
+    [],
+  );
 });
 
-test("buildLimitNotes: usage 100.1% 직상 — note 1건", () => {
-  assert.equal(buildLimitNotes({ usage_pct: 100.1, total_calls: 20020, universe: 2210 }).length, 1);
+test("buildLimitNotes: usage 100.1% 직상 + cache_miss 0 — 한도 1건", () => {
+  assert.equal(
+    buildLimitNotes({
+      usage_pct: 100.1,
+      total_calls: 20020,
+      estimated_universe_after_cache_filter: 2210,
+      cache_miss_count: 0,
+      estimated_universe: 2210,
+    }).length,
+    1,
+  );
 });
 
-test("buildLimitNotes: usage 50% 정상 — [] 반환", () => {
-  assert.deepEqual(buildLimitNotes({ usage_pct: 50, total_calls: 10000, universe: 1100 }), []);
+test("buildLimitNotes: usage 50% 정상 + cache_miss 0 — [] 반환", () => {
+  assert.deepEqual(
+    buildLimitNotes({
+      usage_pct: 50,
+      total_calls: 10000,
+      estimated_universe_after_cache_filter: 1100,
+      cache_miss_count: 0,
+      estimated_universe: 1100,
+    }),
+    [],
+  );
+});
+
+test("buildLimitNotes: warm 권고 단독 — cache miss 60%(>50%), usage 50% → warm 1건", () => {
+  const notes = buildLimitNotes({
+    usage_pct: 50,
+    total_calls: 10000,
+    estimated_universe_after_cache_filter: 1000,
+    cache_miss_count: 600,
+    estimated_universe: 1000,
+  });
+  assert.equal(notes.length, 1);
+  assert.match(notes[0], /cache miss ratio 60(\.0)?%/);
+  assert.match(notes[0], /corp_meta_refresh/);
+  assert.match(notes[0], /~3,963 호출, 한도 내/);
+});
+
+test("buildLimitNotes: warm + 한도 초과 둘 다 — 2건 동시", () => {
+  const notes = buildLimitNotes({
+    usage_pct: 163.2,
+    total_calls: 32636,
+    estimated_universe_after_cache_filter: 3607,
+    cache_miss_count: 2000,
+    estimated_universe: 3607,
+  });
+  assert.equal(notes.length, 2);
+  assert.match(notes[0], /일일 한도 초과/);
+  assert.match(notes[0], /name \+ cache-hit induty 필터/);
+  assert.match(notes[1], /cache miss ratio/);
+  assert.match(notes[1], /corp_meta_refresh/);
+});
+
+test("buildLimitNotes: warm 경계 정확 — cache miss 50% 정확 → [] (≤ 임계)", () => {
+  assert.deepEqual(
+    buildLimitNotes({
+      usage_pct: 50,
+      total_calls: 10000,
+      estimated_universe_after_cache_filter: 1000,
+      cache_miss_count: 500,
+      estimated_universe: 1000,
+    }),
+    [],
+  );
+});
+
+test("buildLimitNotes: warm 경계 직상 — cache miss 50.1% → warm 1건", () => {
+  const notes = buildLimitNotes({
+    usage_pct: 50,
+    total_calls: 10000,
+    estimated_universe_after_cache_filter: 1000,
+    cache_miss_count: 501,
+    estimated_universe: 1000,
+  });
+  assert.equal(notes.length, 1);
+  assert.match(notes[0], /cache miss ratio 50\.1%/);
+});
+
+test("buildLimitNotes: estimated_universe 0 edge — divide-by-zero 0 + warm 영역 0 → [] 반환", () => {
+  assert.deepEqual(
+    buildLimitNotes({
+      usage_pct: 0,
+      total_calls: 0,
+      estimated_universe_after_cache_filter: 0,
+      cache_miss_count: 0,
+      estimated_universe: 0,
+    }),
+    [],
+  );
+});
+
+test("buildLimitNotes: 전 cache miss + 한도 안쪽 — warm 1건 (한도 초과 0)", () => {
+  const notes = buildLimitNotes({
+    usage_pct: 50,
+    total_calls: 10000,
+    estimated_universe_after_cache_filter: 1000,
+    cache_miss_count: 1000,
+    estimated_universe: 1000,
+  });
+  assert.equal(notes.length, 1);
+  assert.match(notes[0], /cache miss ratio 100(\.0)?%/);
 });
