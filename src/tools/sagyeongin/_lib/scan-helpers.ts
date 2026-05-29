@@ -5,6 +5,7 @@
  * - corp_code 덤프 SQLite 영역에서 상장사 row 누적 (loadListedCompanies)
  * - name pattern 필터 적용 (filterUniverse — pure 함수, corp_cls + induty_code 분기 0)
  * - estimated_api_calls 산출 (estimateApiCalls — pure 함수)
+ * - pre-check 2-phase universe 분할 (splitUniverseByCacheAndFilter — ADR-0028 B1)
  *
  * ADR-0010 옵션 D 정합 — corp_cls + induty_code 분기는 11단계 stage1 영역.
  * 8단계는 stock_code 부재 row 제외 + name pattern 제외만 적용.
@@ -15,6 +16,7 @@
 import Database from "better-sqlite3";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { getCorpMeta } from "./corp-meta-cache.js";
 
 export const KILLER_PASS_RATE_DEFAULT = 0.8;
 export const SRIM_PASS_RATE_DEFAULT = 0.33;
@@ -123,6 +125,42 @@ export function isIndustryMatch(
     return included.some((p) => induty_code.startsWith(p));
   }
   return true;
+}
+
+/**
+ * pre-check 2-phase universe 분할.
+ *
+ * universe(name-filter 후)을 corp_meta cache로 분할 — cache-hit ∧ market/induty
+ * 통과 분(H')과 cache-miss 분(M, 보수적 전부 통과 가정) count 반환.
+ * cache-hit ∧ 필터 탈락 분(H'')은 반환에 없음 — 추정 영역에 포함 안 함.
+ *
+ * estimateApiCalls(H'+M, {cacheHitCount: H'})로 ADR-0028 옵션 B 추정 실현.
+ * cache_coverage = (universe.length − cache_miss_count) / universe.length는
+ * 호출부 파생 (H = H' + H'' = universe.length − M).
+ *
+ * Ref: ADR-0028 B1, spec §10.7
+ */
+export function splitUniverseByCacheAndFilter(
+  universe: ListedCompany[],
+  filterArgs: {
+    markets?: Array<"KOSPI" | "KOSDAQ">;
+    included?: string[];
+    excluded?: string[];
+  },
+): { matched_cached_count: number; cache_miss_count: number } {
+  let matched_cached_count = 0;
+  let cache_miss_count = 0;
+  for (const company of universe) {
+    const meta = getCorpMeta(company.corp_code);
+    if (meta === null) {
+      cache_miss_count++;
+      continue;
+    }
+    if (!isMarketMatch(meta.corp_cls, filterArgs.markets)) continue;
+    if (!isIndustryMatch(meta.induty_code, filterArgs.included, filterArgs.excluded)) continue;
+    matched_cached_count++;
+  }
+  return { matched_cached_count, cache_miss_count };
 }
 
 export interface ApiCallEstimate {

@@ -9,8 +9,11 @@
  * loadListedCompanies는 I/O 영역 — 단위 테스트 0, field-test 영역 검증.
  */
 
-import { test } from "node:test";
+import { test, describe, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import * as os from "node:os";
 import {
   filterUniverse,
   estimateApiCalls,
@@ -18,11 +21,13 @@ import {
   shuffleWithSeed,
   isMarketMatch,
   isIndustryMatch,
+  splitUniverseByCacheAndFilter,
   CACHE_COVERAGE_WARM_THRESHOLD_PCT,
   KILLER_PASS_RATE_DEFAULT,
   SRIM_PASS_RATE_DEFAULT,
   type ListedCompany,
 } from "./scan-helpers.js";
+import { setCorpMeta } from "./corp-meta-cache.js";
 
 const SAMPLE: ListedCompany[] = [
   { corp_code: "00126380", corp_name: "삼성전자", stock_code: "005930" },
@@ -228,4 +233,138 @@ test("shuffleWithSeed: edge — 빈 배열 / 단일 원소 → 동일 반환", (
   assert.deepEqual(shuffleWithSeed([], 42), []);
   assert.deepEqual(shuffleWithSeed([42]), [42]);
   assert.deepEqual(shuffleWithSeed([42], 7), [42]);
+});
+
+describe("splitUniverseByCacheAndFilter", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "sagyeongin-split-"));
+    process.env.SAGYEONGIN_CONFIG_DIR = tmpDir;
+  });
+
+  afterEach(async () => {
+    delete process.env.SAGYEONGIN_CONFIG_DIR;
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  function mkCompany(corp_code: string, corp_name = "테스트회사"): ListedCompany {
+    return { corp_code, corp_name, stock_code: "000000" };
+  }
+
+  function mkMetaRecord(corp_code: string, corp_cls: string, induty_code: string) {
+    return {
+      corp_code,
+      induty_code,
+      corp_cls,
+      modify_date: "20260101",
+      fetched_at: new Date().toISOString(),
+    };
+  }
+
+  test("빈 universe → matched_cached_count 0, cache_miss_count 0", () => {
+    const result = splitUniverseByCacheAndFilter([], {});
+    assert.equal(result.matched_cached_count, 0);
+    assert.equal(result.cache_miss_count, 0);
+  });
+
+  test("전 cache miss — universe 전체 cache_miss_count로", () => {
+    const universe = [
+      mkCompany("00000001"),
+      mkCompany("00000002"),
+      mkCompany("00000003"),
+    ];
+    const result = splitUniverseByCacheAndFilter(universe, {});
+    assert.equal(result.matched_cached_count, 0);
+    assert.equal(result.cache_miss_count, 3);
+  });
+
+  test("전 cache hit + 필터 미지정 → 전 matched_cached_count로", () => {
+    setCorpMeta(mkMetaRecord("00000001", "Y", "26110"));
+    setCorpMeta(mkMetaRecord("00000002", "K", "27290"));
+    const universe = [mkCompany("00000001"), mkCompany("00000002")];
+    const result = splitUniverseByCacheAndFilter(universe, {});
+    assert.equal(result.matched_cached_count, 2);
+    assert.equal(result.cache_miss_count, 0);
+  });
+
+  test("cache hit + markets 필터 — KOSPI 단일", () => {
+    setCorpMeta(mkMetaRecord("00000001", "Y", "26110")); // KOSPI
+    setCorpMeta(mkMetaRecord("00000002", "K", "27290")); // KOSDAQ
+    setCorpMeta(mkMetaRecord("00000003", "N", "26110")); // 양쪽 아님
+    const universe = [
+      mkCompany("00000001"),
+      mkCompany("00000002"),
+      mkCompany("00000003"),
+    ];
+    const result = splitUniverseByCacheAndFilter(universe, { markets: ["KOSPI"] });
+    assert.equal(result.matched_cached_count, 1);
+    assert.equal(result.cache_miss_count, 0);
+  });
+
+  test("cache hit + excluded industry 필터", () => {
+    setCorpMeta(mkMetaRecord("00000001", "Y", "26110")); // 통과
+    setCorpMeta(mkMetaRecord("00000002", "Y", "64190")); // excluded "64" 매칭 → 탈락
+    setCorpMeta(mkMetaRecord("00000003", "Y", "27290")); // 통과
+    const universe = [
+      mkCompany("00000001"),
+      mkCompany("00000002"),
+      mkCompany("00000003"),
+    ];
+    const result = splitUniverseByCacheAndFilter(universe, { excluded: ["64"] });
+    assert.equal(result.matched_cached_count, 2);
+    assert.equal(result.cache_miss_count, 0);
+  });
+
+  test("cache hit + included industry 필터", () => {
+    setCorpMeta(mkMetaRecord("00000001", "Y", "26110"));
+    setCorpMeta(mkMetaRecord("00000002", "Y", "27290"));
+    setCorpMeta(mkMetaRecord("00000003", "Y", "64190"));
+    const universe = [
+      mkCompany("00000001"),
+      mkCompany("00000002"),
+      mkCompany("00000003"),
+    ];
+    const result = splitUniverseByCacheAndFilter(universe, {
+      included: ["26", "27"],
+    });
+    assert.equal(result.matched_cached_count, 2);
+    assert.equal(result.cache_miss_count, 0);
+  });
+
+  test("혼합 — cache hit 통과(H') + cache hit 탈락(H'') + cache miss(M)", () => {
+    setCorpMeta(mkMetaRecord("00000001", "Y", "26110")); // hit 통과 → H'
+    setCorpMeta(mkMetaRecord("00000002", "Y", "64190")); // hit 탈락(excluded) → H'' (반환에 없음)
+    // 00000003 cache miss → M
+    const universe = [
+      mkCompany("00000001"),
+      mkCompany("00000002"),
+      mkCompany("00000003"),
+    ];
+    const result = splitUniverseByCacheAndFilter(universe, { excluded: ["64"] });
+    assert.equal(result.matched_cached_count, 1); // H'
+    assert.equal(result.cache_miss_count, 1); // M
+    // H'' = 1은 반환에 없음 (universe.length − H' − M = 3 − 1 − 1 = 1)
+  });
+
+  test("excluded + included 둘 다 — excluded 우선 (isIndustryMatch 위임 정합)", () => {
+    setCorpMeta(mkMetaRecord("00000001", "Y", "641100")); // included "64" 매칭이지만 excluded "641" 매칭 → 탈락
+    setCorpMeta(mkMetaRecord("00000002", "Y", "642100")); // included "64" 매칭, excluded "641" 미매칭 → 통과
+    const universe = [mkCompany("00000001"), mkCompany("00000002")];
+    const result = splitUniverseByCacheAndFilter(universe, {
+      included: ["64"],
+      excluded: ["641"],
+    });
+    assert.equal(result.matched_cached_count, 1);
+    assert.equal(result.cache_miss_count, 0);
+  });
+
+  test("cache miss + markets 지정 — miss 분 보수적 전부 통과 가정 (필터 무관)", () => {
+    // cache miss 분은 induty_code 불명 → 보수적 "전부 통과 가정"이라 markets 필터 적용 부재.
+    // 단 본 함수는 단순히 cache_miss_count만 증가시킴 — 필터 적용 fn 호출 0.
+    const universe = [mkCompany("00000001"), mkCompany("00000002")];
+    const result = splitUniverseByCacheAndFilter(universe, { markets: ["KOSPI"] });
+    assert.equal(result.matched_cached_count, 0);
+    assert.equal(result.cache_miss_count, 2);
+  });
 });
