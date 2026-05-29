@@ -75,6 +75,56 @@ export function filterUniverse(
   return records.filter((r) => !patterns.some((p) => r.corp_name.includes(p)));
 }
 
+/**
+ * cache_coverage warm 권고 임계 (M/U cache-miss 비율 %).
+ *
+ * 본 값 초과 시 scan_preview interpretation_notes에 corp_meta_refresh 선행
+ * 진술 (사실 진술만, 평가어 0). spec §10.7 단일 출처.
+ *
+ * Ref: ADR-0028 B2, spec §10.7
+ */
+export const CACHE_COVERAGE_WARM_THRESHOLD_PCT = 50;
+
+/**
+ * pure 함수 — 시장 분류(corp_cls) 매칭.
+ *
+ * KOSPI=Y, KOSDAQ=K. markets undefined/[] 시 전체 통과.
+ * scan-execute stage1 + pre-check 2-phase (ADR-0028) 양쪽 공유.
+ *
+ * Ref: ADR-0028 B1
+ */
+export function isMarketMatch(
+  corp_cls: string,
+  markets: Array<"KOSPI" | "KOSDAQ"> | undefined,
+): boolean {
+  if (!markets || markets.length === 0) return true;
+  if (markets.includes("KOSPI") && corp_cls === "Y") return true;
+  if (markets.includes("KOSDAQ") && corp_cls === "K") return true;
+  return false;
+}
+
+/**
+ * pure 함수 — KSIC 산업 prefix 매칭.
+ *
+ * excluded prefix 매칭 시 즉시 false. included 지정 시 매칭만 true,
+ * 미지정 시 전체 통과. scan-execute stage1 + pre-check 2-phase 공유.
+ *
+ * Ref: ADR-0028 B1
+ */
+export function isIndustryMatch(
+  induty_code: string,
+  included: string[] | undefined,
+  excluded: string[] | undefined,
+): boolean {
+  if (excluded && excluded.length > 0) {
+    if (excluded.some((p) => induty_code.startsWith(p))) return false;
+  }
+  if (included && included.length > 0) {
+    return included.some((p) => induty_code.startsWith(p));
+  }
+  return true;
+}
+
 export interface ApiCallEstimate {
   stage1_company_resolution: number;
   stage2_killer: number;
