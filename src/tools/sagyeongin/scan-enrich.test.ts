@@ -460,13 +460,13 @@ describe("finalizeCandidates — composite_score + sort + limit + rank", () => {
   }
 
   test("composite_score = capex.opp - cashflow.con", () => {
-    const resolved: ResolvedInput = { min_opportunity_score: 0, limit: 10 };
+    const resolved: ResolvedInput = { min_opportunity_score: 0, limit: 10, allow_over_daily_limit: false };
     const out = finalizeCandidates([makeEnriched("A", 50, 10)], resolved);
     assert.equal(out[0].composite_score, 40);
   });
 
   test("DESC 정렬 + rank 1부터", () => {
-    const resolved: ResolvedInput = { min_opportunity_score: 0, limit: 10 };
+    const resolved: ResolvedInput = { min_opportunity_score: 0, limit: 10, allow_over_daily_limit: false };
     const out = finalizeCandidates(
       [
         makeEnriched("low", 10, 0), // composite 10
@@ -486,7 +486,7 @@ describe("finalizeCandidates — composite_score + sort + limit + rank", () => {
   });
 
   test("min_opportunity_score 필터 — opp 미만 제외", () => {
-    const resolved: ResolvedInput = { min_opportunity_score: 30, limit: 10 };
+    const resolved: ResolvedInput = { min_opportunity_score: 30, limit: 10, allow_over_daily_limit: false };
     const out = finalizeCandidates(
       [
         makeEnriched("a", 20, 0), // 제외
@@ -502,7 +502,7 @@ describe("finalizeCandidates — composite_score + sort + limit + rank", () => {
   });
 
   test("limit 적용 — 정렬 후 상위 N", () => {
-    const resolved: ResolvedInput = { min_opportunity_score: 0, limit: 2 };
+    const resolved: ResolvedInput = { min_opportunity_score: 0, limit: 2, allow_over_daily_limit: false };
     const out = finalizeCandidates(
       [
         makeEnriched("d", 10, 0),
@@ -520,7 +520,7 @@ describe("finalizeCandidates — composite_score + sort + limit + rank", () => {
   });
 
   test("capex/cashflow null → composite_score 0 가정", () => {
-    const resolved: ResolvedInput = { min_opportunity_score: 0, limit: 10 };
+    const resolved: ResolvedInput = { min_opportunity_score: 0, limit: 10, allow_over_daily_limit: false };
     const out = finalizeCandidates([makeEnriched("nullboth", null, null)], resolved);
     assert.equal(out[0].composite_score, 0);
   });

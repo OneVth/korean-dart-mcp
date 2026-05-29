@@ -112,6 +112,7 @@ const InputSchema = z.object({
   limit: z.number().default(10),
   random_seed: z.number().int().optional(),
   resume_from: z.string().optional(),
+  allow_over_daily_limit: z.boolean().optional(),
 });
 
 export interface ResolvedInput {
@@ -122,6 +123,7 @@ export interface ResolvedInput {
   min_opportunity_score: number;
   limit: number;
   random_seed?: number;
+  allow_over_daily_limit: boolean;
 }
 
 interface ListedWithMeta extends ListedCompany {
@@ -235,6 +237,8 @@ export async function resolveInput(
     min_opportunity_score: args.min_opportunity_score,
     limit: args.limit,
     random_seed: args.random_seed,
+    allow_over_daily_limit:
+      args.allow_over_daily_limit ?? preset.allow_over_daily_limit ?? false,
   };
 }
 
@@ -560,13 +564,14 @@ export function buildQuickSummary(c: EnrichedCandidate): string {
   return parts.join(", ");
 }
 
-interface BuildResponseArgs {
+export interface BuildResponseArgs {
   state: ScanCheckpointState;
   candidates: EnrichedCandidate[];
   skipped: SkippedCorp[];
   srimPassedCount: number;
   returnedCount: number | null;
   hasCheckpoint: boolean;
+  overrideApplied?: boolean;
   // [16(b) 측정] retry 흡수 총량 측정 영역 — ADR-0015 효과 측정.
   externalCallStats: {
     dart: number;
@@ -575,7 +580,7 @@ interface BuildResponseArgs {
   };
 }
 
-function buildResponse(args: BuildResponseArgs) {
+export function buildResponse(args: BuildResponseArgs) {
   const candCount = args.candidates.length;
   let nextActions: string[];
   if (args.hasCheckpoint) {
@@ -593,6 +598,12 @@ function buildResponse(args: BuildResponseArgs) {
       "이후 분기마다 sagyeongin_watchlist_check로 점검 (7부 F).",
     ];
   }
+  const interpretationNotes: string[] = [];
+  if (args.overrideApplied) {
+    interpretationNotes.push(
+      "allow_over_daily_limit 적용 — 사전 차단 무력화. 실행 중 한도 80% 도달 시 checkpoint 저장 후 partial 반환(ADR-0012), resume_from으로 재개.",
+    );
+  }
   return {
     scan_id: args.state.scan_id,
     pipeline_stats: {
@@ -601,6 +612,7 @@ function buildResponse(args: BuildResponseArgs) {
       after_killer_check: args.state.killer_passed_cumulative ?? 0,
       after_srim_filter: args.srimPassedCount,
       returned_candidates: args.returnedCount,
+      override_applied: args.overrideApplied ?? false,
     },
     external_call_stats: {
       dart_call_count: args.externalCallStats.dart,
@@ -610,6 +622,7 @@ function buildResponse(args: BuildResponseArgs) {
     candidates: args.candidates,
     skipped_corps: args.skipped,
     checkpoint: args.hasCheckpoint ? args.state.scan_id : null,
+    interpretation_notes: interpretationNotes,
     next_actions_suggested: nextActions,
   };
 }
@@ -716,7 +729,7 @@ export const scanExecuteTool = defineTool({
         cacheHitCount: split.matched_cached_count,
       });
       const usagePct = calculateDailyLimitUsagePct(estimate.total);
-      if (usagePct > 100) {
+      if (usagePct > 100 && !resolved.allow_over_daily_limit) {
         throw new DailyLimitPreCheckError({
           estimated_calls: estimate.total,
           daily_limit: DAILY_LIMIT,
@@ -923,6 +936,7 @@ export const scanExecuteTool = defineTool({
       srimPassedCount: partial.length,
       returnedCount: finalCandidates.length,
       hasCheckpoint: false,
+      overrideApplied: resolved.allow_over_daily_limit,
       externalCallStats: {
         dart: limited.callCount,
         naver: naverLimited.callCount,
