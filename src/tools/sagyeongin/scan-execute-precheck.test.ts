@@ -37,6 +37,9 @@ describe("ADR-0019: DailyLimitPreCheckError class", () => {
     assert.match(err.message, /name \+ cache-hit induty filter/);
     assert.match(err.message, /conservative pass assumption/);
     assert.match(err.message, /corp_meta_refresh/);
+    // ADR-0025: 평가어 부재 — 사실 진술 양식 회귀 가드
+    assert.doesNotMatch(err.message, /precise|better|optimal/i);
+    assert.match(err.message, /apply induty filter/);
     assert.doesNotMatch(err.message, /excluded_name_patterns only/);
     assert.doesNotMatch(err.message, /Narrow universe via included_industries/);
   });

@@ -92,7 +92,7 @@ export class DailyLimitPreCheckError extends Error {
         `exceed daily limit (${info.daily_limit}, usage ${info.usage_pct}%); ` +
         `current universe: ${info.universe_count} (after name + cache-hit induty filter). ` +
         `Cache-miss companies counted with conservative pass assumption. ` +
-        `Use corp_meta_refresh to warm cache for more precise estimate.`,
+        `Run corp_meta_refresh first to apply induty filter to cache-miss companies in the estimate.`,
     );
     this.name = "DailyLimitPreCheckError";
     this.estimated_calls = info.estimated_calls;
