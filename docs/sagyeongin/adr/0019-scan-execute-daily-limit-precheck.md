@@ -196,11 +196,11 @@ pre-check 분기는 `if (usagePct > 100 && !resolved.allow_over_daily_limit)`로
 사전 차단을 건너뛴 사실을 응답에 진술한다 (ADR-0025 사실 진술 baseline). MCP 세션이 필드만으로는 무시 가능(본 ADR 18단계 본 사례 패턴)하므로 사람이 읽을 노트를 병행한다.
 
 - `pipeline_stats`에 `override_applied: boolean` additive 필드
-- scan_execute 응답에 `interpretation_notes: string[]` 필드 추가 (현재 부재). scan_preview `buildLimitNotes`(scan-preview.ts) 동형 — `string[]` 조건부 push 패턴 재사용. override 적용 시 "사전 차단 무력화됨, 실행 한도 도달 시 checkpoint 작동(ADR-0012)" 1줄 + cache-miss 비율 높을 시 추정 부정확성 진술 1줄
+- scan_execute 응답에 `interpretation_notes: string[]` 필드 추가 (현재 부재). scan_preview `buildLimitNotes`(scan-preview.ts) 동형 — `string[]` 조건부 push 패턴 재사용. override 적용 시 "사전 차단 무력화됨, 실행 한도 도달 시 checkpoint 작동(ADR-0012)" 1줄. cache-miss 비율 추정 부정확성 진술은 구현 범위상 보류 — buildResponse가 cache split 정보 미보유, override 시 추정 자체가 무의미(ADR-0025). spec §10.8에 향후 추가 가능 노트만 정착.
 
 ### warm 권고 노트 — closed
 
-override 적용 시 throw가 일어나지 않으므로 DailyLimitPreCheckError 메시지 안의 warm 권고(corp_meta_refresh 선행) 2줄은 도달하지 않는다. 제거할 노트가 없어 본 분기는 무효. cache-miss 추정 부정확성은 위 interpretation_notes에서 사실 진술로 흡수한다.
+override 적용 시 throw가 일어나지 않으므로 DailyLimitPreCheckError 메시지 안의 warm 권고(corp_meta_refresh 선행) 2줄은 도달하지 않는다. 제거할 노트가 없어 본 분기는 무효. cache-miss 추정 부정확성 진술은 위 변경 1대로 구현 범위상 보류.
 
 ### override 후에도 유지되는 안전망
 

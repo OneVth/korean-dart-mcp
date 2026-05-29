@@ -1656,6 +1656,12 @@ cleanup 백로그 (별 사이클): DailyLimitPreCheckError 메시지 "for more p
 
 Stage 33 인계: ADR-0019 후속 override (`allow_over_daily_limit`) 별 사이클. pre-check 차단 시 사용자 lever 3 갈래 ((1) 입력 좁히기 (2) warm cache (3) override) 중 (3) 영역 결선. 본 사이클 묶음 1/2 결선 (필터 export + splitUniverse) 자산 재사용 baseline.
 
+##### 학습 #58 — Zod `.optional()` vs `.default()` — 입력 의미론 보존
+
+`.default(value)` 사용 시 `z.infer` 출력 타입은 해당 필드를 필수값으로 만들어, 사용자 미지정과 명시적 false를 구분 못 함. `args.X ?? preset.Y ?? false` 우선순위 패턴에서 `??`는 null/undefined만 우회하므로 default가 false를 주입하면 preset 채택이 깨진다. 해결: InputSchema는 `.optional()`(undefined 허용) + resolveInput 비즈니스 로직 층에서 `?? false` 기본값 채움. 입력 의미론(미지정 = undefined)을 스키마 층에서 보존하는 원칙.
+
+**baseline**: Stage 33 묶음 1 — `allow_over_daily_limit` 명세는 `.default(false)`로 박았으나 Claude Code가 preset 채택 깨짐 발견 → `.optional()` 채택으로 정정(commit `d21cf4e`). 명세 결함을 구현 층에서 바로잡은 영역.
+
 ## 의사결정 시 주의
 
 새 결정이 필요한 상황을 마주하면 다음을 따른다.
