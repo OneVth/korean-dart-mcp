@@ -28,6 +28,14 @@ const CONFIG = {
   required_return_cache: { last_fetched_at: null, value: null, source: "" },
 };
 
+async function writeConfig(presetOverrides: Record<string, unknown>): Promise<void> {
+  const config = {
+    ...CONFIG,
+    scan_presets: { test: { ...CONFIG.scan_presets.test, ...presetOverrides } },
+  };
+  await fs.writeFile(path.join(tmpDir, "config.json"), JSON.stringify(config), "utf8");
+}
+
 const baseArgs = { min_opportunity_score: 0, limit: 10 };
 
 async function writePref(pref: object): Promise<void> {
@@ -70,4 +78,27 @@ test("whitelist 빈 + blacklist 존재 → included preset 유지, excluded unio
   const r = await resolveInput({ ...baseArgs });
   assert.deepEqual(r.included_industries, ["10"]);
   assert.deepEqual(r.excluded_industries, ["64", "68"]);
+});
+
+// allow_over_daily_limit 우선순위 테스트 (ADR-0019 후속 결정)
+test("allow_over_daily_limit: args=true → resolved=true (직접 지정)", async () => {
+  const r = await resolveInput({ ...baseArgs, allow_over_daily_limit: true });
+  assert.equal(r.allow_over_daily_limit, true);
+});
+
+test("allow_over_daily_limit: args 미지정 + preset=true → resolved=true (preset 채택)", async () => {
+  await writeConfig({ allow_over_daily_limit: true });
+  const r = await resolveInput({ ...baseArgs });
+  assert.equal(r.allow_over_daily_limit, true);
+});
+
+test("allow_over_daily_limit: args 미지정 + preset 미지정 → resolved=false (default)", async () => {
+  const r = await resolveInput({ ...baseArgs });
+  assert.equal(r.allow_over_daily_limit, false);
+});
+
+test("allow_over_daily_limit: args=true + preset=false → resolved=true (직접 지정 우선)", async () => {
+  await writeConfig({ allow_over_daily_limit: false });
+  const r = await resolveInput({ ...baseArgs, allow_over_daily_limit: true });
+  assert.equal(r.allow_over_daily_limit, true);
 });

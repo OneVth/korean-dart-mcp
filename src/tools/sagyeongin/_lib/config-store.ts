@@ -24,6 +24,7 @@ export type ScanPreset = {
   included_industries?: string[];
   excluded_industries?: string[];
   excluded_name_patterns?: string[];
+  allow_over_daily_limit?: boolean;
 };
 
 export type SagyeonginParameters = {
