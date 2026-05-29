@@ -16,6 +16,9 @@ import {
   estimateApiCalls,
   calculateDailyLimitUsagePct,
   shuffleWithSeed,
+  isMarketMatch,
+  isIndustryMatch,
+  CACHE_COVERAGE_WARM_THRESHOLD_PCT,
   KILLER_PASS_RATE_DEFAULT,
   SRIM_PASS_RATE_DEFAULT,
   type ListedCompany,
@@ -60,6 +63,75 @@ test("filterUniverse: 부분 매칭 (substring 본질)", () => {
   const result = filterUniverse(SAMPLE, { excluded_name_patterns: ["전자"] });
   assert.equal(result.length, 4);
   assert.ok(!result.some((r) => r.corp_name === "삼성전자"));
+});
+
+test("isMarketMatch: undefined markets → 전체 통과", () => {
+  assert.equal(isMarketMatch("Y", undefined), true);
+  assert.equal(isMarketMatch("K", undefined), true);
+  assert.equal(isMarketMatch("N", undefined), true);
+});
+
+test("isMarketMatch: 빈 markets [] → 전체 통과", () => {
+  assert.equal(isMarketMatch("Y", []), true);
+  assert.equal(isMarketMatch("K", []), true);
+});
+
+test("isMarketMatch: KOSPI 단일 — Y 통과 K/N 차단", () => {
+  assert.equal(isMarketMatch("Y", ["KOSPI"]), true);
+  assert.equal(isMarketMatch("K", ["KOSPI"]), false);
+  assert.equal(isMarketMatch("N", ["KOSPI"]), false);
+});
+
+test("isMarketMatch: KOSDAQ 단일 — K 통과 Y/N 차단", () => {
+  assert.equal(isMarketMatch("K", ["KOSDAQ"]), true);
+  assert.equal(isMarketMatch("Y", ["KOSDAQ"]), false);
+  assert.equal(isMarketMatch("N", ["KOSDAQ"]), false);
+});
+
+test("isMarketMatch: KOSPI+KOSDAQ 둘 다 — Y/K 통과, N 차단", () => {
+  assert.equal(isMarketMatch("Y", ["KOSPI", "KOSDAQ"]), true);
+  assert.equal(isMarketMatch("K", ["KOSPI", "KOSDAQ"]), true);
+  assert.equal(isMarketMatch("N", ["KOSPI", "KOSDAQ"]), false);
+});
+
+test("isIndustryMatch: included/excluded 둘 다 undefined → 전체 통과", () => {
+  assert.equal(isIndustryMatch("264220", undefined, undefined), true);
+  assert.equal(isIndustryMatch("64", undefined, undefined), true);
+});
+
+test("isIndustryMatch: included only — prefix 매칭 true", () => {
+  assert.equal(isIndustryMatch("264220", ["26"], undefined), true);
+  assert.equal(isIndustryMatch("27", ["26", "27"], undefined), true);
+});
+
+test("isIndustryMatch: included only — 미매칭 false", () => {
+  assert.equal(isIndustryMatch("64", ["26"], undefined), false);
+});
+
+test("isIndustryMatch: excluded only — 매칭 false", () => {
+  assert.equal(isIndustryMatch("64", undefined, ["64", "65"]), false);
+  assert.equal(isIndustryMatch("641100", undefined, ["64"]), false);
+});
+
+test("isIndustryMatch: excluded only — 미매칭 true", () => {
+  assert.equal(isIndustryMatch("264220", undefined, ["64"]), true);
+});
+
+test("isIndustryMatch: excluded + included 둘 다 — excluded 우선 false", () => {
+  assert.equal(isIndustryMatch("641100", ["64"], ["641"]), false);
+});
+
+test("isIndustryMatch: prefix 매칭 정합 — '26'이 '264220' 매칭", () => {
+  assert.equal(isIndustryMatch("264220", ["26"], undefined), true);
+  assert.equal(isIndustryMatch("265100", ["26"], undefined), true);
+});
+
+test("isIndustryMatch: 빈 included [] → 전체 통과 (filterUniverse 양식 정합)", () => {
+  assert.equal(isIndustryMatch("64", [], undefined), true);
+});
+
+test("isIndustryMatch: 빈 excluded [] → 전체 통과", () => {
+  assert.equal(isIndustryMatch("64", undefined, []), true);
 });
 
 test("estimateApiCalls: 0 universe → 모든 분기 0", () => {
@@ -131,6 +203,7 @@ test("calculateDailyLimitUsagePct: 소수 1자리 영역", () => {
 test("default 상수 정합", () => {
   assert.equal(KILLER_PASS_RATE_DEFAULT, 0.8);
   assert.equal(SRIM_PASS_RATE_DEFAULT, 0.33);
+  assert.equal(CACHE_COVERAGE_WARM_THRESHOLD_PCT, 50);
 });
 
 test("shuffleWithSeed: 시드 고정 → 두 번 호출 결과 동일 (결정론)", () => {

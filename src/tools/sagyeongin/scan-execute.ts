@@ -39,6 +39,8 @@ import {
 import {
   loadListedCompanies,
   filterUniverse,
+  isMarketMatch,
+  isIndustryMatch,
   estimateApiCalls,
   calculateDailyLimitUsagePct,
   shuffleWithSeed,
@@ -208,30 +210,6 @@ export interface SkippedCorp {
   reason: string;
   /** 호출 실패 분류 키 (verdict-기반 skip은 부재). 분류 본문: `_lib/skip-reason.ts`. */
   reason_code?: string;
-}
-
-function isMarketMatch(
-  corp_cls: string,
-  markets: Array<"KOSPI" | "KOSDAQ"> | undefined,
-): boolean {
-  if (!markets || markets.length === 0) return true;
-  if (markets.includes("KOSPI") && corp_cls === "Y") return true;
-  if (markets.includes("KOSDAQ") && corp_cls === "K") return true;
-  return false;
-}
-
-function isIndustryMatch(
-  induty_code: string,
-  included: string[] | undefined,
-  excluded: string[] | undefined,
-): boolean {
-  if (excluded && excluded.length > 0) {
-    if (excluded.some((p) => induty_code.startsWith(p))) return false;
-  }
-  if (included && included.length > 0) {
-    return included.some((p) => induty_code.startsWith(p));
-  }
-  return true;
 }
 
 export async function resolveInput(
