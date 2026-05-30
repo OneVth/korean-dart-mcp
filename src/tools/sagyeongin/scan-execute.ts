@@ -108,12 +108,27 @@ export class DailyLimitPreCheckError extends Error {
 
 const InputSchema = z.object({
   preset: z.string().optional(),
-  markets: z.array(z.enum(["KOSPI", "KOSDAQ"])).optional(),
-  included_industries: z.array(z.string()).optional(),
-  excluded_industries: z.array(z.string()).optional(),
+  markets: z
+    .array(z.enum(["KOSPI", "KOSDAQ"]))
+    .optional()
+    .describe("스캔 universe. 미지정 시 전체(KOSPI+KOSDAQ)."),
+  included_industries: z
+    .array(z.string())
+    .optional()
+    .describe("포함 KSIC 코드 prefix."),
+  excluded_industries: z
+    .array(z.string())
+    .optional()
+    .describe("제외 KSIC 코드 prefix."),
   excluded_name_patterns: z.array(z.string()).optional(),
-  min_opportunity_score: z.number().default(0),
-  limit: z.number().default(10),
+  min_opportunity_score: z
+    .number()
+    .default(0)
+    .describe(
+      "capex 기회 가점(7부 C) 최소 임계. capex 공시는 희소해 대부분 종목 0 — " +
+        "값을 올리면 후보 전멸 위험. score 조정은 scan 후 대화 단계에서. 미요청 시 0 유지.",
+    ),
+  limit: z.number().default(10).describe("composite DESC 상위 N개 반환."),
   random_seed: z.number().int().optional(),
   resume_from: z.string().optional(),
   allow_over_daily_limit: z.boolean().optional(),
@@ -667,7 +682,8 @@ function saveAndReturnPartial(
 export const scanExecuteTool = defineTool({
   name: "sagyeongin_scan_execute",
   description:
-    "사경인 7부 시장 스캔 (배치 Phase 2). Stage 1~6 통합 — composite_score 정렬 candidates 반환.",
+    "사경인 7부 시장 스캔 (배치 Phase 2). Stage 1~6 통합 — composite_score 정렬 candidates 반환. " +
+    "min_opportunity_score 등 score 임계는 미요청 시 기본값 유지 — scan 후 대화로 조정.",
   input: InputSchema,
   handler: async (ctx, args) => {
     const limited = new RateLimitedDartClient(ctx.client);
