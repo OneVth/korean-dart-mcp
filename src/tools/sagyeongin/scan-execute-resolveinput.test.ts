@@ -66,6 +66,11 @@ test("empty pref (ENOENT) → preset 유지", async () => {
   assert.deepEqual(r.included_industries, ["10"]);
 });
 
+test("resolveInput: preset_used 반환 — active_preset 명칭 일치", async () => {
+  const r = await resolveInput({ ...baseArgs });
+  assert.equal(r.preset_used, "test");
+});
+
 test("args 우선 — args 지정 시 user_preference merge 안 함", async () => {
   await writePref({ induty_whitelist: ["50"], induty_blacklist: ["68"], updated_at: "2026-05-28" });
   const r = await resolveInput({ ...baseArgs, included_industries: ["99"], excluded_industries: ["88"] });
