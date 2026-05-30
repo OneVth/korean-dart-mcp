@@ -30,6 +30,14 @@ const state: ScanCheckpointState = {
   call_count: 0,
 };
 
+const baseFilterSummary = {
+  markets: ["KOSPI" as const],
+  included_industries: null,
+  excluded_industries: ["64"],
+  excluded_industries_count: 1,
+  excluded_name_patterns: [],
+};
+
 const baseArgs = {
   state,
   candidates: [],
@@ -37,6 +45,8 @@ const baseArgs = {
   srimPassedCount: 0,
   returnedCount: null as number | null,
   hasCheckpoint: false,
+  preset_used: "test",
+  filter_summary: baseFilterSummary,
   externalCallStats: { dart: 0, naver: 0, kis: 0 },
 };
 
@@ -84,6 +94,7 @@ function makeCandidate(
 }
 
 const baseResolved: ResolvedInput = {
+  preset_used: "test",
   min_opportunity_score: 0,
   limit: 100,
   allow_over_daily_limit: false,
@@ -165,4 +176,24 @@ test("finalize: limit 적용 — 정렬 후 상위 N", () => {
 test("finalize: 고평가(양수 gap) → discount 0 (저평가분만 가점, 부호 회귀 가드)", () => {
   const [c] = finalizeCandidates([makeCandidate("A", 20, 0, 0)], baseResolved);
   assert.equal(c.composite_score, 0); // gap +20(고평가) → max(-20,0)=0
+});
+
+// ─── buildResponse preset_used + filter_summary ──────────────────────────────
+
+test("buildResponse: preset_used + filter_summary 반환 — 키 존재 + 구조 정합", () => {
+  const result = buildResponse({ ...baseArgs });
+  assert.equal(result.preset_used, "test");
+  assert.ok(result.filter_summary, "filter_summary 존재");
+  assert.ok(Array.isArray(result.filter_summary.markets), "markets 배열");
+  assert.ok(Array.isArray(result.filter_summary.excluded_industries), "excluded_industries 배열");
+  assert.equal(typeof result.filter_summary.excluded_industries_count, "number");
+  assert.ok(Array.isArray(result.filter_summary.excluded_name_patterns), "excluded_name_patterns 배열");
+});
+
+test("buildResponse: filter_summary 내용 일치 — excluded_industries_count = excluded_industries.length", () => {
+  const result = buildResponse({ ...baseArgs });
+  assert.equal(
+    result.filter_summary.excluded_industries_count,
+    result.filter_summary.excluded_industries.length,
+  );
 });

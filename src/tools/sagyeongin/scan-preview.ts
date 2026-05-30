@@ -99,6 +99,7 @@ export const scanPreviewTool = defineTool({
     "스캔 범위 확정 (배치 Phase 1, API 호출 영역 0). " +
     "corp_code 덤프 단독 활용 — markets + KSIC 분기는 11단계 영역 (estimated_api_calls.stage1_company_resolution 비용 노출). " +
     "preset 우선 — 직접 지정 입력은 preset 위에 override. " +
+    "반환된 filter_summary는 사용자에게 자연어로 설명 — 제외 업종·검색 시장 명시. " +
     "Ref: spec §10.7 (v0.5), ADR-0010",
   input: Input,
   handler: async (_ctx, args) => {

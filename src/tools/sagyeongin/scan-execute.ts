@@ -72,6 +72,7 @@ import { loadConfig } from "./_lib/config-store.js";
 import { loadUserPreference } from "./_lib/user-preference-store.js";
 import { mergeIndustries } from "./_lib/industry-merge.js";
 import { classifySkipReason } from "./_lib/skip-reason.js";
+import { buildFilterSummary, type FilterSummary } from "./scan-preview.js";
 
 /** daily limit 80% — ADR-0012 checkpoint 저장 임계. */
 const CHECKPOINT_THRESHOLD = Math.floor(DAILY_LIMIT * 0.8); // 16,000
@@ -136,6 +137,7 @@ const InputSchema = z.object({
 });
 
 export interface ResolvedInput {
+  preset_used: string;
   markets?: Array<"KOSPI" | "KOSDAQ">;
   included_industries?: string[];
   excluded_industries?: string[];
@@ -245,6 +247,7 @@ export async function resolveInput(
   }
   const pref = await loadUserPreference();
   return {
+    preset_used: presetName,
     markets: args.markets ?? preset.markets,
     included_industries:
       args.included_industries
@@ -595,6 +598,8 @@ export interface BuildResponseArgs {
   returnedCount: number | null;
   hasCheckpoint: boolean;
   overrideApplied?: boolean;
+  preset_used: string;
+  filter_summary: FilterSummary;
   // [16(b) 측정] retry 흡수 총량 측정 영역 — ADR-0015 효과 측정.
   externalCallStats: {
     dart: number;
@@ -629,6 +634,8 @@ export function buildResponse(args: BuildResponseArgs) {
   }
   return {
     scan_id: args.state.scan_id,
+    preset_used: args.preset_used,
+    filter_summary: args.filter_summary,
     pipeline_stats: {
       initial_universe: args.state.initial_universe ?? null,
       after_static_filter: args.state.after_static_filter ?? null,
@@ -657,6 +664,7 @@ function saveAndReturnPartial(
   partial: PartialCandidate[],
   skipped: SkippedCorp[],
   callCount: number,
+  resolved: ResolvedInput,
 ) {
   state.pending_corp_codes = universe.slice(i).map((c) => c.corp_code);
   state.processed_corp_codes = [
@@ -674,6 +682,8 @@ function saveAndReturnPartial(
     srimPassedCount: partial.length,
     returnedCount: null,
     hasCheckpoint: true,
+    preset_used: resolved.preset_used,
+    filter_summary: buildFilterSummary(resolved),
     externalCallStats: {
       dart: callCount,
       naver: naverLimited.callCount,
@@ -686,7 +696,8 @@ export const scanExecuteTool = defineTool({
   name: "sagyeongin_scan_execute",
   description:
     "사경인 7부 시장 스캔 (배치 Phase 2). Stage 1~6 통합 — composite_score 정렬 candidates 반환. " +
-    "min_opportunity_score 등 score 임계는 미요청 시 기본값 유지 — scan 후 대화로 조정.",
+    "min_opportunity_score 등 score 임계는 미요청 시 기본값 유지 — scan 후 대화로 조정. " +
+    "결과 반환 시 filter_summary의 excluded_industries(제외 업종)와 markets(검색 시장)를 사용자에게 자연어로 설명 — 어떤 업종을 빼고 어느 시장에서 찾았는지 알려야 함. 사용자 blacklist 설정분이 합쳐졌으면 그 사실도 전달.",
   input: InputSchema,
   handler: async (ctx, args) => {
     const limited = new RateLimitedDartClient(ctx.client);
@@ -791,6 +802,8 @@ export const scanExecuteTool = defineTool({
           srimPassedCount: 0,
           returnedCount: null,
           hasCheckpoint: true,
+          preset_used: resolved.preset_used,
+          filter_summary: buildFilterSummary(resolved),
           externalCallStats: {
             dart: limited.callCount,
             naver: naverLimited.callCount,
@@ -817,6 +830,7 @@ export const scanExecuteTool = defineTool({
           partial,
           [...stage1Skipped, ...stage23Skipped],
           limited.callCount,
+          resolved,
         );
       }
 
@@ -852,6 +866,7 @@ export const scanExecuteTool = defineTool({
             partial,
             [...stage1Skipped, ...stage23Skipped],
             limited.callCount,
+            resolved,
           );
         }
         stage23Skipped.push({
@@ -906,6 +921,7 @@ export const scanExecuteTool = defineTool({
             partial,
             [...stage1Skipped, ...stage23Skipped],
             limited.callCount,
+            resolved,
           );
         }
         stage23Skipped.push({
@@ -942,6 +958,8 @@ export const scanExecuteTool = defineTool({
         srimPassedCount: partial.length,
         returnedCount: null,
         hasCheckpoint: true,
+        preset_used: resolved.preset_used,
+        filter_summary: buildFilterSummary(resolved),
         externalCallStats: {
           dart: limited.callCount,
           naver: naverLimited.callCount,
@@ -961,6 +979,8 @@ export const scanExecuteTool = defineTool({
       returnedCount: finalCandidates.length,
       hasCheckpoint: false,
       overrideApplied: resolved.allow_over_daily_limit,
+      preset_used: resolved.preset_used,
+      filter_summary: buildFilterSummary(resolved),
       externalCallStats: {
         dart: limited.callCount,
         naver: naverLimited.callCount,
