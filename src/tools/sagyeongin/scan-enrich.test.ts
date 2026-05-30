@@ -13,12 +13,10 @@ import { test, describe } from "node:test";
 import * as assert from "node:assert/strict";
 import {
   enrichCandidates,
-  finalizeCandidates,
   buildQuickSummary,
   type EnrichDeps,
   type EnrichedCandidate,
   type PartialCandidate,
-  type ResolvedInput,
 } from "./scan-execute.js";
 import {
   RateLimitedDartClient,
@@ -426,103 +424,6 @@ describe("enrichCandidates — 4 도구 매핑", () => {
     );
     assert.equal(result.enriched[0].dividend, null);
     assert.deepEqual(result.enriched[0].cashflow?.yearly_data, mockYd);
-  });
-});
-
-// ---- finalizeCandidates ----
-
-describe("finalizeCandidates — composite_score + sort + limit + rank", () => {
-  function makeEnriched(
-    corp_code: string,
-    opp: number | null,
-    con: number | null,
-  ): EnrichedCandidate {
-    return {
-      rank: 0,
-      corp_code,
-      corp_name: corp_code,
-      corp_cls: "K",
-      induty_code: "26",
-      composite_score: 0,
-      killer: { verdict: "PASS", triggered_rules: [] },
-      srim: { verdict: "BUY", prices: {}, gap_to_fair: 5.0 },
-      cashflow:
-        con == null ? null : { verdict: "OK", concern_score: con, top_flags: [], yearly_data: [] },
-      capex:
-        opp == null
-          ? null
-          : { verdict: "STRONG", opportunity_score: opp, top_signals: [] },
-      insider: null,
-      dividend: null,
-      stage_notes: [],
-      quick_summary: "",
-    };
-  }
-
-  test("composite_score = capex.opp - cashflow.con", () => {
-    const resolved: ResolvedInput = { min_opportunity_score: 0, limit: 10, allow_over_daily_limit: false };
-    const out = finalizeCandidates([makeEnriched("A", 50, 10)], resolved);
-    assert.equal(out[0].composite_score, 40);
-  });
-
-  test("DESC 정렬 + rank 1부터", () => {
-    const resolved: ResolvedInput = { min_opportunity_score: 0, limit: 10, allow_over_daily_limit: false };
-    const out = finalizeCandidates(
-      [
-        makeEnriched("low", 10, 0), // composite 10
-        makeEnriched("high", 80, 0), // composite 80
-        makeEnriched("mid", 40, 0), // composite 40
-      ],
-      resolved,
-    );
-    assert.deepEqual(
-      out.map((c) => c.corp_code),
-      ["high", "mid", "low"],
-    );
-    assert.deepEqual(
-      out.map((c) => c.rank),
-      [1, 2, 3],
-    );
-  });
-
-  test("min_opportunity_score 필터 — opp 미만 제외", () => {
-    const resolved: ResolvedInput = { min_opportunity_score: 30, limit: 10, allow_over_daily_limit: false };
-    const out = finalizeCandidates(
-      [
-        makeEnriched("a", 20, 0), // 제외
-        makeEnriched("b", 50, 0), // 통과
-        makeEnriched("c", 30, 0), // 통과 (>=)
-      ],
-      resolved,
-    );
-    assert.deepEqual(
-      out.map((c) => c.corp_code),
-      ["b", "c"],
-    );
-  });
-
-  test("limit 적용 — 정렬 후 상위 N", () => {
-    const resolved: ResolvedInput = { min_opportunity_score: 0, limit: 2, allow_over_daily_limit: false };
-    const out = finalizeCandidates(
-      [
-        makeEnriched("d", 10, 0),
-        makeEnriched("a", 90, 0),
-        makeEnriched("c", 30, 0),
-        makeEnriched("b", 60, 0),
-      ],
-      resolved,
-    );
-    assert.equal(out.length, 2);
-    assert.deepEqual(
-      out.map((c) => c.corp_code),
-      ["a", "b"],
-    );
-  });
-
-  test("capex/cashflow null → composite_score 0 가정", () => {
-    const resolved: ResolvedInput = { min_opportunity_score: 0, limit: 10, allow_over_daily_limit: false };
-    const out = finalizeCandidates([makeEnriched("nullboth", null, null)], resolved);
-    assert.equal(out[0].composite_score, 0);
   });
 });
 
