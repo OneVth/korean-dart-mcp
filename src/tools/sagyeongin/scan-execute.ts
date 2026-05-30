@@ -15,7 +15,7 @@
  *
  * Stage 4~6은 5부 사람 결정 영역 분리 — 탈락 X, 태그만. 사용자가 candidates 보고 직접 결정.
  *
- * composite_score = capex.opportunity_score - cashflow.concern_score (MVP 단순, spec §7.1).
+ * composite_score = gap_to_fair × SRIM_GAP_WEIGHT + capex.opportunity_score - cashflow.concern_score (ADR-0029, spec §7.1).
  *  - 호출 실패(stages.X = null) 시 0 가정
  *  - min_opportunity_score 필터 + composite DESC 정렬 + limit 적용 + rank 1부터 부여
  *
@@ -74,6 +74,10 @@ import { classifySkipReason } from "./_lib/skip-reason.js";
 
 /** daily limit 80% — ADR-0012 checkpoint 저장 임계. */
 const CHECKPOINT_THRESHOLD = Math.floor(DAILY_LIMIT * 0.8); // 16,000
+
+/** composite_score 산식에서 srim 갭(7부 D)에 부여하는 가중치.
+ * 잠정값 — field-test 갭 분포 후 조정. 근거: ADR-0029. */
+export const SRIM_GAP_WEIGHT = 1.5;
 
 export class DailyLimitPreCheckError extends Error {
   readonly estimated_calls: number;
@@ -519,9 +523,10 @@ export function finalizeCandidates(
   resolved: ResolvedInput,
 ): EnrichedCandidate[] {
   for (const c of enriched) {
-    const opp = c.capex?.opportunity_score ?? 0;
+    const gap = c.srim.gap_to_fair ?? 0;          // 7부 D 핵심, null → 갭 기여 0
+    const opp = c.capex?.opportunity_score ?? 0;  // 7부 C tie-breaker
     const con = c.cashflow?.concern_score ?? 0;
-    c.composite_score = opp - con;
+    c.composite_score = gap * SRIM_GAP_WEIGHT + opp - con;
     c.quick_summary = buildQuickSummary(c);
   }
   const filtered = enriched.filter(
