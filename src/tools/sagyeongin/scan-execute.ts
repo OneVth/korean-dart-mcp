@@ -15,7 +15,8 @@
  *
  * Stage 4~6은 5부 사람 결정 영역 분리 — 탈락 X, 태그만. 사용자가 candidates 보고 직접 결정.
  *
- * composite_score = gap_to_fair × SRIM_GAP_WEIGHT + capex.opportunity_score - cashflow.concern_score (ADR-0029, spec §7.1).
+ * composite_score = max(−(gap_to_fair ?? 0), 0) × SRIM_GAP_WEIGHT + capex.opportunity_score - cashflow.concern_score (ADR-0029, spec §7.1).
+ *   gap_to_fair = 괴리율 (쌀수록 음수) → max(−gap,0) = 저평가 폭만 양수 가점.
  *  - 호출 실패(stages.X = null) 시 0 가정
  *  - min_opportunity_score 필터 + composite DESC 정렬 + limit 적용 + rank 1부터 부여
  *
