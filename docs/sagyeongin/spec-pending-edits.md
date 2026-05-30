@@ -571,7 +571,7 @@ reprt_code fallback (정책 ②) 불필요 — 데이터는 11011에 존재.
 2. **[§10.8] Input `limit` default `30` → `10` 정정**: 구현(묶음 3B)과 일치. `min_opportunity_score` default `0` 명시.
 3. **[§10.8] Output candidates에 `corp_cls` / `induty_code` / `stage_notes` 추가**: KOSPI/KOSDAQ 식별 + KSIC + Stage 4~6 실패 메모.
 4. **[§10.8] Output stages 중첩 → 직접 필드**: candidate 안 killer/srim/cashflow/capex/insider/dividend를 직접 필드로 표현. 중첩 객체 제거. cashflow/capex/insider/dividend는 `null` 가능 표시.
-5. **[§10.8] composite_score MVP 산식 명시**: `(capex.opportunity_score ?? 0) - (cashflow.concern_score ?? 0)`. 범위 -100 ~ +110 (사전 검증 영역).
+5. **[§10.8] composite_score 산식 명시**: ~~`(capex.opportunity_score ?? 0) - (cashflow.concern_score ?? 0)`~~ → ADR-0029 산식으로 갱신 (Stage 30.7, 2026-05-30 적용). `(srim.gap_to_fair ?? 0) × 1.5 + opportunity_score − concern_score`. **종결.**
 6. **[§10.8] 체크포인트 단순화 4 명시**: Stage 4~6 enriched 결과 in-memory만 → resume 시 다시 호출. universe_meta + partial_candidates는 보존.
 7. **[§10.8] Output에 `skipped_corps` 필드 추가** (매듭 시점 pending 누락 보강): Stage 1~3 탈락 corp의 corp_code/corp_name/stage/reason 누적 배열. field-test 검증 본문 일치.
 8. **[§10.8] Stage 4~6 도구 호출 실패 처리 본문 추가**: 비-rate-limit 실패 시 stage = null + stage_notes 누적, rate-limit 시 throw → checkpoint 저장.

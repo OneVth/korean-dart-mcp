@@ -79,6 +79,7 @@
 | [0026](./0026-ksic-policy-baseline.md) | KSIC 정책 baseline (X1 채택 + 자릿수 혼재 + 대칭 매칭) | Accepted | 2026-05-22 | 차수 식별 부재 → X2 기각 / prefix 3자리 default (176 unique 소분류) / matchInduty 대칭 매칭 phase 2 / 2자리 record (44건, 1.1%) 미매칭 허용 / X3 보류 |
 | [0027](./0027-judge-existing-business-match-policy.md) | judgeExistingBusinessMatch 텍스트 매칭 정책 baseline | Accepted | 2026-05-22 | signature boolean → boolean \| null / whitelist (공장/R&D/양산/수요대응) + blacklist (임대수익/투자수익/사업다각화) + null (사옥/업무공간 모호) / induty cross-reference 보조 / ast_sen 단조 92.3% baseline → assetCategory keyword matching 부재 / 회수 F 13건 직접 근거 |
 | [0028](./0028-precheck-2phase-cache-induty-prefilter.md) | pre-check 2-phase — corp_meta cache 기반 induty 사전 필터 | Accepted | 2026-05-29 | 옵션 B (cache-hit induty 0 호출 적용 + cache-miss over-estimate) / estimated_universe additive 분리 + cache_coverage / ADR-0010 옵션 D 개정 / ADR-0019 확장 / override 후속 분리 / 신 인프라 0 |
+| [0029](./0029-composite-score-srim-gap-primary.md) | composite_score 산식 — srim 갭 정렬 주도, capex tie-breaker | Accepted | 2026-05-30 | `composite = gap × 1.5 + opportunity − concern`. 7부 D 정렬 주도 / 7부 C tie-breaker / `SRIM_GAP_WEIGHT=1.5` 잠정 / capex 희소 0-tie 사태 해소 |
 
 ## 상태 정의
 
