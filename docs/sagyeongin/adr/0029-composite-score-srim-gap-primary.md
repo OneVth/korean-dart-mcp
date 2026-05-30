@@ -1,6 +1,10 @@
 # ADR-0029: composite_score 산식 — srim 갭 정렬 주도, capex tie-breaker
 
-## Status: Accepted
+## Status: Accepted (부호 정정 fix2 반영)
+
+재스캔(n=16) 결과 산식 방향 확정: 저평가 큰 종목이 composite 상위 정렬(7부 D 주도). gap 전원 음수(min −89, avg −46%), composite 전원 양수. 부호 정정 성공.
+
+**SRIM_GAP_WEIGHT = 1.5 잠정 유지**: 재스캔 표본 capex opportunity_score 전원 0(공시 희소) — 가중치의 capex-vs-gap 균형 기능이 발동하지 않음. 1.5 적정성은 **capex 비-0 표본 확보 시 재판정.** 현 표본으로는 가중치가 정렬에 무영향(모든 종목 동일 배율).
 
 ## 결정일: 2026-05-30
 
@@ -70,8 +74,8 @@ srim을 통과했으나 갭 계산이 불가한 종목(prices 부재 등)에서 
 ## Consequences (추가)
 
 - 부호 오류는 field-test 실데이터(n=16, gap 전원 음수 avg −46%)로만 드러남 — srim-calc.ts 계산식 사전 확인 누락 (학습 #61).
-- 1.5 가중치 적정성은 부호 정정(fix2) 후 재스캔으로 판정 예정 (원래 field-test 목적).
+- 1.5 가중치 적정성: 재스캔 n=16 실측 — capex opportunity_score 전원 0(공시 희소)이라 capex-vs-gap 균형 기능 미발동. 가중치 정렬 영향 0(모든 종목 동일 배율). **재판정 보류 — capex 비-0 표본 확보 시 재판정.**
 
 ## Ref
 
-spec §10.8, §7.1, Stage 30.7, Stage 30.7-fix2 (2026-05-30), MVP1 export 분석 (2026-05-29), 학습 #59, 학습 #61
+spec §10.8, §7.1, Stage 30.7, Stage 30.7-fix2 (2026-05-30), Stage 30.7-field-test (2026-05-30), MVP1 export 분석 (2026-05-29), 학습 #59, 학습 #61, 학습 #62
