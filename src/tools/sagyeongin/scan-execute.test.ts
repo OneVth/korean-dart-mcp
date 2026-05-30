@@ -89,20 +89,20 @@ const baseResolved: ResolvedInput = {
   allow_over_daily_limit: false,
 };
 
-test("finalize: gap=30, opp=0, con=0 → composite=45 (갭 주도)", () => {
-  const [c] = finalizeCandidates([makeCandidate("A", 30, 0, 0)], baseResolved);
+test("finalize: gap=−30(저평가 30%), opp=0, con=0 → composite=45 (저평가 폭 주도)", () => {
+  const [c] = finalizeCandidates([makeCandidate("A", -30, 0, 0)], baseResolved);
   assert.equal(c.composite_score, 30 * SRIM_GAP_WEIGHT);
 });
 
-test("finalize: gap=30, opp=80, con=0 → composite=125 (capex 가산)", () => {
-  const [c] = finalizeCandidates([makeCandidate("A", 30, 80, 0)], baseResolved);
+test("finalize: gap=−30, opp=80, con=0 → composite=125 (capex 가산)", () => {
+  const [c] = finalizeCandidates([makeCandidate("A", -30, 80, 0)], baseResolved);
   assert.equal(c.composite_score, 30 * SRIM_GAP_WEIGHT + 80);
 });
 
-test("finalize: gap 동일, opp 차이 → opp 큰 쪽 rank=1 (tie-breaker 정렬)", () => {
+test("finalize: gap 동일(−30), opp 차이 → opp 큰 쪽 rank=1 (tie-breaker 정렬)", () => {
   const candidates = [
-    makeCandidate("LOW", 30, 0, 0),
-    makeCandidate("HIGH", 30, 80, 0),
+    makeCandidate("LOW", -30, 0, 0),
+    makeCandidate("HIGH", -30, 80, 0),
   ];
   const result = finalizeCandidates(candidates, baseResolved);
   assert.equal(result[0].corp_code, "HIGH");
@@ -114,16 +114,16 @@ test("finalize: gap=null, opp=30, con=0 → composite=30 (null 폴백)", () => {
   assert.equal(c.composite_score, 30);
 });
 
-test("finalize: gap=10, opp=0, con=40 → composite=−25 (concern 하향)", () => {
-  const [c] = finalizeCandidates([makeCandidate("A", 10, 0, 40)], baseResolved);
+test("finalize: gap=−10, opp=0, con=40 → composite=−25 (concern 하향)", () => {
+  const [c] = finalizeCandidates([makeCandidate("A", -10, 0, 40)], baseResolved);
   assert.equal(c.composite_score, 10 * SRIM_GAP_WEIGHT - 40);
 });
 
-test("finalize: 전원 opp=0이어도 gap 차이로 순위 분별 (0 사태 회귀 가드)", () => {
+test("finalize: 전원 opp=0이어도 저평가 폭 차이로 순위 분별 (0 사태 회귀 가드)", () => {
   const candidates = [
-    makeCandidate("A", 10, 0, 0),
-    makeCandidate("B", 30, 0, 0),
-    makeCandidate("C", 5, 0, 0),
+    makeCandidate("A", -10, 0, 0),
+    makeCandidate("B", -30, 0, 0),
+    makeCandidate("C", -5, 0, 0),
   ];
   const result = finalizeCandidates(candidates, baseResolved);
   assert.ok(
@@ -138,9 +138,9 @@ test("finalize: min_opportunity_score 필터 — capex opp 미만 제외", () =>
   const resolved: ResolvedInput = { ...baseResolved, min_opportunity_score: 30 };
   const result = finalizeCandidates(
     [
-      makeCandidate("a", 10, 20, 0), // opp 20 < 30 → 제외
-      makeCandidate("b", 10, 50, 0), // opp 50 ≥ 30 → 통과
-      makeCandidate("c", 10, 30, 0), // opp 30 ≥ 30 → 통과 (경계)
+      makeCandidate("a", -10, 20, 0), // opp 20 < 30 → 제외
+      makeCandidate("b", -10, 50, 0), // opp 50 ≥ 30 → 통과
+      makeCandidate("c", -10, 30, 0), // opp 30 ≥ 30 → 통과 (경계)
     ],
     resolved,
   );
@@ -151,13 +151,18 @@ test("finalize: limit 적용 — 정렬 후 상위 N", () => {
   const resolved: ResolvedInput = { ...baseResolved, limit: 2 };
   const result = finalizeCandidates(
     [
-      makeCandidate("d", 10, 0, 0),  // composite 15  (10×1.5)
-      makeCandidate("a", 90, 0, 0),  // composite 135 (90×1.5)
-      makeCandidate("c", 30, 0, 0),  // composite 45  (30×1.5)
-      makeCandidate("b", 60, 0, 0),  // composite 90  (60×1.5)
+      makeCandidate("d", -10, 0, 0),  // composite 15  (discount 10×1.5)
+      makeCandidate("a", -90, 0, 0),  // composite 135 (discount 90×1.5)
+      makeCandidate("c", -30, 0, 0),  // composite 45  (discount 30×1.5)
+      makeCandidate("b", -60, 0, 0),  // composite 90  (discount 60×1.5)
     ],
     resolved,
   );
   assert.equal(result.length, 2);
   assert.deepEqual(result.map((c) => c.corp_code), ["a", "b"]);
+});
+
+test("finalize: 고평가(양수 gap) → discount 0 (저평가분만 가점, 부호 회귀 가드)", () => {
+  const [c] = finalizeCandidates([makeCandidate("A", 20, 0, 0)], baseResolved);
+  assert.equal(c.composite_score, 0); // gap +20(고평가) → max(-20,0)=0
 });

@@ -23,20 +23,23 @@ MVP1 export 15후보 전원 composite_score=0 사태 원인 분석:
 ## Decision
 
 ```
-composite_score = (srim.gap_to_fair ?? 0) × SRIM_GAP_WEIGHT
+composite_score = max(−(srim.gap_to_fair ?? 0), 0) × SRIM_GAP_WEIGHT
                 + (capex.opportunity_score ?? 0)
                 − (cashflow.concern_score ?? 0)
 ```
+
+`gap_to_fair` = 괴리율 `(현재가−적정가)/적정가 × 100` (srim-calc.ts:180) — **저평가일수록 음수**.
+`max(−gap, 0)` = 저평가 폭: 음수 괴리(저평가)만 양수 가점, 양수 괴리(고평가)는 0 기여.
 
 `SRIM_GAP_WEIGHT = 1.5` — **잠정값**.
 
 ### SRIM_GAP_WEIGHT = 1.5 근거
 
-스케일 추정: SIGNAL_SCORES major_existing = +80. "30% 저평가 × 1.5 = 45점" → major capex
-한 방(+80)이 ~17%p 저평가를 역전하지 않도록 균형점 설정.
+스케일 추정: SIGNAL_SCORES major_existing = +80. "저평가 30% = gap −30 → discount 30 → 30×1.5=45점"
+→ major capex 한 방(+80)이 ~17%p 저평가를 역전하지 않도록 균형점 설정.
 
-예: gap=30 → 45점 vs major capex +80 → capex가 약 1.8× 크지만 gap 분포가 capex보다
-빈번하고 지속적이라 전체 순위에서 7부 D 주도 달성.
+예: discount 30 (gap −30 기준) → 45점 vs major capex +80 → capex가 약 1.8× 크지만 gap 분포가
+capex보다 빈번하고 지속적이라 전체 순위에서 7부 D 주도 달성.
 
 ### SRIM_GAP_WEIGHT 조정 기준
 
@@ -64,6 +67,11 @@ srim을 통과했으나 갭 계산이 불가한 종목(prices 부재 등)에서 
 - `min_opportunity_score` 필터는 capex opportunity_score 기준 유지 (산식 교체와 분리). 필터를
   composite 기준으로 이전하는 것은 후속 검토 사이클 영역.
 
+## Consequences (추가)
+
+- 부호 오류는 field-test 실데이터(n=16, gap 전원 음수 avg −46%)로만 드러남 — srim-calc.ts 계산식 사전 확인 누락 (학습 #61).
+- 1.5 가중치 적정성은 부호 정정(fix2) 후 재스캔으로 판정 예정 (원래 field-test 목적).
+
 ## Ref
 
-spec §10.8, §7.1, Stage 30.7, MVP1 export 분석 (2026-05-29), 학습 #59
+spec §10.8, §7.1, Stage 30.7, Stage 30.7-fix2 (2026-05-30), MVP1 export 분석 (2026-05-29), 학습 #59, 학습 #61

@@ -538,10 +538,12 @@ export function finalizeCandidates(
   resolved: ResolvedInput,
 ): EnrichedCandidate[] {
   for (const c of enriched) {
-    const gap = c.srim.gap_to_fair ?? 0;          // 7부 D 핵심, null → 갭 기여 0
-    const opp = c.capex?.opportunity_score ?? 0;  // 7부 C tie-breaker
+    // gap_to_fair = 괴리율 (현재가-적정가)/적정가 — 저평가일수록 음수 (srim-calc.ts:180).
+    // 저평가 폭 = max(−gap, 0): 음수 괴리(저평가)만 양수 가점, 양수 괴리(고평가)는 0 기여.
+    const discount = Math.max(-(c.srim.gap_to_fair ?? 0), 0);  // 7부 D 핵심
+    const opp = c.capex?.opportunity_score ?? 0;               // 7부 C tie-breaker
     const con = c.cashflow?.concern_score ?? 0;
-    c.composite_score = gap * SRIM_GAP_WEIGHT + opp - con;
+    c.composite_score = discount * SRIM_GAP_WEIGHT + opp - con;
     c.quick_summary = buildQuickSummary(c);
   }
   const filtered = enriched.filter(
