@@ -1,14 +1,23 @@
 /**
- * scan-execute buildResponse 단위 테스트.
+ * scan-execute buildResponse + finalizeCandidates 단위 테스트.
  *
  * override_applied + interpretation_notes 동작 검증 (ADR-0019 후속 결정).
+ * finalizeCandidates composite_score 산식 검증 (ADR-0029 — srim 갭 주도, capex tie-breaker).
  * Node built-in test runner (node --test). 실 DART 호출 0 (ADR-0003).
  */
 
 import { test } from "node:test";
 import * as assert from "node:assert/strict";
-import { buildResponse } from "./scan-execute.js";
+import {
+  buildResponse,
+  finalizeCandidates,
+  SRIM_GAP_WEIGHT,
+  type EnrichedCandidate,
+  type ResolvedInput,
+} from "./scan-execute.js";
 import { type ScanCheckpointState } from "./_lib/scan-checkpoint.js";
+
+// ─── buildResponse fixtures ───────────────────────────────────────────────────
 
 const state: ScanCheckpointState = {
   scan_id: "scan_2026-05-29_test01",
@@ -42,4 +51,85 @@ test("overrideApplied 미전달 → override_applied=false + interpretation_note
   const result = buildResponse({ ...baseArgs });
   assert.equal(result.pipeline_stats.override_applied, false);
   assert.equal(result.interpretation_notes.length, 0);
+});
+
+// ─── finalizeCandidates fixtures (ADR-0029) ───────────────────────────────────
+
+function makeCandidate(
+  corp_code: string,
+  gap: number | null,
+  opp: number,
+  con: number,
+): EnrichedCandidate {
+  return {
+    rank: 0,
+    corp_code,
+    corp_name: `테스트_${corp_code}`,
+    corp_cls: "Y",
+    induty_code: "C",
+    composite_score: 0,
+    killer: { verdict: "PASS", triggered_rules: [] },
+    srim: { verdict: "BUY", prices: {}, gap_to_fair: gap },
+    cashflow: con > 0
+      ? { verdict: "REVIEW_REQUIRED", concern_score: con, top_flags: [], yearly_data: [] }
+      : null,
+    capex: opp > 0
+      ? { verdict: "ACTIVE", opportunity_score: opp, top_signals: [] }
+      : null,
+    insider: null,
+    dividend: null,
+    stage_notes: [],
+    quick_summary: "",
+  };
+}
+
+const baseResolved: ResolvedInput = {
+  min_opportunity_score: 0,
+  limit: 100,
+  allow_over_daily_limit: false,
+};
+
+test("finalize: gap=30, opp=0, con=0 → composite=45 (갭 주도)", () => {
+  const [c] = finalizeCandidates([makeCandidate("A", 30, 0, 0)], baseResolved);
+  assert.equal(c.composite_score, 30 * SRIM_GAP_WEIGHT);
+});
+
+test("finalize: gap=30, opp=80, con=0 → composite=125 (capex 가산)", () => {
+  const [c] = finalizeCandidates([makeCandidate("A", 30, 80, 0)], baseResolved);
+  assert.equal(c.composite_score, 30 * SRIM_GAP_WEIGHT + 80);
+});
+
+test("finalize: gap 동일, opp 차이 → opp 큰 쪽 rank=1 (tie-breaker 정렬)", () => {
+  const candidates = [
+    makeCandidate("LOW", 30, 0, 0),
+    makeCandidate("HIGH", 30, 80, 0),
+  ];
+  const result = finalizeCandidates(candidates, baseResolved);
+  assert.equal(result[0].corp_code, "HIGH");
+  assert.equal(result[0].rank, 1);
+});
+
+test("finalize: gap=null, opp=30, con=0 → composite=30 (null 폴백)", () => {
+  const [c] = finalizeCandidates([makeCandidate("A", null, 30, 0)], baseResolved);
+  assert.equal(c.composite_score, 30);
+});
+
+test("finalize: gap=10, opp=0, con=40 → composite=−25 (concern 하향)", () => {
+  const [c] = finalizeCandidates([makeCandidate("A", 10, 0, 40)], baseResolved);
+  assert.equal(c.composite_score, 10 * SRIM_GAP_WEIGHT - 40);
+});
+
+test("finalize: 전원 opp=0이어도 gap 차이로 순위 분별 (0 사태 회귀 가드)", () => {
+  const candidates = [
+    makeCandidate("A", 10, 0, 0),
+    makeCandidate("B", 30, 0, 0),
+    makeCandidate("C", 5, 0, 0),
+  ];
+  const result = finalizeCandidates(candidates, baseResolved);
+  assert.ok(
+    result.every((c) => c.composite_score !== 0),
+    "전원 composite_score 0이면 안 됨",
+  );
+  assert.equal(result[0].corp_code, "B");
+  assert.equal(result[2].corp_code, "C");
 });
