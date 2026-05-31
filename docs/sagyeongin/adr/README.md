@@ -72,7 +72,7 @@
 | [0016](./0016-corp-meta-cache.md) | corp_meta cache — induty_code/corp_cls per-corp_code 영구 cache | Accepted | 2026-05-11 | 사경인 영역 corp-meta-cache.ts 신설 + lazy + eager 병행 + modify_date invalidate |
 | [0017](./0017-dart-burst-rate-limit.md) | DART burst limit 정책 — inter-call delay 정착 | Accepted | 2026-05-12 | RateLimitedDartClient inter-call delay 200ms 정착 (성공 호출 후) |
 | [0018](./0018-dart-html-response-block.md) | DART HTML 응답 (302 redirect) → DartRateLimitError 변환 정책 | Accepted | 2026-05-14 | wrapper getJson SyntaxError catch → DartRateLimitError(status=html_response_block) throw |
-| [0019](./0019-scan-execute-daily-limit-precheck.md) | scan_execute 진입 시 daily_limit_usage_pct 사전 가드 | Accepted | 2026-05-14 | scan_execute fresh 분기 진입 직후 daily_limit_usage_pct > 100 → DailyLimitPreCheckError throw |
+| [0019](./0019-scan-execute-daily-limit-precheck.md) | scan_execute 진입 시 daily_limit_usage_pct 사전 가드 | Accepted (ADR-0030 부분 개정) | 2026-05-14 | scan_execute fresh 분기 진입 직후 daily_limit_usage_pct > 100 → DailyLimitPreCheckError throw / ADR-0030이 throw를 신호 분기로 확장 |
 | [0023](./0023-srim-inverted-roe-below-K.md) | srim 분포 역전 (ROE < K) verdict invariant 가드 | Accepted | 2026-05-17 | 분기 Y judgeSrimVerdict buy>sell invariant 가드 null + 분기 Z 학습 #29 origin 재정의, 분기 X 폐기 |
 | [0024](./0024-srim-K-essence-baseline.md) | srim K 본질 baseline (자본비용 + BBB- 5Y proxy) | Accepted | 2026-05-19 | K 본질 = 주주의 요구수익률 / 구현 proxy = BBB- 5Y / 보정 0 / ADR-0025 후보 cross-reference |
 | [0025](./0025-roe-measurement-cyclical-correction.md) | ROE 측정 정밀화 — 순환주 보정 본질 + 자동 구현 부재 | Accepted | 2026-05-21 | 차원 1 (c) 순환주 보정 인정 / 차원 2 (c-iv) 자동 식별 부재 / 차원 3 (c-β) 자동 보정 부재 / ADR-0023 cross-reference 동일 분리 본질 |
@@ -80,6 +80,7 @@
 | [0027](./0027-judge-existing-business-match-policy.md) | judgeExistingBusinessMatch 텍스트 매칭 정책 baseline | Accepted | 2026-05-22 | signature boolean → boolean \| null / whitelist (공장/R&D/양산/수요대응) + blacklist (임대수익/투자수익/사업다각화) + null (사옥/업무공간 모호) / induty cross-reference 보조 / ast_sen 단조 92.3% baseline → assetCategory keyword matching 부재 / 회수 F 13건 직접 근거 |
 | [0028](./0028-precheck-2phase-cache-induty-prefilter.md) | pre-check 2-phase — corp_meta cache 기반 induty 사전 필터 | Accepted | 2026-05-29 | 옵션 B (cache-hit induty 0 호출 적용 + cache-miss over-estimate) / estimated_universe additive 분리 + cache_coverage / ADR-0010 옵션 D 개정 / ADR-0019 확장 / override 후속 분리 / 신 인프라 0 |
 | [0029](./0029-composite-score-srim-gap-primary.md) | composite_score 산식 — srim 갭 정렬 주도, capex tie-breaker | Accepted | 2026-05-30 | `composite = gap × 1.5 + opportunity − concern`. 7부 D 정렬 주도 / 7부 C tie-breaker / `SRIM_GAP_WEIGHT=1.5` 잠정 / capex 희소 0-tie 사태 해소 |
+| [0030](./0030-scan-two-mode-conversational-gate.md) | scan 2-모드 게이트 — 자동 완주 / 단계별 대화 | Accepted | 2026-05-31 | 강제 = 제어 흐름(신호 부재 → throw 대신 견적 반환), required 무력 / (가) 한 도구 — 강제력 동률, 근거는 기존 인프라 재사용 / `scope_confirmed` 신설(상위) ≠ `allow_over_daily_limit`(하위) / 재실행 fresh / ADR-0019 부분 개정 |
 
 ## 상태 정의
 
