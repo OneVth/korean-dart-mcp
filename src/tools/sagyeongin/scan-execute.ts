@@ -134,6 +134,14 @@ const InputSchema = z.object({
   random_seed: z.number().int().optional(),
   resume_from: z.string().optional(),
   allow_over_daily_limit: z.boolean().optional(),
+  scope_confirmed: z
+    .boolean()
+    .optional()
+    .describe(
+      "사용자가 스캔 범위를 확인하고 진행을 택했음. 한도 초과 시 견적 반환(대화 루트) 대신 고지 후 완주(자동 루트). " +
+        "ADR-0030: 이 신호는 사용자 결정의 대리이며 client 임의 주입 시 7부 책임은 client. " +
+        "allow_over_daily_limit(한도 한 건 수용, 하위)과 구분 — scope_confirmed는 범위 전반 확인(상위).",
+    ),
 });
 
 export interface ResolvedInput {
@@ -146,6 +154,7 @@ export interface ResolvedInput {
   limit: number;
   random_seed?: number;
   allow_over_daily_limit: boolean;
+  scope_confirmed?: boolean;
 }
 
 interface ListedWithMeta extends ListedCompany {
@@ -262,6 +271,7 @@ export async function resolveInput(
     random_seed: args.random_seed,
     allow_over_daily_limit:
       args.allow_over_daily_limit ?? preset.allow_over_daily_limit ?? false,
+    scope_confirmed: args.scope_confirmed,
   };
 }
 
@@ -590,6 +600,51 @@ export function buildQuickSummary(c: EnrichedCandidate): string {
   return parts.join(", ");
 }
 
+export function buildPreviewResponse(args: {
+  estimate: { total: number };
+  usagePct: number;
+  split: { matched_cached_count: number; cache_miss_count: number };
+  universeAfterCacheFilter: number;
+  resolved: ResolvedInput;
+}) {
+  return {
+    mode: "preview" as const,
+    daily_limit_exceeded: true,
+    estimate: {
+      estimated_calls: args.estimate.total,
+      daily_limit: DAILY_LIMIT,
+      usage_pct: args.usagePct,
+      universe_count: args.universeAfterCacheFilter,
+      cache_hit: args.split.matched_cached_count,
+      cache_miss: args.split.cache_miss_count,
+    },
+    options: [
+      {
+        action: "narrow_scope",
+        label: "범위 좁히기",
+        effect: "included_industries/markets로 universe 축소 → 호출 감소",
+        recall_args_hint: { included_industries: ["<업종>"] } as Record<string, unknown>,
+      },
+      {
+        action: "accept_limit",
+        label: "한도 감수하고 완주",
+        effect: "한도 초과를 수용하고 자동 완주. 실행 중 80% 도달 시 checkpoint 후 partial(ADR-0012).",
+        recall_args_hint: { scope_confirmed: true } as Record<string, unknown>,
+      },
+      {
+        action: "warm_cache",
+        label: "캐시 보강 후 재추정",
+        effect: "cache_miss 큰 경우 corp_meta_refresh 선행 → induty 필터 정밀화로 견적 하향 가능(ADR-0028).",
+        recall_args_hint: null as Record<string, unknown> | null,
+      },
+    ],
+    guidance:
+      "한도 초과로 자동 실행을 멈추고 견적을 반환했습니다(ADR-0030 대화 루트). " +
+      "위 options 중 하나를 사용자에게 제시하고 선택을 받아 재호출하세요. " +
+      "scope_confirmed=true는 사용자가 명시적으로 완주를 택한 경우에만 — 임의 주입 금지(7부).",
+  };
+}
+
 export interface BuildResponseArgs {
   state: ScanCheckpointState;
   candidates: EnrichedCandidate[];
@@ -598,6 +653,7 @@ export interface BuildResponseArgs {
   returnedCount: number | null;
   hasCheckpoint: boolean;
   overrideApplied?: boolean;
+  scopeConfirmed?: boolean;
   preset_used: string;
   filter_summary: FilterSummary;
   // [16(b) 측정] retry 흡수 총량 측정 영역 — ADR-0015 효과 측정.
@@ -630,6 +686,11 @@ export function buildResponse(args: BuildResponseArgs) {
   if (args.overrideApplied) {
     interpretationNotes.push(
       "allow_over_daily_limit 적용 — 사전 차단 무력화. 실행 중 한도 80% 도달 시 checkpoint 저장 후 partial 반환(ADR-0012), resume_from으로 재개.",
+    );
+  }
+  if (args.scopeConfirmed) {
+    interpretationNotes.push(
+      "scope_confirmed 적용 — 한도 초과 고지 완주. 실행 중 한도 80% 도달 시 checkpoint 저장 후 partial 반환(ADR-0012), resume_from으로 재개.",
     );
   }
   return {
@@ -764,13 +825,19 @@ export const scanExecuteTool = defineTool({
         cacheHitCount: split.matched_cached_count,
       });
       const usagePct = calculateDailyLimitUsagePct(estimate.total);
-      if (usagePct > 100 && !resolved.allow_over_daily_limit) {
-        throw new DailyLimitPreCheckError({
-          estimated_calls: estimate.total,
-          daily_limit: DAILY_LIMIT,
-          usage_pct: usagePct,
-          universe_count: universeAfterCacheFilter,
-        });
+      if (usagePct > 100) {
+        const signaled = resolved.allow_over_daily_limit || resolved.scope_confirmed;
+        if (!signaled) {
+          // 대화 루트 — 견적·분기 구조화 응답 반환, 사용자 턴 (ADR-0030)
+          return buildPreviewResponse({
+            estimate,
+            usagePct,
+            split,
+            universeAfterCacheFilter,
+            resolved,
+          });
+        }
+        // signaled === true → 고지 후 완주 (자동 루트). 아래 stage1로 진행.
       }
 
       const stage1 = await stage1StaticFilter(limitedCtx, resolved, limited);
@@ -979,6 +1046,7 @@ export const scanExecuteTool = defineTool({
       returnedCount: finalCandidates.length,
       hasCheckpoint: false,
       overrideApplied: resolved.allow_over_daily_limit,
+      scopeConfirmed: resolved.scope_confirmed,
       preset_used: resolved.preset_used,
       filter_summary: buildFilterSummary(resolved),
       externalCallStats: {
