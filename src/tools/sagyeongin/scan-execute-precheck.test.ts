@@ -1,17 +1,21 @@
 /**
- * scan-execute pre-check (ADR-0019 + ADR-0028 B1) 단위 테스트.
+ * scan-execute pre-check (ADR-0019 + ADR-0028 B1 + ADR-0030) 단위 테스트.
  *
  * Node built-in test runner. mock 기반 — 실 DART 호출 0 (ADR-0003).
  *
  * Stage 32 결선: universe_count 의미 = H'+M (name + cache-hit induty 필터 후).
  * 메시지 본문 ADR-0028 B2 정합 (warm 권고 동반).
+ * ADR-0030: 2-모드 게이트 — 신호 없음 → buildPreviewResponse(대화 루트).
  *
- * Ref: ADR-0019, ADR-0028, 18단계 진단 매듭 fb2a4d7
+ * Ref: ADR-0019, ADR-0028, ADR-0030, 18단계 진단 매듭 fb2a4d7
  */
 
-import { describe, test } from "node:test";
+import { describe, test, beforeEach, afterEach } from "node:test";
 import * as assert from "node:assert/strict";
-import { DailyLimitPreCheckError } from "./scan-execute.js";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import * as os from "node:os";
+import { DailyLimitPreCheckError, buildPreviewResponse, resolveInput } from "./scan-execute.js";
 import {
   estimateApiCalls,
   calculateDailyLimitUsagePct,
@@ -73,5 +77,96 @@ describe("ADR-0019: usage_pct 계산", () => {
     const estimate = estimateApiCalls(3607, { cacheHitCount: 3500 });
     assert.equal(estimate.stage1_company_resolution, 107);
     assert.equal(estimate.stage2_killer, 3607 * 3);
+  });
+});
+
+describe("ADR-0030: scan 2-모드 게이트 — buildPreviewResponse", () => {
+  const mockArgs = {
+    estimate: { total: 32636 },
+    usagePct: 163.2,
+    split: { matched_cached_count: 100, cache_miss_count: 3507 },
+    universeAfterCacheFilter: 3607,
+    resolved: {
+      preset_used: "default",
+      min_opportunity_score: 0,
+      limit: 10,
+      allow_over_daily_limit: false,
+    },
+  };
+
+  test("usagePct>100 ∧ 신호 없음 → mode:'preview' + daily_limit_exceeded + options 3개", () => {
+    const result = buildPreviewResponse(mockArgs);
+    assert.equal(result.mode, "preview");
+    assert.equal(result.daily_limit_exceeded, true);
+    assert.equal(result.options.length, 3);
+    assert.ok(typeof result.guidance === "string" && result.guidance.length > 0);
+  });
+
+  test("estimate 6필드 — estimated_calls/daily_limit/usage_pct/universe_count/cache_hit/cache_miss", () => {
+    const result = buildPreviewResponse(mockArgs);
+    assert.equal(result.estimate.estimated_calls, 32636);
+    assert.equal(result.estimate.usage_pct, 163.2);
+    assert.equal(result.estimate.universe_count, 3607);
+    assert.equal(result.estimate.cache_hit, 100);
+    assert.equal(result.estimate.cache_miss, 3507);
+    assert.ok(typeof result.estimate.daily_limit === "number" && result.estimate.daily_limit > 0);
+  });
+
+  test("options[1] accept_limit — recall_args_hint.scope_confirmed === true", () => {
+    const result = buildPreviewResponse(mockArgs);
+    assert.equal(result.options[1].action, "accept_limit");
+    assert.deepEqual(result.options[1].recall_args_hint, { scope_confirmed: true });
+  });
+
+  test("options actions 집합 — narrow_scope / accept_limit / warm_cache 순서", () => {
+    const result = buildPreviewResponse(mockArgs);
+    assert.deepEqual(
+      result.options.map((o) => o.action),
+      ["narrow_scope", "accept_limit", "warm_cache"],
+    );
+  });
+});
+
+describe("ADR-0030: scope_confirmed resolveInput 전파", () => {
+  let tmpDir: string;
+
+  const CONFIG = {
+    version: "0.1",
+    watchlist: [],
+    scan_presets: {
+      default: {
+        markets: ["KOSPI", "KOSDAQ"],
+        excluded_name_patterns: [],
+      },
+    },
+    active_preset: "default",
+    parameters: {
+      insider_cluster_threshold: 2,
+      srim_required_return_override: null,
+      srim_buy_price_basis: "fair",
+      dividend_payout_healthy_range: [0.2, 0.4],
+    },
+    required_return_cache: { last_fetched_at: null, value: null, source: "" },
+  };
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "sagyeongin-precheck-sc-test-"));
+    process.env.SAGYEONGIN_CONFIG_DIR = tmpDir;
+    await fs.writeFile(path.join(tmpDir, "config.json"), JSON.stringify(CONFIG), "utf8");
+  });
+
+  afterEach(async () => {
+    delete process.env.SAGYEONGIN_CONFIG_DIR;
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  test("scope_confirmed=true 전파 — resolved.scope_confirmed === true", async () => {
+    const r = await resolveInput({ min_opportunity_score: 0, limit: 10, scope_confirmed: true });
+    assert.equal(r.scope_confirmed, true);
+  });
+
+  test("scope_confirmed 미지정 → resolved.scope_confirmed === undefined (.optional() 회귀)", async () => {
+    const r = await resolveInput({ min_opportunity_score: 0, limit: 10 });
+    assert.equal(r.scope_confirmed, undefined);
   });
 });
