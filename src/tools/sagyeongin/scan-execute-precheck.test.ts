@@ -19,6 +19,7 @@ import { DailyLimitPreCheckError, buildPreviewResponse, resolveInput } from "./s
 import {
   estimateApiCalls,
   calculateDailyLimitUsagePct,
+  SCAN_SCALE_GATE_CALLS,
 } from "./_lib/scan-helpers.js";
 
 describe("ADR-0019: DailyLimitPreCheckError class", () => {
@@ -124,6 +125,11 @@ describe("ADR-0030: scan 2-모드 게이트 — buildPreviewResponse", () => {
       result.options.map((o) => o.action),
       ["narrow_scope", "accept_limit", "warm_cache"],
     );
+  });
+
+  test("SCAN_SCALE_GATE_CALLS 경계 — 9999 게이트 미발동, 10001 게이트 발동", () => {
+    assert.ok(9999 <= SCAN_SCALE_GATE_CALLS, "9999는 게이트 통과");
+    assert.ok(10001 > SCAN_SCALE_GATE_CALLS, "10001은 게이트 발동");
   });
 });
 

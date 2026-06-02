@@ -25,6 +25,7 @@ export const STAGE2_CALLS_PER_COMPANY = 3;
 export const STAGE3_CALLS_PER_COMPANY = 4;
 export const STAGE4_5_6_CALLS_PER_COMPANY = 7;
 export const DAILY_LIMIT = 20000;
+export const SCAN_SCALE_GATE_CALLS = 10000; // 이 스캔 한 방 추정 콜 상한 — 초과 시 견적 반환 (ADR-0030 재개정). 한도(20000)의 절반.
 
 export interface ListedCompany {
   corp_code: string;
