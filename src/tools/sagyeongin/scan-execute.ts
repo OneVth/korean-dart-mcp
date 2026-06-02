@@ -45,6 +45,7 @@ import {
   splitUniverseByCacheAndFilter,
   estimateApiCalls,
   calculateDailyLimitUsagePct,
+  SCAN_SCALE_GATE_CALLS,
   shuffleWithSeed,
   DAILY_LIMIT,
   type ListedCompany,
@@ -825,7 +826,7 @@ export const scanExecuteTool = defineTool({
         cacheHitCount: split.matched_cached_count,
       });
       const usagePct = calculateDailyLimitUsagePct(estimate.total);
-      if (usagePct > 100) {
+      if (estimate.total > SCAN_SCALE_GATE_CALLS) {
         const signaled = resolved.allow_over_daily_limit || resolved.scope_confirmed;
         if (!signaled) {
           // 대화 루트 — 견적·분기 구조화 응답 반환, 사용자 턴 (ADR-0030)
