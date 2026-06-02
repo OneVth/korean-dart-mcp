@@ -84,3 +84,35 @@ ADR-0019는 **Superseded 아님 — 부분 개정**. 본 ADR은 0019의 자동 t
 
 - 견적 반환 응답 양식 상세(필드명·구조) — 결선 spec 단계.
 - funnel 추가 멈춤 매듭(preference/preset 범위/심층깊이)에서 `scope_confirmed` 흡수 — funnel 성장 시 별 ADR.
+
+## 재개정 (2026-06-02) — 임계: 한도 % → 절대 규모
+
+### 배경
+field-test 실측(빌드 검증 후 파일 로그):
+`estimate.total=17875 usagePct=89.4 matched_cached=2221 cache_miss=0 → 완주`
+
+빈 호출 `{}`은 default preset + user-preference 필터가 적용되어 universe=2,221(전체 3,967 아님), estimate 17,875콜=한도 89.4%. 원 결정 표의 임계 `usagePct ≤ 100`에서 89.4%는 안전권 → 완주. 그러나 이는 "전체 다 뒤지기"(16,002콜 실소진)이며 본 ADR이 잡으려던 바로 그 시나리오다.
+
+### 결함
+본 ADR 컨텍스트는 "핵심 결함은 한도 초과가 아니라 funnel 부재"로 규모를 가리켰으나, 임계는 `usagePct ≤ 100`(한도 %)로 구현됐다. 한도가 89%든 99%든 한도 *안*이면 아무리 큰 스캔도 안 멈춘다 — 분석(규모)과 구현(한도 %)의 어긋남.
+
+게이트 코드 버그 없음·client 우회 없음·universe 3,967 가정 오류(실측 2,221)·min_opportunity_score 가설 폐기 — 모두 실측으로 확정. **임계 정의가 유일 결함.**
+
+### 개정
+결정 표 첫 두 행의 임계를 교체:
+
+| 조건(개정 전) | 조건(개정 후) | 동작 |
+|---|---|---|
+| usagePct ≤ 100 | estimate.total ≤ N (N=10000) | 완주 |
+| usagePct > 100 ∧ 신호 | estimate.total > N ∧ 신호 | 고지 후 완주 |
+| usagePct > 100 ∧ 신호 부재 | estimate.total > N ∧ 신호 부재 | 견적 반환 |
+
+- 단위: `estimate.total`(콜수). cache-hit 보정·passRate 반영된 상위 정보(C-1).
+- N=10000: 하루 한도(20000)의 절반. 빈 호출 전체(17,875)를 ~7,900 마진으로 거르고, 중범위(universe ~1,200 이하)는 통과. field-test 실측점 1개(17,875)뿐이라 중범위 분포 미지 — 운영 피드백으로 상수 조정(MVP).
+- 상수 하드코딩(`SCAN_SCALE_GATE_CALLS`, scan-helpers.ts). preset/preference 분리는 과설계로 보류(C-3).
+- usagePct 계산·견적 응답 % 표시는 유지(사용자 직관). 게이트 *조건*만 콜수.
+
+### 범위
+잔여 한도 보정(usagePct 분모가 기 사용분 무시)은 본 개정 제외 — 규모 임계(1차)와 자원 보정(2차)은 별 축(C-2). ADR-0014/0015와 별 사이클.
+
+골격(2-모드·scope_confirmed·제어 흐름 강제·buildPreviewResponse) 전부 불변. 임계 조건만 교체.
