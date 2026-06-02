@@ -61,7 +61,7 @@ test("case 5: excluded_name_patterns 지정 — string[] 회수 정합", () => {
   assert.deepEqual(result.excluded_industries, []);
 });
 
-test("buildLimitNotes: usage 163.2% 초과 + cache_miss 0 — 한도 1건 (warm 0)", () => {
+test("buildLimitNotes: total_calls 32636 > 10000 초과 + cache_miss 0 — 규모 초과 1건 (warm 0)", () => {
   const notes = buildLimitNotes({
     usage_pct: 163.2,
     total_calls: 32636,
@@ -70,24 +70,33 @@ test("buildLimitNotes: usage 163.2% 초과 + cache_miss 0 — 한도 1건 (warm 
     estimated_universe: 3607,
   });
   assert.equal(notes.length, 1);
-  assert.match(notes[0], /한도 초과/);
+  assert.match(notes[0], /스캔 규모 초과/);
   assert.match(notes[0], /3607/);
 });
 
-test("buildLimitNotes: usage 100% 경계 + cache_miss 0 — [] 반환", () => {
+test("buildLimitNotes: total_calls 경계 — 10000 미발동, 10001 발동", () => {
   assert.deepEqual(
     buildLimitNotes({
-      usage_pct: 100,
-      total_calls: 20000,
-      estimated_universe_after_cache_filter: 2200,
+      usage_pct: 50,
+      total_calls: 10000,
+      estimated_universe_after_cache_filter: 1000,
       cache_miss_count: 0,
-      estimated_universe: 2200,
+      estimated_universe: 1000,
     }),
     [],
   );
+  const notes = buildLimitNotes({
+    usage_pct: 50,
+    total_calls: 10001,
+    estimated_universe_after_cache_filter: 1000,
+    cache_miss_count: 0,
+    estimated_universe: 1000,
+  });
+  assert.equal(notes.length, 1);
+  assert.match(notes[0], /스캔 규모 초과/);
 });
 
-test("buildLimitNotes: usage 100.1% 직상 + cache_miss 0 — 한도 1건", () => {
+test("buildLimitNotes: total_calls 20020 > 10000 초과 + cache_miss 0 — 규모 초과 1건", () => {
   assert.equal(
     buildLimitNotes({
       usage_pct: 100.1,
@@ -127,7 +136,7 @@ test("buildLimitNotes: warm 권고 단독 — cache miss 60%(>50%), usage 50% �
   assert.match(notes[0], /~3,963 호출, 한도 내/);
 });
 
-test("buildLimitNotes: warm + 한도 초과 둘 다 — 2건 동시", () => {
+test("buildLimitNotes: warm + 스캔 규모 초과 둘 다 — 2건 동시", () => {
   const notes = buildLimitNotes({
     usage_pct: 163.2,
     total_calls: 32636,
@@ -136,7 +145,7 @@ test("buildLimitNotes: warm + 한도 초과 둘 다 — 2건 동시", () => {
     estimated_universe: 3607,
   });
   assert.equal(notes.length, 2);
-  assert.match(notes[0], /일일 한도 초과/);
+  assert.match(notes[0], /스캔 규모 초과/);
   assert.match(notes[0], /name \+ cache-hit induty 필터/);
   assert.match(notes[1], /cache miss ratio/);
   assert.match(notes[1], /corp_meta_refresh/);
