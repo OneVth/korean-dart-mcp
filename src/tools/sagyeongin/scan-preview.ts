@@ -28,6 +28,7 @@ import {
   estimateApiCalls,
   calculateDailyLimitUsagePct,
   CACHE_COVERAGE_WARM_THRESHOLD_PCT,
+  SCAN_SCALE_GATE_CALLS,
   DAILY_LIMIT,
   type ListedCompany,
   type FilterConfig,
@@ -61,10 +62,10 @@ export function buildLimitNotes(args: {
 }): string[] {
   const notes: string[] = [];
 
-  // (a) 한도 초과 진술
-  if (args.usage_pct > 100) {
+  // (a) 스캔 규모 초과 진술 — execute 게이트와 동일 임계(ADR-0030 재개정)
+  if (args.total_calls > SCAN_SCALE_GATE_CALLS) {
     notes.push(
-      `일일 한도 초과 — 추정 호출 ${args.total_calls}건이 한도(${DAILY_LIMIT})의 ${args.usage_pct}%. ` +
+      `스캔 규모 초과 — 추정 호출 ${args.total_calls}건이 스캔 상한(${SCAN_SCALE_GATE_CALLS})을 초과 (한도(${DAILY_LIMIT})의 ${args.usage_pct}%). ` +
         `현 universe ${args.estimated_universe_after_cache_filter} (name + cache-hit induty 필터 적용 후). ` +
         `이 입력은 scan_execute에서 사전 차단됨.`,
     );
