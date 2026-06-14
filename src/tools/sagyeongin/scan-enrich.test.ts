@@ -46,6 +46,8 @@ function makePartial(corp_code: string, corp_name: string): PartialCandidate {
       verdict: "BUY",
       prices: { fair_value: 10000 },
       gap_to_fair: 5.5,
+      avg_roe: null,
+      required_return_K: null,
     },
   };
 }
@@ -441,7 +443,7 @@ describe("buildQuickSummary — 8부 사용자 직관 보조", () => {
       induty_code: "26",
       composite_score: 30,
       killer: { verdict: "PASS", triggered_rules: [] },
-      srim: { verdict: "BUY", prices: {}, gap_to_fair: 12.5 },
+      srim: { verdict: "BUY", prices: {}, gap_to_fair: 12.5, avg_roe: null, required_return_K: null },
       cashflow: { verdict: "OK", concern_score: 5, top_flags: [], yearly_data: [] },
       capex: { verdict: "STRONG", opportunity_score: 35, top_signals: [] },
       insider: { signal: "NORMAL", cluster_quarter: null },
@@ -513,10 +515,18 @@ describe("buildQuickSummary — 8부 사용자 직관 보조", () => {
   test("gap_to_fair null → gap 표시 생략", () => {
     const s = buildQuickSummary(
       makeFull({
-        srim: { verdict: "BUY_FAIR", prices: {}, gap_to_fair: null },
+        srim: { verdict: "BUY_FAIR", prices: {}, gap_to_fair: null, avg_roe: null, required_return_K: null },
       }),
     );
     assert.doesNotMatch(s, /gap/);
     assert.match(s, /srim BUY_FAIR/);
+  });
+
+  test("candidate.srim에 avg_roe·required_return_K 필드 존재", () => {
+    const c = makeFull({ srim: { verdict: "BUY", prices: {}, gap_to_fair: 10, avg_roe: 15.2, required_return_K: 0.08 } });
+    assert.ok("avg_roe" in c.srim, "avg_roe must exist in candidate.srim");
+    assert.ok("required_return_K" in c.srim, "required_return_K must exist in candidate.srim");
+    assert.strictEqual(c.srim.avg_roe, 15.2);
+    assert.strictEqual(c.srim.required_return_K, 0.08);
   });
 });

@@ -174,6 +174,8 @@ export interface PartialCandidate {
     verdict: "BUY" | "BUY_FAIR";
     prices: unknown;
     gap_to_fair: number | null;
+    avg_roe: number | null;           // % (예: 12.5), srim inputs.avg_roe
+    required_return_K: number | null; // 분수 (예: 0.0742), srim inputs.required_return_K
   };
 }
 
@@ -190,6 +192,8 @@ export interface EnrichedCandidate {
     verdict: "BUY" | "BUY_FAIR";
     prices: unknown;
     gap_to_fair: number | null;
+    avg_roe: number | null;           // % (예: 12.5), srim inputs.avg_roe
+    required_return_K: number | null; // 분수 (예: 0.0742), srim inputs.required_return_K
   };
   cashflow: {
     verdict: string;
@@ -954,6 +958,7 @@ export const scanExecuteTool = defineTool({
           { corp_code: corp.corp_code },
           limitedCtx,
         )) as {
+          inputs: { avg_roe: number | null; required_return_K: number | null };
           prices: unknown;
           verdict: string | null;
           gap_to_fair: number | null;
@@ -978,6 +983,8 @@ export const scanExecuteTool = defineTool({
             verdict: r.verdict,
             prices: r.prices,
             gap_to_fair: r.gap_to_fair,
+            avg_roe: r.inputs.avg_roe,
+            required_return_K: r.inputs.required_return_K,
           },
         });
       } catch (e) {

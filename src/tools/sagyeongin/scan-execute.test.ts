@@ -79,7 +79,7 @@ function makeCandidate(
     induty_code: "C",
     composite_score: 0,
     killer: { verdict: "PASS", triggered_rules: [] },
-    srim: { verdict: "BUY", prices: {}, gap_to_fair: gap },
+    srim: { verdict: "BUY", prices: {}, gap_to_fair: gap, avg_roe: null, required_return_K: null },
     cashflow: con > 0
       ? { verdict: "REVIEW_REQUIRED", concern_score: con, top_flags: [], yearly_data: [] }
       : null,
