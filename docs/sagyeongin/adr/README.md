@@ -81,6 +81,7 @@
 | [0028](./0028-precheck-2phase-cache-induty-prefilter.md) | pre-check 2-phase — corp_meta cache 기반 induty 사전 필터 | Accepted | 2026-05-29 | 옵션 B (cache-hit induty 0 호출 적용 + cache-miss over-estimate) / estimated_universe additive 분리 + cache_coverage / ADR-0010 옵션 D 개정 / ADR-0019 확장 / override 후속 분리 / 신 인프라 0 |
 | [0029](./0029-composite-score-srim-gap-primary.md) | composite_score 산식 — srim 갭 정렬 주도, capex tie-breaker | Accepted | 2026-05-30 | `composite = gap × 1.5 + opportunity − concern`. 7부 D 정렬 주도 / 7부 C tie-breaker / `SRIM_GAP_WEIGHT=1.5` 잠정 / capex 희소 0-tie 사태 해소 |
 | [0030](./0030-scan-two-mode-conversational-gate.md) | scan 2-모드 게이트 — 자동 완주 / 단계별 대화 | Accepted | 2026-05-31 | 강제 = 제어 흐름(신호 부재 → throw 대신 견적 반환), required 무력 / (가) 한 도구 — 강제력 동률, 근거는 기존 인프라 재사용 / `scope_confirmed` 신설(상위) ≠ `allow_over_daily_limit`(하위) / 재실행 fresh / ADR-0019 부분 개정 |
+| [0031](./0031-opensource-separation-direction.md) | 오픈소스 공개 시 분리 구조 방향 | Proposed | 2026-06-02 | 원본 의존성 + 사경인 확장 별도 패키지. 실행은 MVP 검증 후 |
 
 ## 상태 정의
 
