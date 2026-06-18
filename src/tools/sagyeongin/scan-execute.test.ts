@@ -12,6 +12,7 @@ import {
   buildResponse,
   finalizeCandidates,
   buildKillerStopResponse,
+  buildListOnlyResponse,
   SRIM_GAP_WEIGHT,
   type EnrichedCandidate,
   type ResolvedInput,
@@ -317,4 +318,50 @@ test("buildKillerStopResponse: N=11 경계 → list=null (> 10 경계 확인)", 
     resolved: baseKillerResolved,
   });
   assert.equal(result.killer_passed.list, null);
+});
+
+// ─── buildListOnlyResponse (ADR-0032 Phase 2b) ───────────────────────────────
+
+test("buildListOnlyResponse: mode=list_only + scan_id 보존", () => {
+  const state = makeKillerStopState("scan_list_test");
+  state.killer_passed_corp_codes = ["A", "B"];
+  const nameMap = new Map([["A", "현대"], ["B", "기아"]]);
+  const result = buildListOnlyResponse({ state, nameMap });
+  assert.equal(result.mode, "list_only");
+  assert.equal(result.scan_id, "scan_list_test");
+});
+
+test("buildListOnlyResponse: 가나다순 정렬 (localeCompare ko)", () => {
+  const state = makeKillerStopState("scan_list_sort");
+  state.killer_passed_corp_codes = ["A", "B", "C"];
+  const nameMap = new Map([["A", "현대"], ["B", "삼성"], ["C", "기아"]]);
+  const result = buildListOnlyResponse({ state, nameMap });
+  assert.equal(result.killer_list[0].corp_name, "기아");
+  assert.equal(result.killer_list[1].corp_name, "삼성");
+  assert.equal(result.killer_list[2].corp_name, "현대");
+});
+
+test("buildListOnlyResponse: killer_list.length = killer_passed_corp_codes.length", () => {
+  const state = makeKillerStopState("scan_list_len");
+  state.killer_passed_corp_codes = ["X", "Y", "Z"];
+  const nameMap = new Map([["X", "나"], ["Y", "가"], ["Z", "다"]]);
+  const result = buildListOnlyResponse({ state, nameMap });
+  assert.equal(result.killer_list.length, 3);
+});
+
+test("buildListOnlyResponse: pipeline_stats 정합 — after_killer_check/after_srim_filter=null", () => {
+  const state = makeKillerStopState("scan_list_stats");
+  state.killer_passed_corp_codes = ["P", "Q"];
+  const nameMap = new Map([["P", "가"], ["Q", "나"]]);
+  const result = buildListOnlyResponse({ state, nameMap });
+  assert.equal(result.pipeline_stats.after_killer_check, 2);
+  assert.equal(result.pipeline_stats.after_srim_filter, null);
+  assert.equal(result.pipeline_stats.returned_candidates, null);
+});
+
+test("buildListOnlyResponse: 빈 명단 → killer_list=[]", () => {
+  const state = makeKillerStopState("scan_list_empty");
+  state.killer_passed_corp_codes = [];
+  const result = buildListOnlyResponse({ state, nameMap: new Map() });
+  assert.equal(result.killer_list.length, 0);
 });
