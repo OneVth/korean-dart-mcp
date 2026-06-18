@@ -59,6 +59,28 @@ export interface ScanCheckpointState {
    * resume 시 정확한 after_killer_check 산출 (단순화 3 정정).
    */
   killer_passed_cumulative?: number;
+
+  /**
+   * ADR-0032 — 두 패스 재편. 현재 단계.
+   * "killer": 패스1(killer) 진행/중단. "awaiting_choice": killer 완료, 사용자 선택 대기.
+   * "srim": 패스2(srim+태그) 진행/중단. 미설정(undefined) = 신규 스캔 시작 전.
+   */
+  phase?: "killer" | "awaiting_choice" | "srim";
+
+  /**
+   * ADR-0032 — killer 통과 corp_code 명단.
+   * 기존 killer_passed_cumulative는 카운트만 → 패스2 대상 식별 불가하므로 명단 보존.
+   */
+  killer_passed_corp_codes?: string[];
+
+  /**
+   * ADR-0032 — 멈춤(awaiting_choice)에서 사용자가 택한 것.
+   * "all": 전부 srim. "selected": selected_corp_codes만. "list_only": srim 생략, killer 명단이 결과.
+   */
+  user_choice?: "all" | "selected" | "list_only";
+
+  /** ADR-0032 — user_choice="selected" 시 사용자가 고른 corp_code. */
+  selected_corp_codes?: string[];
 }
 
 /** listCheckpoints 반환 — state_json은 제외하고 메타만 노출. */

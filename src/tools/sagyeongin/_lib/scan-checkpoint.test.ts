@@ -104,6 +104,37 @@ describe("saveCheckpoint + loadCheckpoint", () => {
     const loaded = loadCheckpoint("scan_2026-05-04_part01");
     assert.deepEqual(loaded?.partial_candidates, state.partial_candidates);
   });
+
+  test("ADR-0032 신규 필드 4개 직렬화 라운드트립", () => {
+    const state = makeState("scan_2026-06-18_adr032a", {
+      phase: "awaiting_choice",
+      killer_passed_corp_codes: ["00126380", "00164742"],
+      user_choice: "selected",
+      selected_corp_codes: ["00126380"],
+    });
+    saveCheckpoint(state);
+    const loaded = loadCheckpoint("scan_2026-06-18_adr032a");
+    assert.deepEqual(loaded, state);
+  });
+
+  test("ADR-0032 신규 필드 없는 기존형 state — 정상 save/load, 필드 undefined 유지", () => {
+    const state = makeState("scan_2026-06-18_adr032b");
+    saveCheckpoint(state);
+    const loaded = loadCheckpoint("scan_2026-06-18_adr032b");
+    assert.deepEqual(loaded, state);
+    assert.equal(loaded?.phase, undefined);
+    assert.equal(loaded?.killer_passed_corp_codes, undefined);
+  });
+
+  test("phase 세 값('killer'/'awaiting_choice'/'srim') 직렬화 라운드트립", () => {
+    for (const phase of ["killer", "awaiting_choice", "srim"] as const) {
+      const id = `scan_2026-06-18_phase_${phase.replace("_", "")}`;
+      const state = makeState(id, { phase });
+      saveCheckpoint(state);
+      const loaded = loadCheckpoint(id);
+      assert.equal(loaded?.phase, phase);
+    }
+  });
 });
 
 describe("listCheckpoints", () => {
