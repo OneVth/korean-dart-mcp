@@ -650,6 +650,65 @@ export function buildPreviewResponse(args: {
   };
 }
 
+export function buildKillerStopResponse(args: {
+  killerPassedCodes: string[];
+  universe: Array<{ corp_code: string; corp_name: string }>;
+  state: ScanCheckpointState;
+  resolved: ResolvedInput;
+}) {
+  const n = args.killerPassedCodes.length;
+  const nameMap = new Map(args.universe.map((c) => [c.corp_code, c.corp_name]));
+  return {
+    mode: "killer_stop" as const,
+    scan_id: args.state.scan_id,
+    killer_passed: {
+      count: n,
+      list:
+        n <= 10
+          ? args.killerPassedCodes.map((code) => ({
+              corp_code: code,
+              corp_name: nameMap.get(code) ?? code,
+            }))
+          : null,
+    },
+    options: [
+      {
+        action: "all",
+        label: "전부 srim 분석",
+        effect: `killer 통과 ${n}개 전체를 srim으로 평가`,
+        recall_args_hint: { resume_from: args.state.scan_id, choice: "all" },
+      },
+      {
+        action: "selected",
+        label: "골라서 srim 분석",
+        effect: "관심 종목만 선택해 srim으로 평가",
+        recall_args_hint: {
+          resume_from: args.state.scan_id,
+          choice: "selected",
+          corp_codes: ["<종목코드>"],
+        },
+      },
+      {
+        action: "list_only",
+        label: "명단으로 충분",
+        effect: "srim 없이 killer 통과 명단만 결과로 받기",
+        recall_args_hint: {
+          resume_from: args.state.scan_id,
+          choice: "list_only",
+        },
+      },
+    ],
+    pipeline_stats: {
+      initial_universe: args.state.initial_universe ?? null,
+      after_static_filter: args.state.after_static_filter ?? null,
+      after_killer_check: n,
+      after_srim_filter: null,
+      returned_candidates: null,
+    },
+    guidance: `killer 검사 완료(통과 ${n}개). srim 분석 진행 여부를 선택하세요.`,
+  };
+}
+
 export interface BuildResponseArgs {
   state: ScanCheckpointState;
   candidates: EnrichedCandidate[];
@@ -758,6 +817,72 @@ function saveAndReturnPartial(
   });
 }
 
+// Phase 2b에서 srim 패스 루프가 재사용할 함수 (ADR-0032).
+type SrimForCorpResult =
+  | { type: "pass"; candidate: PartialCandidate }
+  | { type: "skip"; skipped: SkippedCorp }
+  | { type: "rate_limit" };
+
+async function handleSrimForCorp(
+  corp: ListedWithMeta,
+  limitedCtx: ToolCtx,
+): Promise<SrimForCorpResult> {
+  try {
+    const r = (await srimTool.handler(
+      { corp_code: corp.corp_code },
+      limitedCtx,
+    )) as {
+      inputs: { avg_roe: number | null; required_return_K: number | null };
+      prices: unknown;
+      verdict: string | null;
+      gap_to_fair: number | null;
+      note: string;
+    };
+    if (r.verdict !== "BUY" && r.verdict !== "BUY_FAIR") {
+      return {
+        type: "skip",
+        skipped: {
+          corp_code: corp.corp_code,
+          corp_name: corp.corp_name,
+          stage: "stage3",
+          reason: `srim verdict=${r.verdict ?? "null"}`,
+        },
+      };
+    }
+    return {
+      type: "pass",
+      candidate: {
+        corp_code: corp.corp_code,
+        corp_name: corp.corp_name,
+        corp_cls: corp.corp_cls,
+        induty_code: corp.induty_code,
+        killer: { verdict: "PASS", triggered_rules: [] },
+        srim: {
+          verdict: r.verdict as "BUY" | "BUY_FAIR",
+          prices: r.prices,
+          gap_to_fair: r.gap_to_fair,
+          avg_roe: r.inputs.avg_roe,
+          required_return_K: r.inputs.required_return_K,
+        },
+      },
+    };
+  } catch (e) {
+    if (e instanceof DartRateLimitError) {
+      return { type: "rate_limit" };
+    }
+    return {
+      type: "skip",
+      skipped: {
+        corp_code: corp.corp_code,
+        corp_name: corp.corp_name,
+        stage: "stage3",
+        reason: `srim 호출 실패: ${(e as Error).message}`,
+        reason_code: classifySkipReason(e as Error),
+      },
+    };
+  }
+}
+
 export const scanExecuteTool = defineTool({
   name: "sagyeongin_scan_execute",
   description:
@@ -779,6 +904,7 @@ export const scanExecuteTool = defineTool({
 
     if (args.resume_from) {
       // resume — universe_meta 활용 + resolved를 input_args에서 복원
+      // Phase 2b: phase="awaiting_choice" 시 args.choice 분기 처리 예정 (ADR-0032).
       const loaded = loadCheckpoint(args.resume_from);
       if (!loaded) {
         throw new Error(
@@ -885,29 +1011,33 @@ export const scanExecuteTool = defineTool({
       }
     }
 
-    // Stage 2~3 처리
+    // Stage 2: killer-only 패스 (ADR-0032 Phase 2a)
     const partial: PartialCandidate[] = [
       ...(state.partial_candidates as PartialCandidate[]),
     ];
-    const stage23Skipped: SkippedCorp[] = [];
+    const killerPassedCodes: string[] = [
+      ...(state.killer_passed_corp_codes ?? []),
+    ];
+    const killerSkipped: SkippedCorp[] = [];
 
     for (let i = 0; i < universe.length; i++) {
       const corp = universe[i];
 
       if (limited.callCount >= CHECKPOINT_THRESHOLD) {
+        state.phase = "killer";
+        state.killer_passed_corp_codes = killerPassedCodes;
         return saveAndReturnPartial(
           state,
           universe,
           i,
           partial,
-          [...stage1Skipped, ...stage23Skipped],
+          [...stage1Skipped, ...killerSkipped],
           limited.callCount,
           resolved,
         );
       }
 
       // Stage 2: killer
-      let killerPass = false;
       try {
         const r = (await killerCheckTool.handler(
           { corp_code: corp.corp_code },
@@ -918,7 +1048,7 @@ export const scanExecuteTool = defineTool({
           triggered_rules: unknown[];
         };
         if (r.verdict === "EXCLUDE") {
-          stage23Skipped.push({
+          killerSkipped.push({
             corp_code: corp.corp_code,
             corp_name: r.corp_name,
             stage: "stage2",
@@ -926,22 +1056,24 @@ export const scanExecuteTool = defineTool({
           });
           continue;
         }
-        killerPass = true;
+        killerPassedCodes.push(corp.corp_code);
         state.killer_passed_cumulative =
           (state.killer_passed_cumulative ?? 0) + 1;
       } catch (e) {
         if (e instanceof DartRateLimitError) {
+          state.phase = "killer";
+          state.killer_passed_corp_codes = killerPassedCodes;
           return saveAndReturnPartial(
             state,
             universe,
             i,
             partial,
-            [...stage1Skipped, ...stage23Skipped],
+            [...stage1Skipped, ...killerSkipped],
             limited.callCount,
             resolved,
           );
         }
-        stage23Skipped.push({
+        killerSkipped.push({
           corp_code: corp.corp_code,
           corp_name: corp.corp_name,
           stage: "stage2",
@@ -950,67 +1082,11 @@ export const scanExecuteTool = defineTool({
         });
         continue;
       }
-      if (!killerPass) continue;
-
-      // Stage 3: srim
-      try {
-        const r = (await srimTool.handler(
-          { corp_code: corp.corp_code },
-          limitedCtx,
-        )) as {
-          inputs: { avg_roe: number | null; required_return_K: number | null };
-          prices: unknown;
-          verdict: string | null;
-          gap_to_fair: number | null;
-          note: string;
-        };
-        if (r.verdict !== "BUY" && r.verdict !== "BUY_FAIR") {
-          stage23Skipped.push({
-            corp_code: corp.corp_code,
-            corp_name: corp.corp_name,
-            stage: "stage3",
-            reason: `srim verdict=${r.verdict ?? "null"}`,
-          });
-          continue;
-        }
-        partial.push({
-          corp_code: corp.corp_code,
-          corp_name: corp.corp_name,
-          corp_cls: corp.corp_cls,
-          induty_code: corp.induty_code,
-          killer: { verdict: "PASS", triggered_rules: [] },
-          srim: {
-            verdict: r.verdict,
-            prices: r.prices,
-            gap_to_fair: r.gap_to_fair,
-            avg_roe: r.inputs.avg_roe,
-            required_return_K: r.inputs.required_return_K,
-          },
-        });
-      } catch (e) {
-        if (e instanceof DartRateLimitError) {
-          return saveAndReturnPartial(
-            state,
-            universe,
-            i,
-            partial,
-            [...stage1Skipped, ...stage23Skipped],
-            limited.callCount,
-            resolved,
-          );
-        }
-        stage23Skipped.push({
-          corp_code: corp.corp_code,
-          corp_name: corp.corp_name,
-          stage: "stage3",
-          reason: `srim 호출 실패: ${(e as Error).message}`,
-          reason_code: classifySkipReason(e as Error),
-        });
-        continue;
-      }
     }
 
-    // Stage 1~3 완료 — partial 보존 + Stage 4~6 진입
+    // killer 패스 완료 — awaiting_choice 멈춤 (ADR-0032 Phase 2a)
+    state.phase = "awaiting_choice";
+    state.killer_passed_corp_codes = killerPassedCodes;
     state.processed_corp_codes = [
       ...state.processed_corp_codes,
       ...universe.map((c) => c.corp_code),
@@ -1019,49 +1095,13 @@ export const scanExecuteTool = defineTool({
     state.partial_candidates = partial;
     state.call_count = limited.callCount;
     state.updated_at = new Date().toISOString();
+    saveCheckpoint(state);
 
-    // Stage 4~6 enrichment (resume 시에도 다시 호출 — 단순화 4)
-    const enrichResult = await enrichCandidates(partial, limitedCtx, limited);
-
-    if (enrichResult.limitReachedDuringEnrich) {
-      // partial 그대로 보존, candidates 미완성
-      saveCheckpoint(state);
-      return buildResponse({
-        state,
-        candidates: [],
-        skipped: [...stage1Skipped, ...stage23Skipped],
-        srimPassedCount: partial.length,
-        returnedCount: null,
-        hasCheckpoint: true,
-        preset_used: resolved.preset_used,
-        filter_summary: buildFilterSummary(resolved),
-        externalCallStats: {
-          dart: limited.callCount,
-          naver: naverLimited.callCount,
-          kis: kisLimited.callCount,
-        },
-      });
-    }
-
-    // composite_score + 정렬 + limit + rank
-    const finalCandidates = finalizeCandidates(enrichResult.enriched, resolved);
-
-    return buildResponse({
+    return buildKillerStopResponse({
+      killerPassedCodes,
+      universe,
       state,
-      candidates: finalCandidates,
-      skipped: [...stage1Skipped, ...stage23Skipped],
-      srimPassedCount: partial.length,
-      returnedCount: finalCandidates.length,
-      hasCheckpoint: false,
-      overrideApplied: resolved.allow_over_daily_limit,
-      scopeConfirmed: resolved.scope_confirmed,
-      preset_used: resolved.preset_used,
-      filter_summary: buildFilterSummary(resolved),
-      externalCallStats: {
-        dart: limited.callCount,
-        naver: naverLimited.callCount,
-        kis: kisLimited.callCount,
-      },
+      resolved,
     });
   },
 });
