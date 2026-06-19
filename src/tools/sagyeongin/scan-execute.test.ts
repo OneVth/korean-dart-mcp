@@ -11,6 +11,8 @@ import * as assert from "node:assert/strict";
 import {
   buildResponse,
   finalizeCandidates,
+  buildKillerStopResponse,
+  buildListOnlyResponse,
   SRIM_GAP_WEIGHT,
   type EnrichedCandidate,
   type ResolvedInput,
@@ -196,4 +198,170 @@ test("buildResponse: filter_summary 내용 일치 — excluded_industries_count 
     result.filter_summary.excluded_industries_count,
     result.filter_summary.excluded_industries.length,
   );
+});
+
+// ─── buildKillerStopResponse (ADR-0032 Phase 2a) ─────────────────────────────
+
+function makeUniverse(
+  codes: string[],
+): Array<{ corp_code: string; corp_name: string }> {
+  return codes.map((code, i) => ({ corp_code: code, corp_name: `테스트${i + 1}` }));
+}
+
+function makeKillerStopState(scan_id: string): import("./_lib/scan-checkpoint.js").ScanCheckpointState {
+  return {
+    scan_id,
+    created_at: "2026-06-18T00:00:00Z",
+    updated_at: "2026-06-18T00:00:00Z",
+    input_args: {},
+    processed_corp_codes: [],
+    pending_corp_codes: [],
+    partial_candidates: [],
+    call_count: 0,
+    phase: "awaiting_choice",
+    initial_universe: 100,
+    after_static_filter: 50,
+    killer_passed_cumulative: 3,
+  };
+}
+
+const baseKillerResolved: ResolvedInput = {
+  preset_used: "test",
+  min_opportunity_score: 0,
+  limit: 10,
+  allow_over_daily_limit: false,
+};
+
+test("buildKillerStopResponse: mode=killer_stop + scan_id 보존", () => {
+  const result = buildKillerStopResponse({
+    killerPassedCodes: ["A", "B", "C"],
+    universe: makeUniverse(["A", "B", "C"]),
+    state: makeKillerStopState("scan_2026-06-18_abc001"),
+    resolved: baseKillerResolved,
+  });
+  assert.equal(result.mode, "killer_stop");
+  assert.equal(result.scan_id, "scan_2026-06-18_abc001");
+});
+
+test("buildKillerStopResponse: N=3 ≤ 10 → list 포함 + corp_name 있음", () => {
+  const codes = ["A01", "B02", "C03"];
+  const result = buildKillerStopResponse({
+    killerPassedCodes: codes,
+    universe: makeUniverse(codes),
+    state: makeKillerStopState("scan_test_n3"),
+    resolved: baseKillerResolved,
+  });
+  assert.equal(result.killer_passed.count, 3);
+  assert.ok(Array.isArray(result.killer_passed.list), "list는 배열이어야 함");
+  assert.equal(result.killer_passed.list!.length, 3);
+  assert.equal(result.killer_passed.list![0].corp_code, "A01");
+  assert.ok(result.killer_passed.list![0].corp_name.length > 0);
+});
+
+test("buildKillerStopResponse: N=15 > 10 → list=null, count=15", () => {
+  const codes = Array.from({ length: 15 }, (_, i) => `CORP${i.toString().padStart(2, "0")}`);
+  const result = buildKillerStopResponse({
+    killerPassedCodes: codes,
+    universe: makeUniverse(codes),
+    state: makeKillerStopState("scan_test_n15"),
+    resolved: baseKillerResolved,
+  });
+  assert.equal(result.killer_passed.count, 15);
+  assert.equal(result.killer_passed.list, null);
+});
+
+test("buildKillerStopResponse: options 3개 항상 존재 (all/selected/list_only)", () => {
+  const result = buildKillerStopResponse({
+    killerPassedCodes: ["X"],
+    universe: makeUniverse(["X"]),
+    state: makeKillerStopState("scan_test_opts"),
+    resolved: baseKillerResolved,
+  });
+  assert.equal(result.options.length, 3);
+  const actions = result.options.map((o) => o.action);
+  assert.ok(actions.includes("all"));
+  assert.ok(actions.includes("selected"));
+  assert.ok(actions.includes("list_only"));
+});
+
+test("buildKillerStopResponse: pipeline_stats.after_killer_check = killerPassedCodes.length", () => {
+  const codes = ["P", "Q"];
+  const result = buildKillerStopResponse({
+    killerPassedCodes: codes,
+    universe: makeUniverse(codes),
+    state: makeKillerStopState("scan_test_stats"),
+    resolved: baseKillerResolved,
+  });
+  assert.equal(result.pipeline_stats.after_killer_check, 2);
+  assert.equal(result.pipeline_stats.after_srim_filter, null);
+  assert.equal(result.pipeline_stats.returned_candidates, null);
+});
+
+test("buildKillerStopResponse: N=10 경계 → list 포함 (≤ 10 경계 확인)", () => {
+  const codes = Array.from({ length: 10 }, (_, i) => `CORP${i}`);
+  const result = buildKillerStopResponse({
+    killerPassedCodes: codes,
+    universe: makeUniverse(codes),
+    state: makeKillerStopState("scan_test_n10"),
+    resolved: baseKillerResolved,
+  });
+  assert.ok(Array.isArray(result.killer_passed.list));
+  assert.equal(result.killer_passed.list!.length, 10);
+});
+
+test("buildKillerStopResponse: N=11 경계 → list=null (> 10 경계 확인)", () => {
+  const codes = Array.from({ length: 11 }, (_, i) => `CORP${i}`);
+  const result = buildKillerStopResponse({
+    killerPassedCodes: codes,
+    universe: makeUniverse(codes),
+    state: makeKillerStopState("scan_test_n11"),
+    resolved: baseKillerResolved,
+  });
+  assert.equal(result.killer_passed.list, null);
+});
+
+// ─── buildListOnlyResponse (ADR-0032 Phase 2b) ───────────────────────────────
+
+test("buildListOnlyResponse: mode=list_only + scan_id 보존", () => {
+  const state = makeKillerStopState("scan_list_test");
+  state.killer_passed_corp_codes = ["A", "B"];
+  const nameMap = new Map([["A", "현대"], ["B", "기아"]]);
+  const result = buildListOnlyResponse({ state, nameMap });
+  assert.equal(result.mode, "list_only");
+  assert.equal(result.scan_id, "scan_list_test");
+});
+
+test("buildListOnlyResponse: 가나다순 정렬 (localeCompare ko)", () => {
+  const state = makeKillerStopState("scan_list_sort");
+  state.killer_passed_corp_codes = ["A", "B", "C"];
+  const nameMap = new Map([["A", "현대"], ["B", "삼성"], ["C", "기아"]]);
+  const result = buildListOnlyResponse({ state, nameMap });
+  assert.equal(result.killer_list[0].corp_name, "기아");
+  assert.equal(result.killer_list[1].corp_name, "삼성");
+  assert.equal(result.killer_list[2].corp_name, "현대");
+});
+
+test("buildListOnlyResponse: killer_list.length = killer_passed_corp_codes.length", () => {
+  const state = makeKillerStopState("scan_list_len");
+  state.killer_passed_corp_codes = ["X", "Y", "Z"];
+  const nameMap = new Map([["X", "나"], ["Y", "가"], ["Z", "다"]]);
+  const result = buildListOnlyResponse({ state, nameMap });
+  assert.equal(result.killer_list.length, 3);
+});
+
+test("buildListOnlyResponse: pipeline_stats 정합 — after_killer_check/after_srim_filter=null", () => {
+  const state = makeKillerStopState("scan_list_stats");
+  state.killer_passed_corp_codes = ["P", "Q"];
+  const nameMap = new Map([["P", "가"], ["Q", "나"]]);
+  const result = buildListOnlyResponse({ state, nameMap });
+  assert.equal(result.pipeline_stats.after_killer_check, 2);
+  assert.equal(result.pipeline_stats.after_srim_filter, null);
+  assert.equal(result.pipeline_stats.returned_candidates, null);
+});
+
+test("buildListOnlyResponse: 빈 명단 → killer_list=[]", () => {
+  const state = makeKillerStopState("scan_list_empty");
+  state.killer_passed_corp_codes = [];
+  const result = buildListOnlyResponse({ state, nameMap: new Map() });
+  assert.equal(result.killer_list.length, 0);
 });
