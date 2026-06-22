@@ -21,6 +21,8 @@
 import { z } from "zod";
 import { defineTool } from "../_helpers.js";
 import { loadConfig, type ScanPreset } from "./_lib/config-store.js";
+import { loadUserPreference } from "./_lib/user-preference-store.js";
+import { mergeIndustries } from "./_lib/industry-merge.js";
 import {
   loadListedCompanies,
   filterUniverse,
@@ -92,6 +94,8 @@ const Input = z.object({
   included_industries: z.array(z.string()).optional(),
   excluded_industries: z.array(z.string()).optional(),
   excluded_name_patterns: z.array(z.string()).optional(),
+  ignore_preference_whitelist: z.boolean().optional()
+    .describe("true면 취향 whitelist를 무시하고 전체 업종 스캔. blacklist 유지."),
 });
 
 export const scanPreviewTool = defineTool({
@@ -126,13 +130,18 @@ export const scanPreviewTool = defineTool({
       presetConfig = { ...(config.scan_presets[config.active_preset] ?? {}) };
     }
 
-    // override 영역 — 직접 지정 입력 우선
+    // override 영역 — 직접 지정 입력 우선, user preference 반영
+    const pref = await loadUserPreference();
     const merged: ScanPreset = {
       markets: args.markets ?? presetConfig.markets,
       included_industries:
-        args.included_industries ?? presetConfig.included_industries,
+        args.included_industries
+        ?? (args.ignore_preference_whitelist
+              ? mergeIndustries(presetConfig.included_industries, [], "override")
+              : mergeIndustries(presetConfig.included_industries, pref.induty_whitelist, "override")),
       excluded_industries:
-        args.excluded_industries ?? presetConfig.excluded_industries,
+        args.excluded_industries
+        ?? mergeIndustries(presetConfig.excluded_industries, pref.induty_blacklist, "union"),
       excluded_name_patterns:
         args.excluded_name_patterns ?? presetConfig.excluded_name_patterns,
     };

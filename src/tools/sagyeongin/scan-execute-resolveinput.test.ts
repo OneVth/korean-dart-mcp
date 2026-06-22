@@ -107,3 +107,23 @@ test("allow_over_daily_limit: args=true + preset=false → resolved=true (직접
   const r = await resolveInput({ ...baseArgs, allow_over_daily_limit: true });
   assert.equal(r.allow_over_daily_limit, true);
 });
+
+test("ignore_preference_whitelist=true → included는 preset만, excluded는 blacklist union", async () => {
+  await writePref({ induty_whitelist: ["50"], induty_blacklist: ["68"], updated_at: "2026-05-28" });
+  const r = await resolveInput({ ...baseArgs, ignore_preference_whitelist: true });
+  assert.deepEqual(r.included_industries, ["10"]); // whitelist ["50"] 무시, preset ["10"] 유지
+  assert.deepEqual(r.excluded_industries, ["64", "68"]); // blacklist union 유지
+});
+
+test("ignore_preference_whitelist=false → 기존 whitelist 적용 동작", async () => {
+  await writePref({ induty_whitelist: ["50"], induty_blacklist: ["68"], updated_at: "2026-05-28" });
+  const r = await resolveInput({ ...baseArgs, ignore_preference_whitelist: false });
+  assert.deepEqual(r.included_industries, ["50"]); // whitelist 적용
+  assert.deepEqual(r.excluded_industries, ["64", "68"]);
+});
+
+test("ignore_preference_whitelist=true + whitelist 없을 때 → preset included 그대로", async () => {
+  await writePref({ induty_whitelist: [], induty_blacklist: [], updated_at: "2026-05-28" });
+  const r = await resolveInput({ ...baseArgs, ignore_preference_whitelist: true });
+  assert.deepEqual(r.included_industries, ["10"]); // preset 유지
+});

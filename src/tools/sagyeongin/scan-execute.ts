@@ -153,6 +153,8 @@ const InputSchema = z.object({
     .array(z.string())
     .optional()
     .describe("choice=selected 시 srim 돌릴 corp_code 목록"),
+  ignore_preference_whitelist: z.boolean().optional()
+    .describe("true면 취향 whitelist(관심 업종 한정)를 무시하고 전체 업종 스캔. blacklist(제외)는 유지. 사용자가 '전수조사/전부'를 원할 때."),
 });
 
 export interface ResolvedInput {
@@ -275,7 +277,9 @@ export async function resolveInput(
     markets: args.markets ?? preset.markets,
     included_industries:
       args.included_industries
-      ?? mergeIndustries(preset.included_industries, pref.induty_whitelist, "override"),
+      ?? (args.ignore_preference_whitelist
+            ? mergeIndustries(preset.included_industries, [], "override")
+            : mergeIndustries(preset.included_industries, pref.induty_whitelist, "override")),
     excluded_industries:
       args.excluded_industries
       ?? mergeIndustries(preset.excluded_industries, pref.induty_blacklist, "union"),
